@@ -1,1 +1,6 @@
 .env
+
+# Example project QC files
+.qc
+.qchistory
+.qcignore
