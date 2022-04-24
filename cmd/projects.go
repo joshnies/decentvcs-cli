@@ -39,7 +39,7 @@ func Init(c *cli.Context) error {
 	// Create project in API
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
 	body := bytes.NewBuffer(bodyJson)
-	res, err := http.Post(api.BuildURL("/projects"), "application/json", body)
+	res, err := http.Post(api.BuildURL("projects"), "application/json", body)
 	if err != nil {
 		return err
 	}
@@ -59,9 +59,7 @@ func Init(c *cli.Context) error {
 	}
 	projects.CreateProjectFile(absPath, projectFileData)
 
-	// Create empty QC history and ignore files
-	projects.CreateEmptyJsonFile(filepath.Join(absPath, ".qchistory"))
-	projects.CreateEmptyJsonFile(filepath.Join(absPath, ".qcignore"))
+	println("Project created successfully!")
 
 	return nil
 }
