@@ -1,4 +1,4 @@
-package api
+package lib
 
 import "github.com/joshnies/qc-cli/config"
 
