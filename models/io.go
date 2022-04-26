@@ -18,5 +18,13 @@ func MergeProjectFileData(existingData, newData ProjectFileData) ProjectFileData
 		merged.CurrentBranchID = newData.CurrentBranchID
 	}
 
+	if newData.AccessGrant != "" {
+		merged.AccessGrant = newData.AccessGrant
+	}
+
+	if newData.AccessGrantExpiration != 0 {
+		merged.AccessGrantExpiration = newData.AccessGrantExpiration
+	}
+
 	return merged
 }

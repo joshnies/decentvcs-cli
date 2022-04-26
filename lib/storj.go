@@ -50,8 +50,10 @@ func GetAccessGrant() (string, error) {
 	accessGrant := decodedRes.AccessGrant
 
 	// Write access grant to project config
-	err = WriteProjectConfig(".", models.ProjectFileData{
+	projectConfig, err = WriteProjectConfig(".", models.ProjectFileData{
 		AccessGrant: accessGrant,
+		// TODO: Enforce this 24-hour expiration in Storj itself
+		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
 	})
 	if err != nil {
 		fmt.Println("Error writing project config")

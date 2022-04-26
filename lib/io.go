@@ -13,13 +13,13 @@ import (
 )
 
 // Write project file.
-func WriteProjectConfig(path string, data models.ProjectFileData) error {
+func WriteProjectConfig(path string, data models.ProjectFileData) (models.ProjectFileData, error) {
 	configPath := filepath.Join(path, constants.ProjectFileName)
 
 	// Read existing project file (if it exists)
 	jsonFile, err := os.Open(configPath)
 	if err != nil && !os.IsNotExist(err) {
-		return err
+		return models.ProjectFileData{}, err
 	}
 	defer jsonFile.Close()
 
@@ -29,7 +29,7 @@ func WriteProjectConfig(path string, data models.ProjectFileData) error {
 		err = json.NewDecoder(jsonFile).Decode(&existingData)
 		if err != nil {
 			// TODO: Improve this error
-			return err
+			return models.ProjectFileData{}, err
 		}
 	}
 
@@ -40,10 +40,11 @@ func WriteProjectConfig(path string, data models.ProjectFileData) error {
 	json, err := json.MarshalIndent(mergedData, "", "  ")
 	if err != nil {
 		// TODO: Improve this error
-		return err
+		return models.ProjectFileData{}, err
 	}
 
-	return ioutil.WriteFile(configPath, json, os.ModePerm)
+	err = ioutil.WriteFile(configPath, json, os.ModePerm)
+	return mergedData, err
 }
 
 // Detect file changes.
