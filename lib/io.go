@@ -12,9 +12,11 @@ import (
 )
 
 // Write project file.
-func WriteProjectFile(path string, data models.ProjectFileData) error {
+func WriteProjectConfig(path string, data models.ProjectFileData) error {
+	configPath := filepath.Join(path, constants.ProjectFileName)
+
 	// Read existing project file (if it exists)
-	jsonFile, err := os.Open(path)
+	jsonFile, err := os.Open(configPath)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -40,7 +42,7 @@ func WriteProjectFile(path string, data models.ProjectFileData) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(path, constants.ProjectFileName), json, os.ModePerm)
+	return ioutil.WriteFile(configPath, json, os.ModePerm)
 }
 
 // Detect file changes.

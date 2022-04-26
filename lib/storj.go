@@ -22,32 +22,39 @@ func GetAccessGrant() (string, error) {
 			return projectConfig.AccessGrant, nil
 		}
 	} else {
+		fmt.Println("Error getting project config")
 		return "", err
 	}
 
 	projectId := projectConfig.ProjectID
 
 	// Get new access grant from API
-	res, err := http.Get(BuildURL(fmt.Sprintf("%s/access_grant", projectId)))
+	res, err := http.Get(BuildURL(fmt.Sprintf("projects/%s/access_grant", projectId)))
 	if err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != 200 {
+		return "", fmt.Errorf("failed to get access grant from API (status: %s)", res.Status)
+	}
+
 	// Parse response
 	var decodedRes models.AccessGrantResponse
 	err = json.NewDecoder(res.Body).Decode(&decodedRes)
 	if err != nil {
+		fmt.Println("Error parsing API response")
 		return "", err
 	}
 
 	accessGrant := decodedRes.AccessGrant
 
-	// Write access grant to project file
-	err = WriteProjectFile(projectId, models.ProjectFileData{
+	// Write access grant to project config
+	err = WriteProjectConfig(".", models.ProjectFileData{
 		AccessGrant: accessGrant,
 	})
 	if err != nil {
+		fmt.Println("Error writing project config")
 		return "", err
 	}
 
