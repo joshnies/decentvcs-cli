@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -54,20 +55,25 @@ func DetectFileChanges() ([]string, error) {
 	// Read project history file
 	historyFile, err := os.Open(constants.HistoryFileName)
 	if os.IsNotExist(err) {
-		// Create project history file
-		_, createErr := os.Create(constants.HistoryFileName)
-		if createErr != nil {
-			return nil, createErr
+		// Write empty history file
+		historyJson, err := json.Marshal(map[string]int64{})
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		// Return error if not a "file not found" error
-		return nil, err
-	}
 
-	if err == nil {
+		err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		// Return error if not a "file not found" error
+		fmt.Println("Error reading history file")
+		return nil, err
+	} else {
 		// Decode JSON
 		err = json.NewDecoder(historyFile).Decode(&history)
 		if err != nil {
+			fmt.Println("Error reading history file")
 			return nil, err
 		}
 	}
