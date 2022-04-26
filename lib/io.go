@@ -7,17 +7,40 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/models"
 )
 
 // Write project file.
-func CreateProjectFile(path string, data models.ProjectFileData) error {
-	json, err := json.MarshalIndent(data, "", "  ")
+func WriteProjectFile(path string, data models.ProjectFileData) error {
+	// Read existing project file (if it exists)
+	jsonFile, err := os.Open(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	defer jsonFile.Close()
+
+	// Decode existing data JSON
+	var existingData models.ProjectFileData
+	if jsonFile != nil {
+		err = json.NewDecoder(jsonFile).Decode(&existingData)
+		if err != nil {
+			// TODO: Improve this error
+			return err
+		}
+	}
+
+	// If existing data exists, merge it with new data
+	mergedData := models.MergeProjectFileData(existingData, data)
+
+	// Write
+	json, err := json.MarshalIndent(mergedData, "", "  ")
 	if err != nil {
+		// TODO: Improve this error
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(path, ".qc"), json, os.ModePerm)
+	return ioutil.WriteFile(filepath.Join(path, constants.ProjectFileName), json, os.ModePerm)
 }
 
 // Detect file changes.
@@ -27,10 +50,10 @@ func DetectFileChanges() ([]string, error) {
 	history := map[string]int64{}
 
 	// Read project history file
-	historyFile, err := os.Open(".qchistory")
+	historyFile, err := os.Open(constants.HistoryFileName)
 	if os.IsNotExist(err) {
 		// Create project history file
-		_, createErr := os.Create(".qchistory")
+		_, createErr := os.Create(constants.HistoryFileName)
 		if createErr != nil {
 			return nil, createErr
 		}

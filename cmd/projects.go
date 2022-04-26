@@ -60,7 +60,7 @@ func Init(c *cli.Context) error {
 		ProjectID:       project.ID,
 		CurrentBranchID: project.Branches[len(project.Branches)-1].ID,
 	}
-	lib.CreateProjectFile(absPath, projectFileData)
+	lib.WriteProjectFile(absPath, projectFileData)
 
 	println("Project created successfully!")
 
