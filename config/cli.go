@@ -7,8 +7,8 @@ type APIConfig struct {
 }
 
 type CLIConfig struct {
-	Debug bool
-	API   APIConfig
+	Verbose bool
+	API     APIConfig
 }
 
 var I CLIConfig
@@ -16,9 +16,9 @@ var I CLIConfig
 // Initialize the CLI config.
 func InitConfig() CLIConfig {
 	I = CLIConfig{
-		Debug: os.Getenv("DEBUG") == "true",
+		Verbose: os.Getenv("VERBOSE") == "1",
 		API: APIConfig{
-			Host: os.Getenv("API_HOST"),
+			Host: "http://localhost:8080/v1",
 		},
 	}
 

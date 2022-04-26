@@ -24,17 +24,27 @@ func CreateProjectFile(path string, data models.ProjectFileData) error {
 //
 // Returns a list of paths to changed files.
 func DetectFileChanges() ([]string, error) {
+	history := map[string]int64{}
+
 	// Read project history file
 	historyFile, err := os.Open(".qchistory")
-	if err != nil {
+	if os.IsNotExist(err) {
+		// Create project history file
+		_, createErr := os.Create(".qchistory")
+		if createErr != nil {
+			return nil, createErr
+		}
+	} else {
+		// Return error if not a "file not found" error
 		return nil, err
 	}
 
-	// Decode JSON
-	history := map[string]int64{}
-	err = json.NewDecoder(historyFile).Decode(&history)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		// Decode JSON
+		err = json.NewDecoder(historyFile).Decode(&history)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	changedFiles := []string{}
@@ -49,13 +59,15 @@ func DetectFileChanges() ([]string, error) {
 			return nil
 		}
 
-		// Check if file has changed
+		// Check if file has changed or doesnt exist in remote yet
 		// TODO: Check file size
 		if lastModTime, ok := history[path]; ok {
 			if info.ModTime().Unix() > lastModTime {
 				changedFiles = append(changedFiles, path)
 				return nil
 			}
+		} else {
+			changedFiles = append(changedFiles, path)
 		}
 
 		return nil

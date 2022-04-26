@@ -29,6 +29,7 @@ func Push(c *cli.Context) error {
 	// TODO: Upload patch files to storage (if any patch files were created)
 	// TODO: Upload new files to storage (initial snapshots)
 	// TODO: Create commit in database
+	// TODO: Update history file
 
 	return nil
 }

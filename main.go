@@ -4,19 +4,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/joshnies/qc-cli/cmd"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	// Initialize config
 	config.InitConfig()
 
@@ -52,7 +45,7 @@ func main() {
 		},
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
