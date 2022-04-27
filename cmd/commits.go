@@ -1,8 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib"
+	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
 
@@ -28,6 +33,40 @@ func Push(c *cli.Context) error {
 		VerboseVars: []interface{}{changedFiles},
 	})
 
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "Creating commit...",
+	})
+
+	// Create commit in database
+	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", nil)
+	if err != nil {
+		return err
+	}
+	defer commitRes.Body.Close()
+
+	if commitRes.StatusCode != http.StatusCreated {
+		return lib.Log(lib.LogOptions{
+			Level:       lib.Error,
+			Str:         "Failed to create commit",
+			VerboseStr:  "Failed to create commit via API (status: %s)",
+			VerboseVars: []interface{}{commitRes.Status},
+		})
+	}
+
+	// Parse commit
+	var commit models.Commit
+	err = json.NewDecoder(commitRes.Body).Decode(&commit)
+	if err != nil {
+		return err
+	}
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "Commit %s created successfully",
+		Vars:  []interface{}{commit.ID},
+	})
+
 	// Pull changed files from remote
 	downloads, err := lib.DownloadBulk(projectConfig, changedFiles)
 	if err != nil {
@@ -50,17 +89,17 @@ func Push(c *cli.Context) error {
 	})
 
 	// Upload new files to storage (initial snapshots)
-	err = lib.UploadBulk(projectConfig, changedFiles)
+	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
+	err = lib.UploadBulk(prefix, changedFiles)
 	if err != nil {
 		return err
 	}
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "Upload successful",
+		Str:   "Uploads successful",
 	})
 
-	// TODO: Create commit in database
 	// TODO: Update history file
 
 	return nil

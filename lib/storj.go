@@ -158,7 +158,7 @@ func DownloadBulk(projectConfig models.ProjectFileData, keys []string) ([]*uplin
 //
 // @param paths - Paths to files that will be uploaded
 //
-func UploadBulk(projectConfig models.ProjectFileData, paths []string) error {
+func UploadBulk(prefix string, paths []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -183,7 +183,7 @@ func UploadBulk(projectConfig models.ProjectFileData, paths []string) error {
 		}
 
 		// Start upload
-		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, projectConfig.ProjectID+"/"+path, nil)
+		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, prefix+"/"+path, nil)
 		if err != nil {
 			return err
 		}
