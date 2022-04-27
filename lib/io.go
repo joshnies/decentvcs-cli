@@ -2,7 +2,6 @@ package lib
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -50,78 +49,6 @@ func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectC
 	return mergedData, err
 }
 
-// Detect file changes.
-//
-// Returns:
-//
-// - list of paths to changed files
-//
-// - list of modification times in Unix seconds
-//
-// - error
-func DetectFileChanges() ([]string, []int64, error) {
-	history := HistoryData{}
-
-	// Read project history file
-	historyFile, err := os.Open(constants.HistoryFileName)
-	if os.IsNotExist(err) {
-		// Write empty history file
-		historyJson, err := json.Marshal(HistoryData{})
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else if err != nil {
-		// Return error if not a "file not found" error
-		fmt.Println("Error reading history file")
-		return nil, nil, err
-	} else {
-		// Decode JSON
-		err = json.NewDecoder(historyFile).Decode(&history)
-		if err != nil {
-			fmt.Println("Error reading history file")
-			return nil, nil, err
-		}
-	}
-
-	changedFiles := []string{}
-	modTimes := []int64{}
-
-	// Walk project directory
-	filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		currentModTime := info.ModTime().Unix()
-
-		// Check if file has changed or doesnt exist in remote yet
-		// TODO: Check file size
-		if lastModTime, ok := history[path]; ok {
-			if currentModTime > lastModTime {
-				changedFiles = append(changedFiles, path)
-				modTimes = append(modTimes, currentModTime)
-				return nil
-			}
-		} else {
-			changedFiles = append(changedFiles, path)
-			modTimes = append(modTimes, currentModTime)
-		}
-
-		return nil
-	})
-
-	return changedFiles, modTimes, nil
-}
-
 // Read project history file.
 //
 // Returns history data.
@@ -162,4 +89,54 @@ func ReadHistory() (HistoryData, error) {
 	}
 
 	return history, nil
+}
+
+// Detect file changes.
+//
+// Returns:
+//
+// - list of paths to changed files
+//
+// - list of modification times in Unix seconds
+//
+// - error
+func DetectFileChanges() ([]string, []int64, error) {
+	// Read project history file
+	history, err := ReadHistory()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	changedFiles := []string{}
+	modTimes := []int64{}
+
+	// Walk project directory
+	filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		currentModTime := info.ModTime().Unix()
+
+		// Check if file has changed or doesnt exist in remote yet
+		// TODO: Check file size
+		if lastModTime, ok := history[path]; ok {
+			if currentModTime > lastModTime {
+				changedFiles = append(changedFiles, path)
+				modTimes = append(modTimes, currentModTime)
+				return nil
+			}
+		} else {
+			changedFiles = append(changedFiles, path)
+			modTimes = append(modTimes, currentModTime)
+		}
+
+		return nil
+	})
+
+	return changedFiles, modTimes, nil
 }
