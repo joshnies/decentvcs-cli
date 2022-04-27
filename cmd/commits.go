@@ -106,7 +106,6 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "Snapshot uploads successful. Updating history...",
-		Vars:  []interface{}{len(changedFiles)},
 	})
 
 	// Read history file
@@ -135,7 +134,6 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "History updated successfully",
-		Vars:  []interface{}{len(changedFiles)},
 	})
 
 	lib.Log(lib.LogOptions{
