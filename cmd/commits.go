@@ -9,7 +9,7 @@ import (
 // Push local changes to remote
 func Push(c *cli.Context) error {
 	// Make sure current directory is a project
-	_, err := config.GetProjectConfig()
+	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -21,16 +21,28 @@ func Push(c *cli.Context) error {
 	}
 
 	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "%d changes detected",
-		Vars:  []interface{}{len(changedFiles)},
+		Level:       lib.Info,
+		Str:         "%d changes detected",
+		Vars:        []interface{}{len(changedFiles)},
+		VerboseStr:  "Files changed: %s",
+		VerboseVars: []interface{}{changedFiles},
 	})
 
 	// Pull changed files from remote
+	_, err = lib.DownloadBulk(projectConfig, changedFiles)
+	if err != nil {
+		return err
+	}
 
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Upload patch files to storage (if any patch files were created)
-	// TODO: Upload new files to storage (initial snapshots)
+
+	// Upload new files to storage (initial snapshots)
+	err = lib.UploadBulk(projectConfig, changedFiles)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Create commit in database
 	// TODO: Update history file
 

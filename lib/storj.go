@@ -1,9 +1,12 @@
 package lib
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -39,7 +42,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, Log(LogOptions{
 			Level:       Error,
 			Str:         "Failed to get project config, please make sure this directory is a Quanta Control project",
-			VerboseStr:  "Failed to get project config: %s",
+			VerboseStr:  "Failed to get project config: %v",
 			VerboseVars: []interface{}{err},
 		})
 	}
@@ -52,7 +55,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, Log(LogOptions{
 			Level:       Error,
 			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to get access grant from API (request failed): %s",
+			VerboseStr:  "Failed to get access grant from API (request failed): %v",
 			VerboseVars: []interface{}{err},
 		})
 	}
@@ -75,7 +78,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, Log(LogOptions{
 			Level:       Error,
 			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to parse API response: %s",
+			VerboseStr:  "Failed to parse API response: %v",
 			VerboseVars: []interface{}{err},
 		})
 	}
@@ -91,7 +94,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 	if err != nil {
 		return nil, Log(LogOptions{
 			Level: Error,
-			Str:   "Failed to write project config: %s",
+			Str:   "Failed to write project config: %v",
 			Vars:  []interface{}{err},
 		})
 	}
@@ -102,7 +105,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, Log(LogOptions{
 			Level:       Error,
 			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to parse Storj access: %s",
+			VerboseStr:  "Failed to parse Storj access: %v",
 			VerboseVars: []interface{}{err},
 		})
 	}
@@ -115,7 +118,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 // @param keys - List of object keys to download
 //
 // Returns an array of uplink download objects.
-func DownloadBulk(keys []string) ([]*uplink.Download, error) {
+func DownloadBulk(projectConfig models.ProjectFileData, keys []string) ([]*uplink.Download, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -135,7 +138,7 @@ func DownloadBulk(keys []string) ([]*uplink.Download, error) {
 	downloads := make([]*uplink.Download, len(keys))
 
 	for _, key := range keys {
-		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, key, nil)
+		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectConfig.ProjectID+"/"+key, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -145,4 +148,61 @@ func DownloadBulk(keys []string) ([]*uplink.Download, error) {
 	}
 
 	return downloads, nil
+}
+
+// Upload objects in bulk to Storj.
+//
+// @param paths - Paths to files that will be uploaded
+//
+func UploadBulk(projectConfig models.ProjectFileData, paths []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get access grant
+	accessGrant, err := GetAccessGrant()
+	if err != nil {
+		return err
+	}
+
+	// Open Storj project
+	sp, err := uplink.OpenProject(ctx, accessGrant)
+	if err != nil {
+		return err
+	}
+
+	for _, path := range paths {
+		// Read file
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		// Start upload
+		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, projectConfig.ProjectID+"/"+path, nil)
+		if err != nil {
+			return err
+		}
+
+		// Copy file data to upload buffer
+		buf := bytes.NewBuffer(data)
+		_, err = io.Copy(upload, buf)
+		if err != nil {
+			_ = upload.Abort()
+			return Log(LogOptions{
+				Level:       Error,
+				Str:         "Failed to upload file: %s",
+				Vars:        []interface{}{path},
+				VerboseStr:  "Failed to upload file: %s; Error: %v",
+				VerboseVars: []interface{}{err},
+			})
+		}
+
+		// Commit upload
+		err = upload.Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
