@@ -29,19 +29,25 @@ func Push(c *cli.Context) error {
 	})
 
 	// Pull changed files from remote
-	_, err = lib.DownloadBulk(projectConfig, changedFiles)
+	downloads, err := lib.DownloadBulk(projectConfig, changedFiles)
 	if err != nil {
 		return err
 	}
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "%d files downloaded",
+		Vars:  []interface{}{len(downloads)},
+	})
 
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Upload patch files to storage (if any patch files were created)
 
 	// Upload new files to storage (initial snapshots)
-	err = lib.UploadBulk(projectConfig, changedFiles)
-	if err != nil {
-		return err
-	}
+	// err = lib.UploadBulk(projectConfig, changedFiles)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// TODO: Create commit in database
 	// TODO: Update history file

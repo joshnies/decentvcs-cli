@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -135,16 +136,18 @@ func DownloadBulk(projectConfig models.ProjectFileData, keys []string) ([]*uplin
 	}
 
 	// Download objects
-	downloads := make([]*uplink.Download, len(keys))
+	var downloads []*uplink.Download
 
 	for _, key := range keys {
 		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectConfig.ProjectID+"/"+key, nil)
-		if err != nil {
+		if err != nil && !errors.Is(err, uplink.ErrObjectNotFound) {
 			return nil, err
 		}
-		defer d.Close()
 
-		downloads = append(downloads, d)
+		if d != nil {
+			defer d.Close()
+			downloads = append(downloads, d)
+		}
 	}
 
 	return downloads, nil
