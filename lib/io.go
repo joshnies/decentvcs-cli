@@ -1,7 +1,10 @@
 package lib
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -9,6 +12,7 @@ import (
 
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/models"
+	"github.com/samber/lo"
 )
 
 // History file data
@@ -51,12 +55,12 @@ func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectC
 
 // Read project history file.
 //
-// Returns history data.
-func ReadHistory() (HistoryData, error) {
+// Returns list history entries.
+func ReadHistory() ([]models.HistoryEntry, error) {
 	historyFile, err := os.Open(constants.HistoryFileName)
 	if os.IsNotExist(err) {
 		// Write empty history file
-		historyJson, _ := json.Marshal(HistoryData{})
+		historyJson, _ := json.Marshal([]HistoryData{})
 		err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
 		if err != nil {
 			return nil, Log(LogOptions{
@@ -77,7 +81,7 @@ func ReadHistory() (HistoryData, error) {
 	}
 
 	// Decode JSON
-	var history HistoryData
+	var history []models.HistoryEntry
 	err = json.NewDecoder(historyFile).Decode(&history)
 	if err != nil {
 		return nil, Log(LogOptions{
@@ -91,27 +95,36 @@ func ReadHistory() (HistoryData, error) {
 	return history, nil
 }
 
-// Detect file changes.
-//
-// Returns:
-//
-// - list of paths to changed files
-//
-// - list of modification times in Unix seconds
-//
-// - error
-func DetectFileChanges() ([]string, []int64, error) {
-	// Read project history file
-	history, err := ReadHistory()
+// Get file SHA1 hash. Can be used to detect file changes.
+func GetFileHash(path string) (string, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		return nil, nil, err
+		return "", err
+	}
+	defer file.Close()
+
+	hash := sha1.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
 	}
 
-	changedFiles := []string{}
-	modTimes := []int64{}
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// Detect file changes.
+//
+// Returns a list of history entries.
+func DetectFileChanges() ([]models.HistoryEntry, error) {
+	// Read project history file
+	currentHistory, err := ReadHistory()
+	if err != nil {
+		return nil, err
+	}
+
+	var newHistory []models.HistoryEntry
 
 	// Walk project directory
-	filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -120,23 +133,52 @@ func DetectFileChanges() ([]string, []int64, error) {
 			return nil
 		}
 
-		currentModTime := info.ModTime().Unix()
+		currentHash, err := GetFileHash(path)
+		if err != nil {
+			return err
+		}
 
-		// Check if file has changed or doesnt exist in remote yet
-		// TODO: Check file size
-		if lastModTime, ok := history[path]; ok {
-			if currentModTime > lastModTime {
-				changedFiles = append(changedFiles, path)
-				modTimes = append(modTimes, currentModTime)
-				return nil
+		// Check if file has been created, modified or deleted
+		historyEntry, ok := lo.Find(currentHistory, func(entry models.HistoryEntry) bool {
+			return entry.Path == path
+		})
+
+		if ok {
+			// Check if file has been modified
+			if currentHash != historyEntry.Hash {
+				hash, err := GetFileHash(path)
+				if err != nil {
+					return err
+				}
+
+				newHistory = append(newHistory, models.HistoryEntry{
+					Path: path,
+					Hash: hash,
+				})
 			}
 		} else {
-			changedFiles = append(changedFiles, path)
-			modTimes = append(modTimes, currentModTime)
+			// File is new
+			hash, err := GetFileHash(path)
+			if err != nil {
+				return err
+			}
+
+			newHistory = append(newHistory, models.HistoryEntry{
+				Path: path,
+				Hash: hash,
+			})
 		}
 
 		return nil
 	})
+	if err != nil {
+		return nil, Log(LogOptions{
+			Level:       Error,
+			Str:         "Failed to detect file changes",
+			VerboseStr:  "%v",
+			VerboseVars: []interface{}{err},
+		})
+	}
 
-	return changedFiles, modTimes, nil
+	return newHistory, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib"
 	"github.com/joshnies/qc-cli/models"
+	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,7 +25,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	changedFiles, modTimes, err := lib.DetectFileChanges()
+	history, err := lib.DetectFileChanges()
 	if err != nil {
 		return err
 	}
@@ -32,13 +33,18 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level:       lib.Info,
 		Str:         "%d changes detected",
-		Vars:        []interface{}{len(changedFiles)},
+		Vars:        []interface{}{len(history)},
 		VerboseStr:  "Files changed: %s",
-		VerboseVars: []interface{}{changedFiles},
+		VerboseVars: []interface{}{history},
+	})
+
+	// Get all file paths from history
+	changedFilePaths := lo.Map(history, func(entry models.HistoryEntry, _ int) string {
+		return entry.Path
 	})
 
 	// Pull changed files from remote
-	downloads, err := lib.DownloadBulk(projectConfig, changedFiles)
+	downloads, err := lib.DownloadBulk(projectConfig, changedFilePaths)
 	if err != nil {
 		return err
 	}
@@ -58,7 +64,7 @@ func Push(c *cli.Context) error {
 	})
 
 	// Create commit in database
-	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": changedFiles})
+	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": changedFilePaths})
 	body := bytes.NewBuffer(bodyJson)
 	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
 	if err != nil {
@@ -93,12 +99,12 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "Uploading %d new files as snapshots...",
-		Vars:  []interface{}{len(changedFiles)},
+		Vars:  []interface{}{len(changedFilePaths)},
 	})
 
 	// Upload new files to storage (initial snapshots)
 	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
-	err = lib.UploadBulk(prefix, changedFiles)
+	err = lib.UploadBulk(prefix, changedFilePaths)
 	if err != nil {
 		return err
 	}
@@ -108,19 +114,28 @@ func Push(c *cli.Context) error {
 		Str:   "Snapshot uploads successful. Updating history...",
 	})
 
-	// Read history file
-	history, err := lib.ReadHistory()
+	// Read history file and initialize new history object from existing data
+	newHistory, err := lib.ReadHistory()
 	if err != nil {
 		return err
 	}
 
 	// Update history
-	for i, fpath := range changedFiles {
-		history[fpath] = modTimes[i]
+	for _, fpath := range changedFilePaths {
+		_, i, ok := lo.FindIndexOf(newHistory, func(entry models.HistoryEntry) bool {
+			return entry.Path == fpath
+		})
+
+		if ok {
+			newHistory[i] = models.HistoryEntry{
+				Path: fpath,
+				Hash: history[i].Hash,
+			}
+		}
 	}
 
 	// Write new history
-	historyJson, _ := json.Marshal(history)
+	historyJson, _ := json.Marshal(newHistory)
 	err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
 	if err != nil {
 		return lib.Log(lib.LogOptions{
