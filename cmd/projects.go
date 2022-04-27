@@ -56,7 +56,7 @@ func Init(c *cli.Context) error {
 	}
 
 	// Create QC project file
-	projectFileData := models.ProjectFileData{
+	projectFileData := models.ProjectConfig{
 		ProjectID:       project.ID,
 		CurrentBranchID: project.Branches[len(project.Branches)-1].ID,
 	}

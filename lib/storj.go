@@ -87,7 +87,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 	accessGrantStr := decodedRes.AccessGrant
 
 	// Write access grant to project config
-	projectConfig, err = WriteProjectConfig(".", models.ProjectFileData{
+	projectConfig, err = WriteProjectConfig(".", models.ProjectConfig{
 		AccessGrant: accessGrantStr,
 		// TODO: Enforce this 24-hour expiration in Storj itself
 		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
@@ -119,7 +119,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 // @param keys - List of object keys to download
 //
 // Returns an array of uplink download objects.
-func DownloadBulk(projectConfig models.ProjectFileData, keys []string) ([]*uplink.Download, error) {
+func DownloadBulk(projectConfig models.ProjectConfig, keys []string) ([]*uplink.Download, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

@@ -1,13 +1,13 @@
 package models
 
-type ProjectFileData struct {
+type ProjectConfig struct {
 	ProjectID             string `json:"project_id,omitempty"`
 	CurrentBranchID       string `json:"current_branch_id,omitempty"`
 	AccessGrant           string `json:"access_grant,omitempty"`
 	AccessGrantExpiration int64  `json:"access_grant_expiration,omitempty"`
 }
 
-func MergeProjectFileData(existingData, newData ProjectFileData) ProjectFileData {
+func MergeProjectConfigs(existingData, newData ProjectConfig) ProjectConfig {
 	merged := existingData
 
 	if newData.ProjectID != "" {

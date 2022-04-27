@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/joshnies/qc-cli/config"
+	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
@@ -21,7 +24,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	changedFiles, err := lib.DetectFileChanges()
+	changedFiles, modTimes, err := lib.DetectFileChanges()
 	if err != nil {
 		return err
 	}
@@ -89,7 +92,7 @@ func Push(c *cli.Context) error {
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "Uploading %d new files...",
+		Str:   "Uploading %d new files as snapshots...",
 		Vars:  []interface{}{len(changedFiles)},
 	})
 
@@ -100,7 +103,46 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	// TODO: Update history file
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "Snapshot uploads successful. Updating history...",
+		Vars:  []interface{}{len(changedFiles)},
+	})
+
+	// Read history file
+	history, err := lib.ReadHistory()
+	if err != nil {
+		return err
+	}
+
+	// Update history
+	for i, fpath := range changedFiles {
+		history[fpath] = modTimes[i]
+	}
+
+	// Write new history
+	historyJson, _ := json.Marshal(history)
+	err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
+	if err != nil {
+		return lib.Log(lib.LogOptions{
+			Level:       lib.Error,
+			Str:         "Failed to write history file",
+			VerboseStr:  "%v",
+			VerboseVars: []interface{}{err},
+		})
+	}
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "History updated successfully",
+		Vars:  []interface{}{len(changedFiles)},
+	})
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Info,
+		Str:   "Commit %s successful",
+		Vars:  []interface{}{commit.ID},
+	})
 
 	return nil
 }
