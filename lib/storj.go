@@ -51,7 +51,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 	projectId := projectConfig.ProjectID
 
 	// Get new access grant from API
-	res, err := http.Get(BuildURL(fmt.Sprintf("projects/%s/access_grant", projectId)))
+	res, err := http.Get(BuildURL(fmt.Sprintf("projects/%s/access_grant?perm=w", projectId)))
 	if err != nil {
 		return nil, Log(LogOptions{
 			Level:       Error,
@@ -134,6 +134,7 @@ func DownloadBulk(projectConfig models.ProjectFileData, keys []string) ([]*uplin
 	if err != nil {
 		return nil, err
 	}
+	defer sp.Close()
 
 	// Download objects
 	var downloads []*uplink.Download
@@ -172,6 +173,7 @@ func UploadBulk(projectConfig models.ProjectFileData, paths []string) error {
 	if err != nil {
 		return err
 	}
+	defer sp.Close()
 
 	for _, path := range paths {
 		// Read file
