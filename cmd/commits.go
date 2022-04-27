@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -99,6 +100,23 @@ func Push(c *cli.Context) error {
 		Level: lib.Verbose,
 		Str:   "Uploads successful",
 	})
+
+	// Update commit with snapshot & patch file paths
+	bodyJson, _ := json.Marshal(map[string]any{"snapshot_paths": changedFiles})
+	body := bytes.NewBuffer(bodyJson)
+	updateRes, err := http.Post(lib.BuildURLf("projects/%s/commits/%s", projectConfig.ProjectID, commit.ID), "application/json", body)
+	if err != nil {
+		return err
+	}
+
+	if updateRes.StatusCode != http.StatusOK {
+		return lib.Log(lib.LogOptions{
+			Level:       lib.Error,
+			Str:         "Failed to commit changes",
+			VerboseStr:  "Failed to update commit via API (status: %s)",
+			VerboseVars: []interface{}{updateRes.Status},
+		})
+	}
 
 	// TODO: Update history file
 
