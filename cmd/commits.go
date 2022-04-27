@@ -34,19 +34,36 @@ func Push(c *cli.Context) error {
 		VerboseVars: []interface{}{changedFiles},
 	})
 
+	// Pull changed files from remote
+	downloads, err := lib.DownloadBulk(projectConfig, changedFiles)
+	if err != nil {
+		return err
+	}
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "%d files downloaded",
+		Vars:  []interface{}{len(downloads)},
+	})
+
+	// TODO: Calculate which files need patches and which are new (snapshots)
+	// TODO: Create patch files (if files exist in remote)
+
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "Creating commit...",
 	})
 
 	// Create commit in database
-	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", nil)
+	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": changedFiles})
+	body := bytes.NewBuffer(bodyJson)
+	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
 	if err != nil {
 		return err
 	}
 	defer commitRes.Body.Close()
 
-	if commitRes.StatusCode != http.StatusCreated {
+	if commitRes.StatusCode != http.StatusOK {
 		return lib.Log(lib.LogOptions{
 			Level:       lib.Error,
 			Str:         "Failed to create commit",
@@ -64,23 +81,10 @@ func Push(c *cli.Context) error {
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "Commit %s created successfully",
+		Str:   "Commit %s created successfully. Downloading files...",
 		Vars:  []interface{}{commit.ID},
 	})
 
-	// Pull changed files from remote
-	downloads, err := lib.DownloadBulk(projectConfig, changedFiles)
-	if err != nil {
-		return err
-	}
-
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "%d files downloaded",
-		Vars:  []interface{}{len(downloads)},
-	})
-
-	// TODO: Create patch files (if files exist in remote)
 	// TODO: Upload patch files to storage (if any patch files were created)
 
 	lib.Log(lib.LogOptions{
@@ -94,28 +98,6 @@ func Push(c *cli.Context) error {
 	err = lib.UploadBulk(prefix, changedFiles)
 	if err != nil {
 		return err
-	}
-
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Uploads successful",
-	})
-
-	// Update commit with snapshot & patch file paths
-	bodyJson, _ := json.Marshal(map[string]any{"snapshot_paths": changedFiles})
-	body := bytes.NewBuffer(bodyJson)
-	updateRes, err := http.Post(lib.BuildURLf("projects/%s/commits/%s", projectConfig.ProjectID, commit.ID), "application/json", body)
-	if err != nil {
-		return err
-	}
-
-	if updateRes.StatusCode != http.StatusOK {
-		return lib.Log(lib.LogOptions{
-			Level:       lib.Error,
-			Str:         "Failed to commit changes",
-			VerboseStr:  "Failed to update commit via API (status: %s)",
-			VerboseVars: []interface{}{updateRes.Status},
-		})
 	}
 
 	// TODO: Update history file
