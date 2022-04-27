@@ -57,6 +57,7 @@ func Push(c *cli.Context) error {
 
 	// TODO: Calculate which files need patches and which are new (snapshots)
 	// TODO: Create patch files (if files exist in remote)
+	// TODO: Compress patch files (if any were created)
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
@@ -101,6 +102,8 @@ func Push(c *cli.Context) error {
 		Str:   "Uploading %d new files as snapshots...",
 		Vars:  []interface{}{len(changedFilePaths)},
 	})
+
+	// TODO: Compress snapshots
 
 	// Upload new files to storage (initial snapshots)
 	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
