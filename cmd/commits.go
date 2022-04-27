@@ -24,15 +24,8 @@ func Push(c *cli.Context) error {
 
 	fmt.Printf("Changed files: %v\n", changedFiles) // DEBUG
 
-	// Get Storj access grant
-	accessGrant, err := lib.GetAccessGrant()
-	if err != nil {
-		return err
-	}
+	// Pull changed files from remote
 
-	fmt.Printf("Access grant: %s\n", accessGrant) // DEBUG
-
-	// TODO: Pull changed files from remote
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Upload patch files to storage (if any patch files were created)
 	// TODO: Upload new files to storage (initial snapshots)
