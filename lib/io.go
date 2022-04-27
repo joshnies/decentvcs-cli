@@ -113,15 +113,27 @@ func GetFileHash(path string) (string, error) {
 
 // Detect file changes.
 //
-// Returns a list of history entries.
-func DetectFileChanges() ([]models.HistoryEntry, error) {
+// Returns:
+//
+// - list of FileChange objects.
+//
+// - list of history entries.
+//
+// - error.
+func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 	// Read project history file
 	currentHistory, err := ReadHistory()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var newHistory []models.HistoryEntry
+	// Get currently-known file paths
+	knownPaths := lo.Map(currentHistory, func(entry models.HistoryEntry, _ int) string {
+		return entry.Path
+	})
+
+	var changes []models.FileChange
+	var history []models.HistoryEntry
 
 	// Walk project directory
 	err = filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
@@ -129,50 +141,64 @@ func DetectFileChanges() ([]models.HistoryEntry, error) {
 			return err
 		}
 
+		// Skip directories
 		if info.IsDir() {
 			return nil
 		}
 
-		currentHash, err := GetFileHash(path)
+		// Calculate file hash
+		newHash, err := GetFileHash(path)
 		if err != nil {
 			return err
 		}
 
-		// Check if file has been created, modified or deleted
-		historyEntry, ok := lo.Find(currentHistory, func(entry models.HistoryEntry) bool {
+		// Get existing history entry
+		existingHistoryEntry, ok := lo.Find(currentHistory, func(entry models.HistoryEntry) bool {
 			return entry.Path == path
 		})
 
-		if ok {
-			// Check if file has been modified
-			if currentHash != historyEntry.Hash {
-				hash, err := GetFileHash(path)
-				if err != nil {
-					return err
-				}
+		// Create new history entry
+		newHistoryEntry := models.HistoryEntry{
+			Path: path,
+			Hash: newHash,
+		}
 
-				newHistory = append(newHistory, models.HistoryEntry{
-					Path: path,
-					Hash: hash,
-				})
+		history = append(history, newHistoryEntry)
+
+		var change *models.FileChange
+
+		if ok {
+			if newHash != existingHistoryEntry.Hash {
+				// File was modified
+				change = &models.FileChange{
+					Path:            path,
+					Type:            models.FileWasModified,
+					NewHistoryEntry: newHistoryEntry,
+				}
 			}
 		} else {
 			// File is new
-			hash, err := GetFileHash(path)
-			if err != nil {
-				return err
+			change = &models.FileChange{
+				Path:            path,
+				Type:            models.FileWasCreated,
+				NewHistoryEntry: newHistoryEntry,
 			}
+		}
 
-			newHistory = append(newHistory, models.HistoryEntry{
-				Path: path,
-				Hash: hash,
+		if change != nil {
+			// Add change to list
+			changes = append(changes, *change)
+
+			// Remove file path from remaining file paths
+			knownPaths = lo.Filter(knownPaths, func(p string, _ int) bool {
+				return p != path
 			})
 		}
 
 		return nil
 	})
 	if err != nil {
-		return nil, Log(LogOptions{
+		return nil, nil, Log(LogOptions{
 			Level:       Error,
 			Str:         "Failed to detect file changes",
 			VerboseStr:  "%v",
@@ -180,5 +206,14 @@ func DetectFileChanges() ([]models.HistoryEntry, error) {
 		})
 	}
 
-	return newHistory, nil
+	// Add changes for deleted files (remaining items in knownPaths)
+	for _, path := range knownPaths {
+		change := models.FileChange{
+			Path: path,
+			Type: models.FileWasDeleted,
+		}
+		changes = append(changes, change)
+	}
+
+	return changes, history, nil
 }

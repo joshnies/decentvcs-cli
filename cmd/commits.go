@@ -25,7 +25,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	history, err := lib.DetectFileChanges()
+	changes, history, err := lib.DetectFileChanges()
 	if err != nil {
 		return err
 	}
@@ -33,13 +33,26 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level:       lib.Info,
 		Str:         "%d changes detected",
-		Vars:        []interface{}{len(history)},
-		VerboseStr:  "Files changed: %s",
-		VerboseVars: []interface{}{history},
+		Vars:        []interface{}{len(changes)},
+		VerboseStr:  "Files created, modified, or deleted: %s",
+		VerboseVars: []interface{}{changes},
 	})
 
-	// Get all file paths from history
-	changedFilePaths := lo.Map(history, func(entry models.HistoryEntry, _ int) string {
+	// Create slice for each change type
+	createdFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
+		return change.Type == models.FileWasCreated
+	})
+
+	modifiedFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
+		return change.Type == models.FileWasModified
+	})
+
+	deletedFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
+		return change.Type == models.FileWasDeleted
+	})
+
+	// Get paths to modified files
+	changedFilePaths := lo.Map(modifiedFileChanges, func(entry models.FileChange, _ int) string {
 		return entry.Path
 	})
 
@@ -55,7 +68,6 @@ func Push(c *cli.Context) error {
 		Vars:  []interface{}{len(downloads)},
 	})
 
-	// TODO: Calculate which files need patches and which are new (snapshots)
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Compress patch files (if any were created)
 
@@ -117,28 +129,8 @@ func Push(c *cli.Context) error {
 		Str:   "Snapshot uploads successful. Updating history...",
 	})
 
-	// Read history file and initialize new history object from existing data
-	newHistory, err := lib.ReadHistory()
-	if err != nil {
-		return err
-	}
-
-	// Update history
-	for _, fpath := range changedFilePaths {
-		_, i, ok := lo.FindIndexOf(newHistory, func(entry models.HistoryEntry) bool {
-			return entry.Path == fpath
-		})
-
-		if ok {
-			newHistory[i] = models.HistoryEntry{
-				Path: fpath,
-				Hash: history[i].Hash,
-			}
-		}
-	}
-
 	// Write new history
-	historyJson, _ := json.Marshal(newHistory)
+	historyJson, _ := json.Marshal(history)
 	err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
 	if err != nil {
 		return lib.Log(lib.LogOptions{
