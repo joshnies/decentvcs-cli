@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib"
 	"github.com/urfave/cli/v2"
@@ -22,7 +20,11 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Changed files: %v\n", changedFiles) // DEBUG
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "%d changes detected",
+		Vars:  []interface{}{len(changedFiles)},
+	})
 
 	// Pull changed files from remote
 

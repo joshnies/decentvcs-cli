@@ -10,7 +10,8 @@ import (
 type LogLevel int64
 
 const (
-	Info LogLevel = iota
+	Verbose LogLevel = iota
+	Info
 	Warning
 	Error
 )
@@ -25,12 +26,16 @@ type LogOptions struct {
 
 // Custom logging function with support for verbosity levels.
 func Log(o LogOptions) error {
-	if config.I.Verbose && o.VerboseStr != "" {
+	if config.I.Verbose && o.Level != Verbose && o.VerboseStr != "" {
 		// Print verbose message in addition to user-facing message
 		fmt.Printf("[VERBOSE] "+o.VerboseStr+"\n", o.VerboseVars...)
 	}
 
 	switch o.Level {
+	case Verbose:
+		if config.I.Verbose {
+			fmt.Printf("[VERBOSE] "+o.Str+"\n", o.Vars...)
+		}
 	case Info:
 		fmt.Printf(color.Ize(color.Cyan, "[INFO] "+o.Str+"\n"), o.Vars...)
 	case Warning:
