@@ -37,6 +37,9 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
+	fmt.Printf("Commit ID: %s\n", currentBranch.Commit.ID)            // DEBUG
+	fmt.Printf("Commit hash map: %s\n", currentBranch.Commit.HashMap) // DEBUG
+
 	// Detect local changes
 	changes, hashMap, err := lib.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {

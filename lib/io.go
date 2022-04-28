@@ -82,7 +82,7 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 	remainingPaths := maps.Keys(hashMap)
 
 	var changes []models.FileChange
-	var newHashMap map[string]string
+	newHashMap := make(map[string]string)
 
 	// Walk project directory
 	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
