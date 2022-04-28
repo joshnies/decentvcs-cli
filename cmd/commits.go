@@ -130,6 +130,7 @@ func Push(c *cli.Context) error {
 	// Create commit in database
 	msg := c.Args().Get(0)
 	bodyJson, _ := json.Marshal(map[string]any{
+		"branch_id":      projectConfig.CurrentBranchID,
 		"message":        msg,
 		"snapshot_paths": createdFilePaths,
 		"patch_paths":    modifiedFilePaths,
@@ -151,8 +152,6 @@ func Push(c *cli.Context) error {
 			VerboseVars: []interface{}{commitRes.Status},
 		})
 	}
-
-	// TODO: Update branch to point to new commit
 
 	// Parse commit
 	var commit models.Commit
