@@ -51,13 +51,27 @@ func Push(c *cli.Context) error {
 		return change.Type == models.FileWasDeleted
 	})
 
-	// Get paths to modified files
-	changedFilePaths := lo.Map(modifiedFileChanges, func(entry models.FileChange, _ int) string {
+	// Get only file paths for each change type
+	createdFilePaths := lo.Map(createdFileChanges, func(entry models.FileChange, _ int) string {
 		return entry.Path
 	})
 
-	// Pull changed files from remote
-	downloads, err := lib.DownloadBulk(projectConfig, changedFilePaths)
+	modifiedFilePaths := lo.Map(modifiedFileChanges, func(entry models.FileChange, _ int) string {
+		return entry.Path
+	})
+
+	deletedFilePaths := lo.Map(deletedFileChanges, func(entry models.FileChange, _ int) string {
+		return entry.Path
+	})
+
+	lib.Log(lib.LogOptions{
+		Level: lib.Verbose,
+		Str:   "Downloading latest version of %d modified files...",
+		Vars:  []interface{}{len(modifiedFilePaths)},
+	})
+
+	// Pull modified files from remote
+	downloads, err := lib.DownloadBulk(projectConfig, modifiedFilePaths)
 	if err != nil {
 		return err
 	}
@@ -77,7 +91,7 @@ func Push(c *cli.Context) error {
 	})
 
 	// Create commit in database
-	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": changedFilePaths})
+	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": createdFilePaths})
 	body := bytes.NewBuffer(bodyJson)
 	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
 	if err != nil {
@@ -103,7 +117,7 @@ func Push(c *cli.Context) error {
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "Commit %s created successfully. Downloading files...",
+		Str:   "Commit %s created successfully",
 		Vars:  []interface{}{commit.ID},
 	})
 
@@ -112,24 +126,48 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "Uploading %d new files as snapshots...",
-		Vars:  []interface{}{len(changedFilePaths)},
+		Vars:  []interface{}{len(createdFilePaths)},
 	})
 
 	// TODO: Compress snapshots
 
-	// Upload new files to storage (initial snapshots)
+	// Upload created files to storage as snapshots
 	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
-	err = lib.UploadBulk(prefix, changedFilePaths)
+	err = lib.UploadBulk(prefix, createdFilePaths)
 	if err != nil {
 		return err
 	}
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "Snapshot uploads successful. Updating history...",
+		Str:   "Successfully uploaded new files",
 	})
 
-	// Write new history
+	if len(deletedFilePaths) > 0 {
+		// Create commit file data
+		//
+		// This file's data will be used later to delete files from users' local projects when
+		// pulling changes from remote
+		commitFileData := map[string]any{
+			"deleted": deletedFilePaths,
+		}
+
+		// Parse data into JSON
+		commitFileJson, err := json.Marshal(commitFileData)
+		if err != nil {
+			return err
+		}
+
+		key := fmt.Sprintf("%s/%s/%s", projectConfig.ProjectID, commit.ID, constants.CommitFileName)
+
+		// Upload to storage
+		err = lib.UploadJSON(key, commitFileJson)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Write new history, generated back when we detected changes
 	historyJson, _ := json.Marshal(history)
 	err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
 	if err != nil {

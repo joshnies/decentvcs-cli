@@ -96,6 +96,7 @@ func ReadHistory() ([]models.HistoryEntry, error) {
 }
 
 // Get file SHA1 hash. Can be used to detect file changes.
+// TODO: Use xxhash instead of SHA1
 func GetFileHash(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {

@@ -197,7 +197,7 @@ func UploadBulk(prefix string, paths []string) error {
 				Level:       Error,
 				Str:         "Failed to upload file: %s",
 				Vars:        []interface{}{path},
-				VerboseStr:  "Failed to upload file: %s; Error: %v",
+				VerboseStr:  "%v",
 				VerboseVars: []interface{}{err},
 			})
 		}
@@ -210,4 +210,50 @@ func UploadBulk(prefix string, paths []string) error {
 	}
 
 	return nil
+}
+
+// Upload JSON data as new object to Storj.
+//
+// @param key - Key of object to upload
+// @param data - JSON data as bytes
+//
+func UploadJSON(key string, data []byte) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get access grant
+	accessGrant, err := GetAccessGrant()
+	if err != nil {
+		return err
+	}
+
+	// Open Storj project
+	sp, err := uplink.OpenProject(ctx, accessGrant)
+	if err != nil {
+		return err
+	}
+	defer sp.Close()
+
+	// Start upload
+	upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, key, nil)
+	if err != nil {
+		return err
+	}
+
+	// Copy file data to upload buffer
+	buf := bytes.NewBuffer(data)
+	_, err = io.Copy(upload, buf)
+	if err != nil {
+		_ = upload.Abort()
+		return Log(LogOptions{
+			Level:       Error,
+			Str:         "Failed to upload file: %s",
+			Vars:        []interface{}{key},
+			VerboseStr:  "%v",
+			VerboseVars: []interface{}{err},
+		})
+	}
+
+	// Commit upload
+	return upload.Commit()
 }
