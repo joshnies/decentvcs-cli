@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshnies/qc-cli/lib"
+	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
@@ -38,7 +40,7 @@ func Init(c *cli.Context) error {
 	// Create project in API
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
 	body := bytes.NewBuffer(bodyJson)
-	res, err := http.Post(lib.BuildURL("projects"), "application/json", body)
+	res, err := http.Post(api.BuildURL("projects"), "application/json", body)
 	if err != nil {
 		return err
 	}
@@ -60,12 +62,8 @@ func Init(c *cli.Context) error {
 		ProjectID:       project.ID,
 		CurrentBranchID: project.Branches[len(project.Branches)-1].ID,
 	}
-	lib.WriteProjectConfig(absPath, projectFileData)
+	projects.WriteProjectConfig(absPath, projectFileData)
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Info,
-		Str:   "Project created successfully!",
-	})
-
+	console.Info("Project created successfully")
 	return nil
 }

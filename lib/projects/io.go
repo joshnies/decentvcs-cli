@@ -1,4 +1,4 @@
-package lib
+package projects
 
 import (
 	"crypto/sha1"
@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/joshnies/qc-cli/constants"
+	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
@@ -128,12 +129,7 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 		return nil
 	})
 	if err != nil {
-		return nil, nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to detect file changes",
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
+		return nil, nil, console.Error("Failed to detected changes: %v", err)
 	}
 
 	// Add changes for deleted files

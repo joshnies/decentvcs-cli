@@ -1,4 +1,4 @@
-package lib
+package storj
 
 import (
 	"bytes"
@@ -12,6 +12,9 @@ import (
 	"time"
 
 	"github.com/joshnies/qc-cli/config"
+	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"storj.io/uplink"
 )
@@ -34,81 +37,48 @@ func GetAccessGrant() (*uplink.Access, error) {
 			}
 
 			// Existing access grant is invalid
-			Log(LogOptions{
-				Level: Warning,
-				Str:   "Existing access grant is invalid. Regenerating...",
-			})
+			console.Warning("Existing access grant is invalid. Regenerating...")
 		}
 	} else {
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to get project config, please make sure this directory is a Quanta Control project",
-			VerboseStr:  "Failed to get project config: %v",
-			VerboseVars: []interface{}{err},
-		})
+		return nil, console.Error("Failed to get project config, please make sure this directory is a Quanta Control project. Error: %v", err)
 	}
 
 	projectId := projectConfig.ProjectID
 
 	// Get new access grant from API
-	res, err := http.Get(BuildURL(fmt.Sprintf("projects/%s/access_grant?perm=w", projectId)))
+	res, err := http.Get(api.BuildURL(fmt.Sprintf("projects/%s/access_grant?perm=w", projectId)))
 	if err != nil {
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to get access grant from API (request failed): %v",
-			VerboseVars: []interface{}{err},
-		})
+		return nil, console.Error("Failed to authenticate with storage: %v", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		// return nil, fmt.Errorf("failed to get access grant from Quanta Control servers (status: %s)", res.Status)
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to get access grant from API (status: %s)",
-			VerboseVars: []interface{}{res.Status},
-		})
+		return nil, console.Error("Failed to authenticate with storage: Received status %s", res.Status)
 	}
 
 	// Parse response
 	var decodedRes models.AccessGrantResponse
 	err = json.NewDecoder(res.Body).Decode(&decodedRes)
 	if err != nil {
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to parse API response: %v",
-			VerboseVars: []interface{}{err},
-		})
+		return nil, console.Error("Failed to authenticate with storage: %v", err)
 	}
 
 	accessGrantStr := decodedRes.AccessGrant
 
 	// Write access grant to project config
-	projectConfig, err = WriteProjectConfig(".", models.ProjectConfig{
+	projectConfig, err = projects.WriteProjectConfig(".", models.ProjectConfig{
 		AccessGrant: accessGrantStr,
 		// TODO: Enforce this 24-hour expiration in Storj itself
 		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
 	})
 	if err != nil {
-		return nil, Log(LogOptions{
-			Level: Error,
-			Str:   "Failed to write project config: %v",
-			Vars:  []interface{}{err},
-		})
+		return nil, console.Error("Failed to write project config: %v", err)
 	}
 
 	// Parse access grant string
 	access, err := uplink.ParseAccess(accessGrantStr)
 	if err != nil {
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to authenticate with storage",
-			VerboseStr:  "Failed to parse Storj access: %v",
-			VerboseVars: []interface{}{err},
-		})
+		return nil, console.Error("Failed to authenticate with storage: %v", err)
 	}
 
 	return access, nil
@@ -193,13 +163,7 @@ func UploadBulk(prefix string, paths []string) error {
 		_, err = io.Copy(upload, buf)
 		if err != nil {
 			_ = upload.Abort()
-			return Log(LogOptions{
-				Level:       Error,
-				Str:         "Failed to upload file: %s",
-				Vars:        []interface{}{path},
-				VerboseStr:  "%v",
-				VerboseVars: []interface{}{err},
-			})
+			return console.Error("Failed to upload file: %v", err)
 		}
 
 		// Commit upload
@@ -245,13 +209,7 @@ func UploadJSON(key string, data []byte) error {
 	_, err = io.Copy(upload, buf)
 	if err != nil {
 		_ = upload.Abort()
-		return Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to upload file: %s",
-			Vars:        []interface{}{key},
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
+		return console.Error("Failed to upload file: %v", err)
 	}
 
 	// Commit upload

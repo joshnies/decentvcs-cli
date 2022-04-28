@@ -7,7 +7,10 @@ import (
 	"net/http"
 
 	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/lib"
+	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/projects"
+	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
@@ -25,7 +28,7 @@ func Push(c *cli.Context) error {
 	// TODO: Make sure user is synced with remote before continuing
 
 	// Get current branch w/ current commit
-	currentBranchRes, err := http.Get(lib.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	currentBranchRes, err := http.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
 	if err != nil {
 		return err
 	}
@@ -38,17 +41,14 @@ func Push(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	changes, hashMap, err := lib.DetectFileChanges(currentBranch.Commit.HashMap)
+	changes, hashMap, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
 
 	// If there are no changes, exit
 	if len(changes) == 0 {
-		lib.Log(lib.LogOptions{
-			Level: lib.Info,
-			Str:   "No changes detected",
-		})
+		console.Info("No changes detected")
 		return nil
 	}
 
@@ -66,10 +66,6 @@ func Push(c *cli.Context) error {
 	})
 
 	// Get only file paths for each change type
-	allFilePaths := lo.Map(changes, func(entry models.FileChange, _ int) string {
-		return entry.Path
-	})
-
 	createdFilePaths := lo.Map(createdFileChanges, func(entry models.FileChange, _ int) string {
 		return entry.Path
 	})
@@ -82,47 +78,28 @@ func Push(c *cli.Context) error {
 		return entry.Path
 	})
 
-	lib.Log(lib.LogOptions{
-		Level:      lib.Info,
-		Str:        "%d changes detected",
-		Vars:       []interface{}{len(allFilePaths)},
-		VerboseStr: "Change counts:\n\tCreated: %d\n\tModified: %d\n\tDeleted: %d",
-		VerboseVars: []interface{}{
-			len(createdFilePaths),
-			len(modifiedFilePaths),
-			len(deletedFilePaths),
-		},
-	})
+	console.Info("%d changes found", len(changes))
+	console.Verbose("Created: %d", len(createdFilePaths))
+	console.Verbose("Modified: %d", len(modifiedFilePaths))
+	console.Verbose("Deleted: %d", len(deletedFilePaths))
 
 	// Pull modified files from remote
 	var downloads []*uplink.Download
 
 	if len(modifiedFilePaths) > 0 {
-		lib.Log(lib.LogOptions{
-			Level: lib.Verbose,
-			Str:   "Downloading latest version of %d modified files...",
-			Vars:  []interface{}{len(modifiedFilePaths)},
-		})
-
-		downloads, err = lib.DownloadBulk(projectConfig, modifiedFilePaths)
+		console.Verbose("Downloading latest version of %d modified files...", len(modifiedFilePaths))
+		downloads, err = storj.DownloadBulk(projectConfig, modifiedFilePaths)
 		if err != nil {
 			return err
 		}
 
-		lib.Log(lib.LogOptions{
-			Level: lib.Verbose,
-			Str:   "%d files downloaded",
-			Vars:  []interface{}{len(downloads)},
-		})
+		console.Verbose("%d files downloaded successfully", len(downloads))
 	}
 
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Compress patch files (if any were created)
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Creating commit...",
-	})
+	console.Verbose("Creating commit...")
 
 	// Create commit in database
 	msg := c.Args().Get(0)
@@ -135,19 +112,14 @@ func Push(c *cli.Context) error {
 		"hash_map":       hashMap,
 	})
 	body := bytes.NewBuffer(bodyJson)
-	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
+	commitRes, err := http.Post(api.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
 	if err != nil {
 		return err
 	}
 	defer commitRes.Body.Close()
 
 	if commitRes.StatusCode != http.StatusOK {
-		return lib.Log(lib.LogOptions{
-			Level:       lib.Error,
-			Str:         "Failed to create commit",
-			VerboseStr:  "Failed to create commit via API (status: %s)",
-			VerboseVars: []interface{}{commitRes.Status},
-		})
+		return console.Error("Failed to create commmit: Received status %s", commitRes.Status)
 	}
 
 	// Parse commit
@@ -157,34 +129,22 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Commit %s created successfully",
-		Vars:  []interface{}{commit.ID},
-	})
+	console.Verbose("Commit %s created successfully", commit.ID)
 
 	// TODO: Upload patch files to storage (if any patch files were created)
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Uploading %d new files as snapshots...",
-		Vars:  []interface{}{len(createdFilePaths)},
-	})
+	console.Verbose("Uploading %d created files as snapshots...", len(createdFilePaths))
 
 	// TODO: Compress snapshots
 
 	// Upload created files to storage as snapshots
 	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
-	err = lib.UploadBulk(prefix, createdFilePaths)
+	err = storj.UploadBulk(prefix, createdFilePaths)
 	if err != nil {
 		return err
 	}
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Successfully uploaded new files",
-	})
-
+	console.Verbose("Successfully uploaded new files")
 	return nil
 }
 
