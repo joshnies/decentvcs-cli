@@ -14,6 +14,7 @@ import (
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
+	"storj.io/uplink"
 )
 
 // Push local changes to remote
@@ -24,19 +25,22 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
+	// TODO: Make sure user is synced with remote before continuing
+
 	// Detect local changes
 	changes, history, err := lib.DetectFileChanges()
 	if err != nil {
 		return err
 	}
 
-	lib.Log(lib.LogOptions{
-		Level:       lib.Info,
-		Str:         "%d changes detected",
-		Vars:        []interface{}{len(changes)},
-		VerboseStr:  "Files created, modified, or deleted: %s",
-		VerboseVars: []interface{}{changes},
-	})
+	// If there are no changes, exit
+	if len(changes) == 0 {
+		lib.Log(lib.LogOptions{
+			Level: lib.Info,
+			Str:   "No changes detected",
+		})
+		return nil
+	}
 
 	// Create slice for each change type
 	createdFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
@@ -52,6 +56,10 @@ func Push(c *cli.Context) error {
 	})
 
 	// Get only file paths for each change type
+	allFilePaths := lo.Map(changes, func(entry models.FileChange, _ int) string {
+		return entry.Path
+	})
+
 	createdFilePaths := lo.Map(createdFileChanges, func(entry models.FileChange, _ int) string {
 		return entry.Path
 	})
@@ -65,22 +73,38 @@ func Push(c *cli.Context) error {
 	})
 
 	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "Downloading latest version of %d modified files...",
-		Vars:  []interface{}{len(modifiedFilePaths)},
+		Level:      lib.Info,
+		Str:        "%d changes detected",
+		Vars:       []interface{}{len(allFilePaths)},
+		VerboseStr: "Change counts:\n\tCreated: %d\n\tModified: %d\n\tDeleted: %d",
+		VerboseVars: []interface{}{
+			len(createdFilePaths),
+			len(modifiedFilePaths),
+			len(deletedFilePaths),
+		},
 	})
 
 	// Pull modified files from remote
-	downloads, err := lib.DownloadBulk(projectConfig, modifiedFilePaths)
-	if err != nil {
-		return err
-	}
+	var downloads []*uplink.Download
 
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "%d files downloaded",
-		Vars:  []interface{}{len(downloads)},
-	})
+	if len(modifiedFilePaths) > 0 {
+		lib.Log(lib.LogOptions{
+			Level: lib.Verbose,
+			Str:   "Downloading latest version of %d modified files...",
+			Vars:  []interface{}{len(modifiedFilePaths)},
+		})
+
+		downloads, err = lib.DownloadBulk(projectConfig, modifiedFilePaths)
+		if err != nil {
+			return err
+		}
+
+		lib.Log(lib.LogOptions{
+			Level: lib.Verbose,
+			Str:   "%d files downloaded",
+			Vars:  []interface{}{len(downloads)},
+		})
+	}
 
 	// TODO: Create patch files (if files exist in remote)
 	// TODO: Compress patch files (if any were created)
@@ -181,8 +205,20 @@ func Push(c *cli.Context) error {
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
-		Str:   "History updated successfully",
+		Str:   "History updated successfully. Uploading...",
 	})
+
+	// Upload history to storage
+	historyFileKey := fmt.Sprintf("%s/%s/%s", projectConfig.ProjectID, commit.ID, constants.HistoryFileName)
+	err = lib.UploadJSON(historyFileKey, historyJson)
+	if err != nil {
+		return lib.Log(lib.LogOptions{
+			Level:       lib.Error,
+			Str:         "Failed to upload history file",
+			VerboseStr:  "%v",
+			VerboseVars: []interface{}{err},
+		})
+	}
 
 	lib.Log(lib.LogOptions{
 		Level: lib.Info,

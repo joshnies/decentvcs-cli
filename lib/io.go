@@ -70,6 +70,17 @@ func ReadHistory() ([]models.HistoryEntry, error) {
 				VerboseVars: []interface{}{err},
 			})
 		}
+
+		// Reopen file
+		historyFile, err = os.Open(constants.HistoryFileName)
+		if err != nil {
+			return nil, Log(LogOptions{
+				Level:       Error,
+				Str:         "Failed to open history file after creating it",
+				VerboseStr:  "%v",
+				VerboseVars: []interface{}{err},
+			})
+		}
 	} else if err != nil {
 		// Return error if not a "file not found" error
 		return nil, Log(LogOptions{
@@ -79,6 +90,7 @@ func ReadHistory() ([]models.HistoryEntry, error) {
 			VerboseVars: []interface{}{err},
 		})
 	}
+	defer historyFile.Close()
 
 	// Decode JSON
 	var history []models.HistoryEntry
@@ -142,8 +154,8 @@ func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 			return err
 		}
 
-		// Skip directories
-		if info.IsDir() {
+		// Skip directories and history files
+		if info.IsDir() || filepath.Base(path) == constants.HistoryFileName {
 			return nil
 		}
 
@@ -166,35 +178,28 @@ func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 
 		history = append(history, newHistoryEntry)
 
-		var change *models.FileChange
-
 		if ok {
 			if newHash != existingHistoryEntry.Hash {
 				// File was modified
-				change = &models.FileChange{
+				changes = append(changes, models.FileChange{
 					Path:            path,
 					Type:            models.FileWasModified,
 					NewHistoryEntry: newHistoryEntry,
-				}
+				})
 			}
 		} else {
 			// File is new
-			change = &models.FileChange{
+			changes = append(changes, models.FileChange{
 				Path:            path,
 				Type:            models.FileWasCreated,
 				NewHistoryEntry: newHistoryEntry,
-			}
-		}
-
-		if change != nil {
-			// Add change to list
-			changes = append(changes, *change)
-
-			// Remove file path from remaining file paths
-			knownPaths = lo.Filter(knownPaths, func(p string, _ int) bool {
-				return p != path
 			})
 		}
+
+		// Remove file path from remaining file paths
+		knownPaths = lo.Filter(knownPaths, func(p string, _ int) bool {
+			return p != path
+		})
 
 		return nil
 	})
