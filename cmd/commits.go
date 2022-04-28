@@ -152,6 +152,8 @@ func Push(c *cli.Context) error {
 		})
 	}
 
+	// TODO: Update branch to point to new commit
+
 	// Parse commit
 	var commit models.Commit
 	err = json.NewDecoder(commitRes.Body).Decode(&commit)
