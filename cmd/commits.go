@@ -24,21 +24,21 @@ func Push(c *cli.Context) error {
 
 	// TODO: Make sure user is synced with remote before continuing
 
-	// Get current commit from API
-	currentCommitRes, err := http.Get(lib.BuildURLf("%s/branches/%s/commits/latest", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	// Get current branch w/ current commit
+	currentBranchRes, err := http.Get(lib.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
 	if err != nil {
 		return err
 	}
 
 	// Parse response
-	var currentCommit models.Commit
-	err = json.NewDecoder(currentCommitRes.Body).Decode(&currentCommit)
+	var currentBranch models.BranchWithCommit
+	err = json.NewDecoder(currentBranchRes.Body).Decode(&currentBranch)
 	if err != nil {
 		return err
 	}
 
 	// Detect local changes
-	changes, hashMap, err := lib.DetectFileChanges(currentCommit.HashMap)
+	changes, hashMap, err := lib.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
