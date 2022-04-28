@@ -62,7 +62,10 @@ func Init(c *cli.Context) error {
 	}
 	lib.WriteProjectConfig(absPath, projectFileData)
 
-	println("Project created successfully!")
+	lib.Log(lib.LogOptions{
+		Level: lib.Info,
+		Str:   "Project created successfully!",
+	})
 
 	return nil
 }
