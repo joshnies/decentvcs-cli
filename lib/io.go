@@ -13,10 +13,8 @@ import (
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
+	"golang.org/x/exp/maps"
 )
-
-// History file data
-type HistoryData map[string]int64
 
 // Write project file.
 func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectConfig, error) {
@@ -53,60 +51,6 @@ func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectC
 	return mergedData, err
 }
 
-// Read project history file.
-//
-// Returns list history entries.
-func ReadHistory() ([]models.HistoryEntry, error) {
-	historyFile, err := os.Open(constants.HistoryFileName)
-	if os.IsNotExist(err) {
-		// Write empty history file
-		historyJson, _ := json.Marshal([]HistoryData{})
-		err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
-		if err != nil {
-			return nil, Log(LogOptions{
-				Level:       Error,
-				Str:         "Failed to write history file",
-				VerboseStr:  "%v",
-				VerboseVars: []interface{}{err},
-			})
-		}
-
-		// Reopen file
-		historyFile, err = os.Open(constants.HistoryFileName)
-		if err != nil {
-			return nil, Log(LogOptions{
-				Level:       Error,
-				Str:         "Failed to open history file after creating it",
-				VerboseStr:  "%v",
-				VerboseVars: []interface{}{err},
-			})
-		}
-	} else if err != nil {
-		// Return error if not a "file not found" error
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Failed to read history file. It may be invalid/corrupt, in which case you should delete it from your local system.",
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
-	}
-	defer historyFile.Close()
-
-	// Decode JSON
-	var history []models.HistoryEntry
-	err = json.NewDecoder(historyFile).Decode(&history)
-	if err != nil {
-		return nil, Log(LogOptions{
-			Level:       Error,
-			Str:         "Error reading history file",
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
-	}
-
-	return history, nil
-}
-
 // Get file SHA1 hash. Can be used to detect file changes.
 // TODO: Use xxhash instead of SHA1
 func GetFileHash(path string) (string, error) {
@@ -130,32 +74,24 @@ func GetFileHash(path string) (string, error) {
 //
 // - list of FileChange objects.
 //
-// - list of history entries.
+// - regenerated hash map.
 //
 // - error.
-func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
-	// Read project history file
-	currentHistory, err := ReadHistory()
-	if err != nil {
-		return nil, nil, err
-	}
-
+func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[string]string, error) {
 	// Get currently-known file paths
-	knownPaths := lo.Map(currentHistory, func(entry models.HistoryEntry, _ int) string {
-		return entry.Path
-	})
+	remainingPaths := maps.Keys(hashMap)
 
 	var changes []models.FileChange
-	var history []models.HistoryEntry
+	var newHashMap map[string]string
 
 	// Walk project directory
-	err = filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip directories and history files
-		if info.IsDir() || filepath.Base(path) == constants.HistoryFileName {
+		// Skip directories
+		if info.IsDir() {
 			return nil
 		}
 
@@ -165,39 +101,27 @@ func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 			return err
 		}
 
-		// Get existing history entry
-		existingHistoryEntry, ok := lo.Find(currentHistory, func(entry models.HistoryEntry) bool {
-			return entry.Path == path
-		})
+		newHashMap[path] = newHash
 
-		// Create new history entry
-		newHistoryEntry := models.HistoryEntry{
-			Path: path,
-			Hash: newHash,
-		}
-
-		history = append(history, newHistoryEntry)
-
-		if ok {
-			if newHash != existingHistoryEntry.Hash {
+		// Detect changes
+		if oldHash, ok := hashMap[path]; ok {
+			if oldHash != newHash {
 				// File was modified
 				changes = append(changes, models.FileChange{
-					Path:            path,
-					Type:            models.FileWasModified,
-					NewHistoryEntry: newHistoryEntry,
+					Path: path,
+					Type: models.FileWasModified,
 				})
 			}
 		} else {
 			// File is new
 			changes = append(changes, models.FileChange{
-				Path:            path,
-				Type:            models.FileWasCreated,
-				NewHistoryEntry: newHistoryEntry,
+				Path: path,
+				Type: models.FileWasCreated,
 			})
 		}
 
 		// Remove file path from remaining file paths
-		knownPaths = lo.Filter(knownPaths, func(p string, _ int) bool {
+		remainingPaths = lo.Filter(remainingPaths, func(p string, _ int) bool {
 			return p != path
 		})
 
@@ -212,8 +136,8 @@ func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 		})
 	}
 
-	// Add changes for deleted files (remaining items in knownPaths)
-	for _, path := range knownPaths {
+	// Add changes for deleted files
+	for _, path := range remainingPaths {
 		change := models.FileChange{
 			Path: path,
 			Type: models.FileWasDeleted,
@@ -221,5 +145,5 @@ func DetectFileChanges() ([]models.FileChange, []models.HistoryEntry, error) {
 		changes = append(changes, change)
 	}
 
-	return changes, history, nil
+	return changes, newHashMap, nil
 }

@@ -9,7 +9,6 @@ const (
 )
 
 type FileChange struct {
-	Path            string         `json:"path,omitempty"`
-	Type            FileChangeType `json:"type,omitempty"`
-	NewHistoryEntry HistoryEntry   `json:"history_entry,omitempty"`
+	Path string         `json:"path,omitempty"`
+	Type FileChangeType `json:"type,omitempty"`
 }

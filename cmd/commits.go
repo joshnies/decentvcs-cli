@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
@@ -27,8 +24,21 @@ func Push(c *cli.Context) error {
 
 	// TODO: Make sure user is synced with remote before continuing
 
+	// Get current commit from API
+	currentCommitRes, err := http.Get(lib.BuildURLf("%s/branches/%s/commits/latest", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	if err != nil {
+		return err
+	}
+
+	// Parse response
+	var currentCommit models.Commit
+	err = json.NewDecoder(currentCommitRes.Body).Decode(&currentCommit)
+	if err != nil {
+		return err
+	}
+
 	// Detect local changes
-	changes, history, err := lib.DetectFileChanges()
+	changes, hashMap, err := lib.DetectFileChanges(currentCommit.HashMap)
 	if err != nil {
 		return err
 	}
@@ -115,7 +125,14 @@ func Push(c *cli.Context) error {
 	})
 
 	// Create commit in database
-	bodyJson, _ := json.Marshal(map[string]any{"name": "test", "snapshot_paths": createdFilePaths})
+	msg := c.Args().Get(0)
+	bodyJson, _ := json.Marshal(map[string]any{
+		"message":        msg,
+		"snapshot_paths": createdFilePaths,
+		"patch_paths":    modifiedFilePaths,
+		"deleted_paths":  deletedFilePaths,
+		"hash_map":       hashMap,
+	})
 	body := bytes.NewBuffer(bodyJson)
 	commitRes, err := http.Post(lib.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
 	if err != nil {
@@ -165,65 +182,6 @@ func Push(c *cli.Context) error {
 	lib.Log(lib.LogOptions{
 		Level: lib.Verbose,
 		Str:   "Successfully uploaded new files",
-	})
-
-	if len(deletedFilePaths) > 0 {
-		// Create commit file data
-		//
-		// This file's data will be used later to delete files from users' local projects when
-		// pulling changes from remote
-		commitFileData := map[string]any{
-			"deleted": deletedFilePaths,
-		}
-
-		// Parse data into JSON
-		commitFileJson, err := json.Marshal(commitFileData)
-		if err != nil {
-			return err
-		}
-
-		key := fmt.Sprintf("%s/%s/%s", projectConfig.ProjectID, commit.ID, constants.CommitFileName)
-
-		// Upload to storage
-		err = lib.UploadJSON(key, commitFileJson)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Write new history, generated back when we detected changes
-	historyJson, _ := json.Marshal(history)
-	err = ioutil.WriteFile(constants.HistoryFileName, historyJson, os.ModePerm)
-	if err != nil {
-		return lib.Log(lib.LogOptions{
-			Level:       lib.Error,
-			Str:         "Failed to write history file",
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
-	}
-
-	lib.Log(lib.LogOptions{
-		Level: lib.Verbose,
-		Str:   "History updated successfully. Uploading...",
-	})
-
-	// Upload history to storage
-	historyFileKey := fmt.Sprintf("%s/%s/%s", projectConfig.ProjectID, commit.ID, constants.HistoryFileName)
-	err = lib.UploadJSON(historyFileKey, historyJson)
-	if err != nil {
-		return lib.Log(lib.LogOptions{
-			Level:       lib.Error,
-			Str:         "Failed to upload history file",
-			VerboseStr:  "%v",
-			VerboseVars: []interface{}{err},
-		})
-	}
-
-	lib.Log(lib.LogOptions{
-		Level: lib.Info,
-		Str:   "Commit %s successful",
-		Vars:  []interface{}{commit.ID},
 	})
 
 	return nil
