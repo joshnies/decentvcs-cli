@@ -13,6 +13,7 @@ import (
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/system"
+	"github.com/joshnies/qc-cli/models"
 	"github.com/lucsky/cuid"
 	"github.com/urfave/cli/v2"
 )
@@ -26,7 +27,7 @@ func LogIn(c *cli.Context) error {
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
 	if err != nil {
 		console.Verbose("Failed to generate code verifier: %v", err)
-		console.ErrorPrint("An internal error occurred. If the issue persists, please contact us.")
+		console.ErrorPrint(constants.ErrMsgInternal)
 		os.Exit(1)
 	}
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
@@ -58,7 +59,7 @@ func LogIn(c *cli.Context) error {
 			console.Verbose("Client state does not match server state")
 			console.Verbose("Client state: %s", clientState)
 			console.Verbose("Server state: %s", serverState)
-			console.ErrorPrint("Authentication failed")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
 
@@ -68,7 +69,7 @@ func LogIn(c *cli.Context) error {
 				resError,
 				resErrorDesc,
 			)
-			console.ErrorPrint("Authentication failed")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
 
@@ -87,13 +88,13 @@ func LogIn(c *cli.Context) error {
 		)
 		if err != nil {
 			console.Verbose("Error while retrieving access token: %s", err)
-			console.ErrorPrint("Authentication failed")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
 
 		if tokenRes.StatusCode != 200 {
 			console.Verbose("Error while retrieving access token: %s", tokenRes.Status)
-			console.ErrorPrint("Authentication failed")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
 
@@ -102,16 +103,54 @@ func LogIn(c *cli.Context) error {
 		err = json.NewDecoder(tokenRes.Body).Decode(&tokenResData)
 		if err != nil {
 			console.Verbose("Error while parsing access token response: %s", err)
-			console.ErrorPrint("Authentication failed")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
-
-		// TODO: Save tokens in file
 
 		console.Verbose("Access token: %s", tokenResData["access_token"])
 		console.Verbose("Refresh token: %s", tokenResData["refresh_token"])
 		console.Verbose("ID token: %s", tokenResData["id_token"])
 		console.Verbose("Expires in: %s", tokenResData["expires_in"])
+
+		// Save auth data to global config file
+		gc := models.GlobalConfig{
+			Auth: models.GlobalConfigAuth{
+				AccessToken:  tokenResData["access_token"].(string),
+				RefreshToken: tokenResData["refresh_token"].(string),
+				IDToken:      tokenResData["id_token"].(string),
+				ExpiresIn:    int(tokenResData["expires_in"].(float64)),
+			},
+		}
+
+		gcJson, err := json.MarshalIndent(gc, "", "  ")
+		if err != nil {
+			console.Verbose("Error while encoding auth data as JSON: %s", err)
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+
+		userHomeDir, err := os.UserHomeDir()
+		if err != nil {
+			console.Verbose("Error while retrieving user home directory: %s", err)
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+
+		gcFile, err := os.Create(userHomeDir + "/" + constants.GlobalConfigFileName)
+		if err != nil {
+			console.Verbose("Error while creating config file: %s", err)
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+		defer gcFile.Close()
+
+		gcFile.Write(gcJson)
+		if err != nil {
+			console.Verbose("Error while writing config file: %s", err)
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+
 		console.Info("Authentication successful")
 		os.Exit(0)
 	})
