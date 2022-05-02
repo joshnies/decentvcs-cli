@@ -32,7 +32,7 @@ func LogIn(c *cli.Context) error {
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
 	serverState := cuid.New()
 	localhost := "http://localhost:4242"
-	scope := url.QueryEscape("offline_access openid name given_name email email_verified")
+	scope := url.QueryEscape("offline_access openid profile email")
 	system.OpenBrowser(
 		constants.Auth0DomainDev + "/authorize?" +
 			"response_type=code" +
