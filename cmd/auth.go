@@ -63,7 +63,11 @@ func LogIn(c *cli.Context) error {
 		}
 
 		if resError != "" {
-			console.Verbose("Received error from authentication callback: %s; %s", resError, resErrorDesc)
+			console.Verbose(
+				"Received error from authentication callback: %s; %s",
+				resError,
+				resErrorDesc,
+			)
 			console.ErrorPrint("Authentication failed")
 			os.Exit(1)
 		}
@@ -76,7 +80,11 @@ func LogIn(c *cli.Context) error {
 		tokenReqData.Set("code_verifier", codeVerifier)
 		tokenReqData.Set("code", code)
 		tokenReqData.Set("redirect_uri", localhost)
-		tokenRes, err := http.Post(tokenReqUrl, "application/x-www-form-urlencoded", strings.NewReader(tokenReqData.Encode()))
+		tokenRes, err := http.Post(
+			tokenReqUrl,
+			"application/x-www-form-urlencoded",
+			strings.NewReader(tokenReqData.Encode()),
+		)
 		if err != nil {
 			console.Verbose("Error while retrieving access token: %s", err)
 			console.ErrorPrint("Authentication failed")
