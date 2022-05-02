@@ -22,8 +22,8 @@ type LogOptions struct {
 
 // Log verbose message to console.
 // `VERBOSE` environment variable must be set to `1` for message to be printed.
-func Verbose(message string, vars ...any) error {
-	return fmt.Errorf(color.Ize(color.Gray, "[V] "+message+"\n"), vars...)
+func Verbose(message string, vars ...any) {
+	fmt.Printf(color.Ize(color.Gray, "[V] "+message+"\n"), vars...)
 }
 
 // Log info message to console.
@@ -39,4 +39,9 @@ func Warning(message string, vars ...any) {
 // Log error message to console.
 func Error(message string, vars ...any) error {
 	return fmt.Errorf(color.Ize(color.Red, "[ERROR] "+message+"\n"), vars...)
+}
+
+// Log error message to console.
+func ErrorPrint(message string, vars ...any) {
+	fmt.Printf(color.Ize(color.Red, "[ERROR] "+message+"\n"), vars...)
 }
