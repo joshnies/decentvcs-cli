@@ -107,10 +107,12 @@ func LogIn(c *cli.Context) error {
 			os.Exit(1)
 		}
 
+		expiresIn := int(tokenResData["expires_in"].(float64))
+
 		console.Verbose("Access token: %s", tokenResData["access_token"])
 		console.Verbose("Refresh token: %s", tokenResData["refresh_token"])
 		console.Verbose("ID token: %s", tokenResData["id_token"])
-		console.Verbose("Expires in: %s", tokenResData["expires_in"])
+		console.Verbose("Expires in: %d hours", expiresIn/60/60)
 
 		// Save auth data to global config file
 		gc := models.GlobalConfig{
@@ -118,7 +120,7 @@ func LogIn(c *cli.Context) error {
 				AccessToken:  tokenResData["access_token"].(string),
 				RefreshToken: tokenResData["refresh_token"].(string),
 				IDToken:      tokenResData["id_token"].(string),
-				ExpiresIn:    int(tokenResData["expires_in"].(float64)),
+				ExpiresIn:    expiresIn,
 			},
 		}
 
