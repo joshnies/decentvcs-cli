@@ -15,11 +15,6 @@ const (
 	LogLevelError
 )
 
-type LogOptions struct {
-	Message string
-	Vars    []interface{}
-}
-
 // Log verbose message to console.
 // `VERBOSE` environment variable must be set to `1` for message to be printed.
 func Verbose(message string, vars ...any) {
