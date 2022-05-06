@@ -24,6 +24,7 @@ import (
 // Reference: https://www.altostra.com/blog/cli-authentication-with-auth0
 func LogIn(c *cli.Context) error {
 	// Open login link in browser
+	port := 4242
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
 	if err != nil {
 		console.Verbose("Failed to generate code verifier: %v", err)
@@ -32,7 +33,7 @@ func LogIn(c *cli.Context) error {
 	}
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
 	serverState := cuid.New()
-	cliLocalhost := "http://localhost:4242"
+	cliLocalhost := fmt.Sprintf("http://localhost:%d", port)
 	scope := url.QueryEscape("offline_access openid profile email")
 	authUrl := constants.Auth0DomainDev + "/authorize?" +
 		"response_type=code" +
@@ -204,7 +205,7 @@ func LogIn(c *cli.Context) error {
 		console.Info("Authentication successful")
 		os.Exit(0)
 	})
-	go http.ListenAndServe(":4242", nil)
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
