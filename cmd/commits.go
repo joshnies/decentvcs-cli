@@ -53,6 +53,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Detect local changes
+	console.Info("Detecting changes...")
 	changes, hashMap, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
@@ -90,7 +91,7 @@ func Push(c *cli.Context) error {
 		return entry.Path
 	})
 
-	console.Info("%d changes found", len(changes))
+	console.Info("%d changes found. Pushing...", len(changes))
 	console.Verbose("Created: %d", len(createdFilePaths))
 	console.Verbose("Modified: %d", len(modifiedFilePaths))
 	console.Verbose("Deleted: %d", len(deletedFilePaths))
@@ -153,6 +154,7 @@ func Push(c *cli.Context) error {
 	}
 
 	console.Verbose("Successfully uploaded new files")
+	console.Success("Successful")
 	return nil
 }
 
