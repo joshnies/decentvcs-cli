@@ -21,10 +21,8 @@ import (
 )
 
 // Log in to Quanta Control.
+// Reference: https://www.altostra.com/blog/cli-authentication-with-auth0
 func LogIn(c *cli.Context) error {
-	// Reference: https://www.altostra.com/blog/cli-authentication-with-auth0
-	console.Info("Opening browser to log in...")
-
 	// Open login link in browser
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
 	if err != nil {
@@ -36,17 +34,20 @@ func LogIn(c *cli.Context) error {
 	serverState := cuid.New()
 	cliLocalhost := "http://localhost:4242"
 	scope := url.QueryEscape("offline_access openid profile email")
-	system.OpenBrowser(
-		constants.Auth0DomainDev + "/authorize?" +
-			"response_type=code" +
-			"&code_challenge_method=S256" +
-			"&code_challenge=" + codeChallenge +
-			"&client_id=" + constants.Auth0ClientIDDev +
-			"&audience=" + url.QueryEscape("http://localhost:8080") +
-			"&redirect_uri=" + url.QueryEscape(cliLocalhost) +
-			"&state=" + serverState +
-			"&scope=" + scope,
-	)
+	authUrl := constants.Auth0DomainDev + "/authorize?" +
+		"response_type=code" +
+		"&code_challenge_method=S256" +
+		"&code_challenge=" + codeChallenge +
+		"&client_id=" + constants.Auth0ClientIDDev +
+		"&audience=http://localhost:8080" +
+		"&redirect_uri=" + cliLocalhost +
+		"&state=" + serverState +
+		"&scope=" + scope
+
+	console.Info("Opening browser to log in...")
+	console.Info("You can also open this URL:")
+	console.Info(authUrl)
+	system.OpenBrowser(authUrl)
 
 	// Start local HTTP server for receiving Auth0 authentication callback requests
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +75,8 @@ func LogIn(c *cli.Context) error {
 			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
+
+		console.Verbose("Authorization code: %s", code)
 
 		// Validate code
 		tokenReqUrl := fmt.Sprintf("%s/oauth/token", constants.Auth0DomainDev)
@@ -117,13 +120,42 @@ func LogIn(c *cli.Context) error {
 		var tokenResData map[string]interface{}
 		err = json.NewDecoder(tokenRes.Body).Decode(&tokenResData)
 		if err != nil {
-			console.Verbose("Error while parsing access token response: %s", err)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
+			console.ErrorPrint("Error while parsing access token response: %s", err)
+			console.ErrorPrint(constants.ErrMsgInternal)
 			os.Exit(1)
 		}
 
-		expiresIn := int(tokenResData["expires_in"].(float64))
+		// Extract vars from response
+		accessToken := tokenResData["access_token"]
+		if accessToken == nil {
+			console.ErrorPrint("Access token not found in response")
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
 
+		refreshToken := tokenResData["refresh_token"]
+		if refreshToken == nil {
+			console.ErrorPrint("Refresh token not found in response")
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+
+		idToken := tokenResData["id_token"]
+		if idToken == nil {
+			console.ErrorPrint("ID token not found in response")
+			console.ErrorPrint(constants.ErrMsgInternal)
+			os.Exit(1)
+		}
+
+		expiresInRaw := tokenResData["expires_in"]
+		if expiresInRaw == nil {
+			console.ErrorPrint("Expiration (expires_in) not found in response")
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
+			os.Exit(1)
+		}
+		expiresIn := int(expiresInRaw.(float64))
+
+		// Print auth data
 		console.Verbose("Access token: %s", tokenResData["access_token"])
 		console.Verbose("Refresh token: %s", tokenResData["refresh_token"])
 		console.Verbose("ID token: %s", tokenResData["id_token"])
