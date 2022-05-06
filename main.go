@@ -52,6 +52,12 @@ func main() {
 				Aliases: []string{"down", "d"},
 				Action:  cmd.Pull,
 			},
+			{
+				Name:    "changes",
+				Usage:   "Print current changes",
+				Aliases: []string{"c"},
+				Action:  cmd.GetChanges,
+			},
 		},
 	}
 

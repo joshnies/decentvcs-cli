@@ -19,7 +19,7 @@ import (
 
 // Push local changes to remote
 func Push(c *cli.Context) error {
-	// Make sure current directory is a project
+	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
 		return err
@@ -151,5 +151,56 @@ func Push(c *cli.Context) error {
 // Pull latest changes from remote
 func Pull(c *cli.Context) error {
 	println("TODO")
+	return nil
+}
+
+// Print list of current changes
+func GetChanges(c *cli.Context) error {
+	// Get project config, implicitly making sure current directory is a project
+	projectConfig, err := config.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+
+	// Get current branch w/ current commit
+	currentBranchRes, err := http.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	if err != nil {
+		return err
+	}
+
+	// Parse response
+	var currentBranch models.BranchWithCommit
+	err = json.NewDecoder(currentBranchRes.Body).Decode(&currentBranch)
+	if err != nil {
+		return err
+	}
+
+	// Detect local changes
+	changes, _, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
+	if err != nil {
+		return err
+	}
+
+	// If there are no changes, exit
+	if len(changes) == 0 {
+		console.Info("No changes detected")
+		return nil
+	}
+
+	// Print changes
+	console.Info("%d changes found:", len(changes))
+
+	for _, change := range changes {
+		switch change.Type {
+		case models.FileWasCreated:
+			console.Success("  + %s", change.Path)
+		case models.FileWasModified:
+			// TODO: Print lines added and removed
+			console.Info("  * %s", change.Path)
+		case models.FileWasDeleted:
+			console.Error("  - %s", change.Path)
+		}
+	}
+
 	return nil
 }
