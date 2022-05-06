@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -200,12 +201,12 @@ func GetChanges(c *cli.Context) error {
 	for _, change := range changes {
 		switch change.Type {
 		case models.FileWasCreated:
-			console.Success("  + %s", change.Path)
+			fmt.Printf(color.Ize(color.Green, "  + %s\n"), change.Path)
 		case models.FileWasModified:
 			// TODO: Print lines added and removed
-			console.Info("  * %s", change.Path)
+			fmt.Printf(color.Ize(color.Cyan, "  * %s\n"), change.Path)
 		case models.FileWasDeleted:
-			console.Error("  - %s", change.Path)
+			fmt.Printf(color.Ize(color.Red, "  - %s\n"), change.Path)
 		}
 	}
 
