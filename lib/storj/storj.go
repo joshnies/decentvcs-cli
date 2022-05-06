@@ -107,6 +107,7 @@ func DownloadBulk(projectConfig models.ProjectConfig, keys []string) ([]*uplink.
 	defer sp.Close()
 
 	// Download objects
+	// TODO: Download objects in parallel
 	var downloads []*uplink.Download
 
 	for _, key := range keys {

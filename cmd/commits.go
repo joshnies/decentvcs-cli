@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
@@ -22,7 +20,13 @@ import (
 
 // Push local changes to remote
 func Push(c *cli.Context) error {
-	auth.Validate()
+	gc := auth.Validate()
+
+	// Extract args
+	msg := c.Args().Get(0)
+	if msg == "" {
+		msg = "No message"
+	}
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
@@ -33,10 +37,12 @@ func Push(c *cli.Context) error {
 	// TODO: Make sure user is synced with remote before continuing
 
 	// Get current branch w/ current commit
-	currentBranchRes, err := http.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	apiUrl := api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}
+	defer currentBranchRes.Body.Close()
 
 	// Parse response
 	var currentBranch models.BranchWithCommit
@@ -107,7 +113,7 @@ func Push(c *cli.Context) error {
 	console.Verbose("Creating commit...")
 
 	// Create commit in database
-	msg := c.Args().Get(0)
+	apiUrl = api.BuildURLf("projects/%s/commits", projectConfig.ProjectID)
 	bodyJson, _ := json.Marshal(map[string]any{
 		"branch_id":      projectConfig.CurrentBranchID,
 		"message":        msg,
@@ -116,16 +122,11 @@ func Push(c *cli.Context) error {
 		"deleted_paths":  deletedFilePaths,
 		"hash_map":       hashMap,
 	})
-	body := bytes.NewBuffer(bodyJson)
-	commitRes, err := http.Post(api.BuildURLf("projects/%s/commits", projectConfig.ProjectID), "application/json", body)
+	commitRes, err := httpw.Post(apiUrl, bodyJson, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}
 	defer commitRes.Body.Close()
-
-	if commitRes.StatusCode != http.StatusOK {
-		return console.Error("Failed to create commmit: Received status %s", commitRes.Status)
-	}
 
 	// Parse commit
 	var commit models.Commit
