@@ -23,7 +23,7 @@ import (
 // Log in to Quanta Control.
 func LogIn(c *cli.Context) error {
 	// Reference: https://www.altostra.com/blog/cli-authentication-with-auth0
-	console.Info("Opening browser to log in to Quanta Control...")
+	console.Info("Opening browser to log in...")
 
 	// Open login link in browser
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
