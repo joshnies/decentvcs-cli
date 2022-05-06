@@ -8,6 +8,7 @@ import (
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/lib/storj"
@@ -19,6 +20,8 @@ import (
 
 // Push local changes to remote
 func Push(c *cli.Context) error {
+	auth.Validate()
+
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
@@ -150,12 +153,16 @@ func Push(c *cli.Context) error {
 
 // Pull latest changes from remote
 func Pull(c *cli.Context) error {
+	auth.Validate()
+
 	println("TODO")
 	return nil
 }
 
 // Print list of current changes
 func GetChanges(c *cli.Context) error {
+	auth.Validate()
+
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {

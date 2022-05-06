@@ -9,13 +9,17 @@ import (
 	"path/filepath"
 
 	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
 
+// Initialize a new project on local system and in the database.
 func Init(c *cli.Context) error {
+	auth.Validate()
+
 	// Get absolute file path
 	path := c.Args().First()
 	if path == "" {

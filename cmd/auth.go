@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/grokify/go-pkce"
+	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/system"
@@ -216,27 +217,13 @@ func LogOut(c *cli.Context) error {
 
 // Print authentication status.
 func PrintAuthState(c *cli.Context) error {
-	// Read existing global config file
-	userHomeDir, err := os.UserHomeDir()
+	// Get global config
+	gc, err := config.GetGlobalConfig()
 	if err != nil {
-		console.Verbose("Error while retrieving user home directory: %s", err)
-		return console.Error(constants.ErrMsgInternal)
+		return err
 	}
 
-	gcPath := userHomeDir + "/" + constants.GlobalConfigFileName
-	gcFile, err := os.Open(gcPath)
-	if err != nil {
-		console.Verbose("Error while opening config file: %s", err)
-		return console.Error(constants.ErrMsgInternal)
-	}
-
-	var gc models.GlobalConfig
-	err = json.NewDecoder(gcFile).Decode(&gc)
-	if err != nil {
-		console.Verbose("Error while decoding config file: %s", err)
-		return console.Error(constants.ErrMsgInternal)
-	}
-
+	// Check if authenticated
 	if gc.Auth.AccessToken == "" {
 		return console.Error("Not logged in yet. Use `qc login` to log in.")
 	}
