@@ -177,6 +177,7 @@ func GetChanges(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer currentBranchRes.Body.Close()
 
 	// Parse response
 	var currentBranch models.BranchWithCommit

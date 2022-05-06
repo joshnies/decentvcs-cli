@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/httpw"
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
@@ -18,7 +17,7 @@ import (
 
 // Initialize a new project on local system and in the database.
 func Init(c *cli.Context) error {
-	auth.Validate()
+	gc := auth.Validate()
 
 	// Get absolute file path
 	path := c.Args().First()
@@ -43,8 +42,7 @@ func Init(c *cli.Context) error {
 
 	// Create project in API
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
-	body := bytes.NewBuffer(bodyJson)
-	res, err := http.Post(api.BuildURL("projects"), "application/json", body)
+	res, err := httpw.Post(api.BuildURL("projects"), bodyJson, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}

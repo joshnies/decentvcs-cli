@@ -1,6 +1,7 @@
 package httpw
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
@@ -20,17 +21,17 @@ func Get(url string, accessToken string) (*http.Response, error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	// Send request
-	currentBranchRes, err := httpClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check response status
-	switch currentBranchRes.StatusCode {
+	switch res.StatusCode {
 	case http.StatusUnauthorized:
 		return nil, console.Error("Unauthorized")
 	case http.StatusNotFound:
-		return nil, console.Error("Branch not found")
+		return nil, console.Error("Resource not found")
 	case http.StatusRequestTimeout:
 		return nil, console.Error("HTTP request timed out")
 	case http.StatusBadRequest:
@@ -41,5 +42,43 @@ func Get(url string, accessToken string) (*http.Response, error) {
 		return nil, console.Error(constants.ErrMsgInternal)
 	}
 
-	return currentBranchRes, nil
+	return res, nil
+}
+
+// Send a POST request to the specified URL.
+func Post(url string, data []byte, accessToken string) (*http.Response, error) {
+	// Build request
+	httpClient := &http.Client{}
+	body := bytes.NewBuffer(data)
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	// Send request
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check response status
+	switch res.StatusCode {
+	case http.StatusUnauthorized:
+		return nil, console.Error("Unauthorized")
+	case http.StatusNotFound:
+		return nil, console.Error("Resource not found")
+	case http.StatusRequestTimeout:
+		return nil, console.Error("HTTP request timed out")
+	case http.StatusBadRequest:
+		return nil, console.Error(constants.ErrMsgInternal)
+	case http.StatusInternalServerError:
+		return nil, console.Error(constants.ErrMsgInternal)
+	case http.StatusServiceUnavailable:
+		return nil, console.Error(constants.ErrMsgInternal)
+	}
+
+	return res, nil
 }
