@@ -14,7 +14,6 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
-	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"storj.io/uplink"
 )
@@ -28,27 +27,42 @@ func GetAccessGrant() (*uplink.Access, error) {
 
 	// Use existing access grant if it exists and has not expired
 	projectConfig, err := config.GetProjectConfig()
-	if err == nil {
-		expiration := time.Unix(projectConfig.AccessGrantExpiration, 0)
-
-		if time.Now().Before(expiration) {
-			// Parse existing access grant
-			access, err := uplink.ParseAccess(projectConfig.AccessGrant)
-			if err == nil {
-				return access, nil
-			}
-
-			// Existing access grant is invalid
-			console.Warning("Existing access grant is invalid. Regenerating...")
-		}
-	} else {
+	if err != nil {
 		return nil, console.Error("Failed to get project config, please make sure this directory is a Quanta Control project. Error: %v", err)
 	}
 
 	projectId := projectConfig.ProjectID
 
+	// Get project from database
+	apiUrl := api.BuildURLf("projects/%s", projectId)
+	projectRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	if err != nil {
+		return nil, err
+	}
+	defer projectRes.Body.Close()
+
+	// Parse response
+	var project models.Project
+	err = json.NewDecoder(projectRes.Body).Decode(&project)
+	if err != nil {
+		return nil, err
+	}
+
+	expiration := time.Unix(project.AccessGrantExpiration, 0)
+
+	if time.Now().Before(expiration) {
+		// Parse existing access grant
+		access, err := uplink.ParseAccess(project.AccessGrant)
+		if err == nil {
+			return access, nil
+		}
+
+		// Existing access grant is invalid
+		console.Warning("Existing access grant is invalid. Regenerating...")
+	}
+
 	// Get new access grant from API
-	apiUrl := api.BuildURLf("projects/%s/access_grant?perm=w", projectId)
+	apiUrl = api.BuildURLf("projects/%s/access_grant?perm=w", projectId)
 	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return nil, console.Error("Failed to authenticate with storage: %v", err)
@@ -62,22 +76,28 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, console.Error("Failed to authenticate with storage: %v", err)
 	}
 
-	accessGrantStr := decodedRes.AccessGrant
-
-	// Write access grant to project config
-	projectConfig, err = projects.WriteProjectConfig(".", models.ProjectConfig{
-		AccessGrant: accessGrantStr,
-		// TODO: Enforce this 24-hour expiration in Storj itself
-		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
-	})
-	if err != nil {
-		return nil, console.Error("Failed to write project config: %v", err)
-	}
-
 	// Parse access grant string
+	accessGrantStr := decodedRes.AccessGrant
 	access, err := uplink.ParseAccess(accessGrantStr)
 	if err != nil {
 		return nil, console.Error("Failed to authenticate with storage: %v", err)
+	}
+
+	// Update project with new access grant and expiration
+	apiUrl = api.BuildURLf("projects/%s", projectId)
+	projectUpdateData := models.Project{
+		AccessGrant: accessGrantStr,
+		// TODO: Enforce this 24-hour expiration in Storj itself
+		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
+	}
+	body := bytes.NewBuffer([]byte{})
+	err = json.NewEncoder(body).Encode(projectUpdateData)
+	if err != nil {
+		return nil, err
+	}
+	_, err = httpw.Post(apiUrl, body, gc.Auth.AccessToken)
+	if err != nil {
+		return nil, err
 	}
 
 	return access, nil

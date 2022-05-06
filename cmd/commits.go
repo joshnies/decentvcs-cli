@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -122,7 +123,8 @@ func Push(c *cli.Context) error {
 		"deleted_paths":  deletedFilePaths,
 		"hash_map":       hashMap,
 	})
-	commitRes, err := httpw.Post(apiUrl, bodyJson, gc.Auth.AccessToken)
+	body := bytes.NewBuffer(bodyJson)
+	commitRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}

@@ -46,10 +46,9 @@ func Get(url string, accessToken string) (*http.Response, error) {
 }
 
 // Send a POST request to the specified URL.
-func Post(url string, data []byte, accessToken string) (*http.Response, error) {
+func Post(url string, body *bytes.Buffer, accessToken string) (*http.Response, error) {
 	// Build request
 	httpClient := &http.Client{}
-	body := bytes.NewBuffer(data)
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
@@ -64,7 +63,7 @@ func Post(url string, data []byte, accessToken string) (*http.Response, error) {
 		return nil, err
 	}
 
-	// Check response status
+	// Handle specific response status codes
 	switch res.StatusCode {
 	case http.StatusUnauthorized:
 		return nil, console.Error("Unauthorized")
@@ -72,11 +71,10 @@ func Post(url string, data []byte, accessToken string) (*http.Response, error) {
 		return nil, console.Error("Resource not found")
 	case http.StatusRequestTimeout:
 		return nil, console.Error("HTTP request timed out")
-	case http.StatusBadRequest:
-		return nil, console.Error(constants.ErrMsgInternal)
-	case http.StatusInternalServerError:
-		return nil, console.Error(constants.ErrMsgInternal)
-	case http.StatusServiceUnavailable:
+	}
+
+	// Handle other bad response status codes
+	if res.StatusCode >= 300 {
 		return nil, console.Error(constants.ErrMsgInternal)
 	}
 

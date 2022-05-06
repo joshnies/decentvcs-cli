@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"os"
@@ -42,7 +43,8 @@ func Init(c *cli.Context) error {
 
 	// Create project in API
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
-	res, err := httpw.Post(api.BuildURL("projects"), bodyJson, gc.Auth.AccessToken)
+	body := bytes.NewBuffer(bodyJson)
+	res, err := httpw.Post(api.BuildURL("projects"), body, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}
