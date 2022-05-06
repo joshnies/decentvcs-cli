@@ -5,15 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/httpw"
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"storj.io/uplink"
@@ -24,6 +24,8 @@ import (
 //
 // Returns Storj access grant (unserialized).
 func GetAccessGrant() (*uplink.Access, error) {
+	gc := auth.Validate()
+
 	// Use existing access grant if it exists and has not expired
 	projectConfig, err := config.GetProjectConfig()
 	if err == nil {
@@ -46,15 +48,12 @@ func GetAccessGrant() (*uplink.Access, error) {
 	projectId := projectConfig.ProjectID
 
 	// Get new access grant from API
-	res, err := http.Get(api.BuildURL(fmt.Sprintf("projects/%s/access_grant?perm=w", projectId)))
+	apiUrl := api.BuildURLf("projects/%s/access_grant?perm=w", projectId)
+	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return nil, console.Error("Failed to authenticate with storage: %v", err)
 	}
 	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return nil, console.Error("Failed to authenticate with storage: Received status %s", res.Status)
-	}
 
 	// Parse response
 	var decodedRes models.AccessGrantResponse
