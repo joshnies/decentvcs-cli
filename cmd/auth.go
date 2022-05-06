@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -117,10 +118,11 @@ func LogIn(c *cli.Context) error {
 		// Save auth data to global config file
 		gc := models.GlobalConfig{
 			Auth: models.GlobalConfigAuth{
-				AccessToken:  tokenResData["access_token"].(string),
-				RefreshToken: tokenResData["refresh_token"].(string),
-				IDToken:      tokenResData["id_token"].(string),
-				ExpiresIn:    expiresIn,
+				AccessToken:     tokenResData["access_token"].(string),
+				RefreshToken:    tokenResData["refresh_token"].(string),
+				IDToken:         tokenResData["id_token"].(string),
+				ExpiresIn:       expiresIn,
+				AuthenticatedAt: time.Now().Unix(),
 			},
 		}
 
@@ -161,4 +163,95 @@ func LogIn(c *cli.Context) error {
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
 	return console.Error("Ending authentication process after 3 minutes")
+}
+
+// Log out of Quanta Control.
+func LogOut(c *cli.Context) error {
+	// Read existing global config file
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		console.Verbose("Error while retrieving user home directory: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	gcPath := userHomeDir + "/" + constants.GlobalConfigFileName
+	gcFile, err := os.Open(gcPath)
+	if err != nil {
+		console.Verbose("Error while opening config file: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	var gc models.GlobalConfig
+	err = json.NewDecoder(gcFile).Decode(&gc)
+	if err != nil {
+		console.Verbose("Error while decoding config file: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	// Return if not authenticated
+	if gc.Auth.AccessToken == "" {
+		return console.Error(constants.ErrMsgNotAuthenticated)
+	}
+
+	// Clear auth data
+	gc.Auth = models.GlobalConfigAuth{}
+
+	// Save global config file
+	gcJson, err := json.MarshalIndent(gc, "", "  ")
+	if err != nil {
+		console.Verbose("Error while encoding auth data as JSON: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	err = ioutil.WriteFile(gcPath, gcJson, 0644)
+	if err != nil {
+		console.Verbose("Error while writing config file: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	console.Info("Logged out")
+
+	return nil
+}
+
+// Print authentication status.
+func PrintAuthState(c *cli.Context) error {
+	// Read existing global config file
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		console.Verbose("Error while retrieving user home directory: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	gcPath := userHomeDir + "/" + constants.GlobalConfigFileName
+	gcFile, err := os.Open(gcPath)
+	if err != nil {
+		console.Verbose("Error while opening config file: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	var gc models.GlobalConfig
+	err = json.NewDecoder(gcFile).Decode(&gc)
+	if err != nil {
+		console.Verbose("Error while decoding config file: %s", err)
+		return console.Error(constants.ErrMsgInternal)
+	}
+
+	if gc.Auth.AccessToken == "" {
+		return console.Error("Not logged in yet. Use `qc login` to log in.")
+	}
+
+	// Print auth data
+	console.Info("Access token: %s", gc.Auth.AccessToken)
+	console.Info("Refresh token: %s", gc.Auth.RefreshToken)
+	console.Info("ID token: %s", gc.Auth.IDToken)
+	console.Info("Authenticated at: %s", time.Unix(gc.Auth.AuthenticatedAt, 0).Format(constants.TimeFormat))
+
+	expiresAt := time.Unix(gc.Auth.AuthenticatedAt, 0).Add(time.Duration(gc.Auth.ExpiresIn) * time.Second)
+	console.Info("Expires at: %s", expiresAt.Format(constants.TimeFormat))
+
+	expiresInHours := time.Until(expiresAt).Truncate(time.Second)
+	console.Info("Expires in: %s", expiresInHours)
+
+	return nil
 }

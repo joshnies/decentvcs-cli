@@ -25,6 +25,16 @@ func main() {
 				Action: cmd.LogIn,
 			},
 			{
+				Name:   "logout",
+				Usage:  "Log out of Quanta Control",
+				Action: cmd.LogOut,
+			},
+			{
+				Name:   "auth",
+				Usage:  "Print current authentication state",
+				Action: cmd.PrintAuthState,
+			},
+			{
 				Name:    "init",
 				Usage:   "Initialize a new project",
 				Aliases: []string{"i"},

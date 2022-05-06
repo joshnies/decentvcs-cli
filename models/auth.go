@@ -6,8 +6,9 @@ type GlobalConfig struct {
 }
 
 type GlobalConfigAuth struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	IDToken      string `json:"id_token"`
-	ExpiresIn    int    `json:"expires_in"`
+	AccessToken     string `json:"access_token"`
+	RefreshToken    string `json:"refresh_token"`
+	IDToken         string `json:"id_token"`
+	ExpiresIn       int    `json:"expires_in"`
+	AuthenticatedAt int64  `json:"authenticated_at"`
 }
