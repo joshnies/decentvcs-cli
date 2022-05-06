@@ -11,6 +11,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/httpw"
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
@@ -162,7 +163,7 @@ func Pull(c *cli.Context) error {
 
 // Print list of current changes
 func GetChanges(c *cli.Context) error {
-	auth.Validate()
+	gc := auth.Validate()
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
@@ -171,7 +172,8 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Get current branch w/ current commit
-	currentBranchRes, err := http.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID))
+	apiUrl := api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}

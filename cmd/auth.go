@@ -34,7 +34,7 @@ func LogIn(c *cli.Context) error {
 	}
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
 	serverState := cuid.New()
-	localhost := "http://localhost:4242"
+	cliLocalhost := "http://localhost:4242"
 	scope := url.QueryEscape("offline_access openid profile email")
 	system.OpenBrowser(
 		constants.Auth0DomainDev + "/authorize?" +
@@ -42,8 +42,8 @@ func LogIn(c *cli.Context) error {
 			"&code_challenge_method=S256" +
 			"&code_challenge=" + codeChallenge +
 			"&client_id=" + constants.Auth0ClientIDDev +
-			"&audience=" + localhost +
-			"&redirect_uri=" + localhost +
+			"&audience=" + url.QueryEscape("http://localhost:8080") +
+			"&redirect_uri=" + url.QueryEscape(cliLocalhost) +
 			"&state=" + serverState +
 			"&scope=" + scope,
 	)
@@ -82,7 +82,7 @@ func LogIn(c *cli.Context) error {
 		tokenReqData.Set("client_id", constants.Auth0ClientIDDev)
 		tokenReqData.Set("code_verifier", codeVerifier)
 		tokenReqData.Set("code", code)
-		tokenReqData.Set("redirect_uri", localhost)
+		tokenReqData.Set("redirect_uri", cliLocalhost)
 		tokenRes, err := http.Post(
 			tokenReqUrl,
 			"application/x-www-form-urlencoded",
@@ -97,6 +97,19 @@ func LogIn(c *cli.Context) error {
 		if tokenRes.StatusCode != 200 {
 			console.Verbose("Error while retrieving access token: %s", tokenRes.Status)
 			console.ErrorPrint(constants.ErrMsgAuthFailed)
+
+			// Parse response body
+			var body map[string]interface{}
+			err = json.NewDecoder(tokenRes.Body).Decode(&body)
+			if err != nil {
+				console.Verbose("Error while parsing response body: %s", err)
+			}
+
+			errorDesc := body["error_description"]
+			if errorDesc != nil {
+				console.Verbose("Error description: %s", errorDesc)
+			}
+
 			os.Exit(1)
 		}
 
