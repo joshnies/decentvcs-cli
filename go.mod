@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/TwiN/go-color v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.2
+	github.com/gabstv/go-bsdiff v1.0.5
 	github.com/grokify/go-pkce v0.2.0
 	github.com/lucsky/cuid v1.2.1
 	github.com/samber/lo v1.17.0
@@ -17,7 +18,6 @@ require (
 	github.com/calebcase/tmpfile v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/dsnet/compress v0.0.0-20171208185109-cc9eb1d7ad76 // indirect
-	github.com/gabstv/go-bsdiff v1.0.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spacemonkeygo/monkit/v3 v3.0.17 // indirect
