@@ -1,6 +1,6 @@
 package models
 
-// Structure for data written to QC auth file for user.
+// Structure for data written to the global config file for user.
 type GlobalConfig struct {
 	Auth GlobalConfigAuth `json:"auth"`
 }
