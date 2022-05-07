@@ -177,7 +177,7 @@ func Push(c *cli.Context) error {
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitID = commit.ID
-	_, err = projects.WriteProjectConfig(".", projectConfig)
+	_, err = config.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
 	}

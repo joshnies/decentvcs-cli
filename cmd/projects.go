@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
-	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
@@ -84,7 +84,7 @@ func Init(c *cli.Context) error {
 		CurrentBranchID: currentBranch.ID,
 		CurrentCommitID: currentBranch.Commit.ID,
 	}
-	projects.WriteProjectConfig(absPath, projectFileData)
+	config.SaveProjectConfig(absPath, projectFileData)
 
 	console.Info("Project created successfully")
 	return nil

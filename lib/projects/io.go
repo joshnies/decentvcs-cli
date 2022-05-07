@@ -2,10 +2,8 @@ package projects
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,41 +14,6 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 )
-
-// Write project file.
-func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectConfig, error) {
-	configPath := filepath.Join(path, constants.ProjectFileName)
-
-	// Read existing project file (if it exists)
-	jsonFile, err := os.Open(configPath)
-	if err != nil && !os.IsNotExist(err) {
-		return models.ProjectConfig{}, err
-	}
-	defer jsonFile.Close()
-
-	// Decode existing data JSON
-	var existingData models.ProjectConfig
-	if jsonFile != nil {
-		err = json.NewDecoder(jsonFile).Decode(&existingData)
-		if err != nil {
-			// TODO: Improve this error
-			return models.ProjectConfig{}, err
-		}
-	}
-
-	// If existing data exists, merge it with new data
-	mergedData := models.MergeProjectConfigs(existingData, data)
-
-	// Write
-	json, err := json.MarshalIndent(mergedData, "", "  ")
-	if err != nil {
-		// TODO: Improve this error
-		return models.ProjectConfig{}, err
-	}
-
-	err = ioutil.WriteFile(configPath, json, os.ModePerm)
-	return mergedData, err
-}
 
 // Get file hash. Can be used to detect file changes.
 func GetFileHash(path string) (string, error) {
