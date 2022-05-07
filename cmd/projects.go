@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -20,8 +21,10 @@ import (
 func Init(c *cli.Context) error {
 	gc := auth.Validate()
 
+	// TODO: Add "name" option (defaults to current directory name)
+
 	// Get absolute file path
-	path := c.Args().First()
+	path := strings.TrimSpace(c.Args().First())
 	if path == "" {
 		path = "."
 	}
@@ -31,14 +34,22 @@ func Init(c *cli.Context) error {
 		return err
 	}
 
-	// Create directories if they don't exist
-	err = os.MkdirAll(absPath, os.ModePerm)
-	if err != nil {
-		log.Fatalf("\"%s\" is an existing file, aborting...", absPath)
+	// Make sure path is not already a project
+	if _, err := os.Stat(absPath + "/" + ".qc"); err == nil {
+		return console.Error("Project already initialized at %s", absPath)
+	}
+
+	console.Info("Initializing project in %s...", absPath)
+
+	if path != "." {
+		// Create directories if they don't exist
+		err = os.MkdirAll(absPath, os.ModePerm)
+		if err != nil {
+			return console.Error("Failed to create directory %s: %s", absPath, err)
+		}
 	}
 
 	// Get project name from absolute path
-	// TODO: Add cmd option to override project name
 	name := filepath.Base(absPath)
 
 	// Create project in API
@@ -58,7 +69,7 @@ func Init(c *cli.Context) error {
 	}
 
 	if len(project.Branches) == 0 {
-		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please contact us.", name)
+		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please submit this as a bug!", name)
 	}
 
 	currentBranch := project.Branches[0]
