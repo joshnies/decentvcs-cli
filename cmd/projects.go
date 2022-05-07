@@ -51,7 +51,7 @@ func Init(c *cli.Context) error {
 	defer res.Body.Close()
 
 	// Parse response
-	var project models.Project
+	var project models.ProjectWithBranchesAndCommit
 	err = json.NewDecoder(res.Body).Decode(&project)
 	if err != nil {
 		return err
@@ -61,10 +61,17 @@ func Init(c *cli.Context) error {
 		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please contact us.", name)
 	}
 
+	currentBranch := project.Branches[0]
+
+	console.Verbose("Project ID: %s", project.ID)
+	console.Verbose("Current branch ID: %s", currentBranch.ID)
+	console.Verbose("Current commit ID: %s", currentBranch.Commit.ID)
+
 	// Create QC project file
 	projectFileData := models.ProjectConfig{
 		ProjectID:       project.ID,
-		CurrentBranchID: project.Branches[len(project.Branches)-1].ID,
+		CurrentBranchID: currentBranch.ID,
+		CurrentCommitID: currentBranch.Commit.ID,
 	}
 	projects.WriteProjectConfig(absPath, projectFileData)
 

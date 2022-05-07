@@ -36,8 +36,6 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	// TODO: Make sure user is synced with remote before continuing
-
 	// Get current branch w/ current commit
 	apiUrl := api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
@@ -51,6 +49,11 @@ func Push(c *cli.Context) error {
 	err = json.NewDecoder(currentBranchRes.Body).Decode(&currentBranch)
 	if err != nil {
 		return err
+	}
+
+	// Make sure user is synced with remote before continuing
+	if currentBranch.Commit.ID != projectConfig.CurrentCommitID {
+		return console.Error("You are not synced with the remote. Please run `qc pull`.")
 	}
 
 	// Detect local changes
@@ -143,6 +146,14 @@ func Push(c *cli.Context) error {
 	}
 
 	console.Verbose("Commit %s created successfully", commit.ID)
+	console.Verbose("Updating current commit ID in project config...")
+
+	// Update current commit ID in project config
+	projectConfig.CurrentCommitID = commit.ID
+	_, err = projects.WriteProjectConfig(".", projectConfig)
+	if err != nil {
+		return err
+	}
 
 	// TODO: Upload patch files to storage (if any patch files were created)
 

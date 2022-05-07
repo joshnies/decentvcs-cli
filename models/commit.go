@@ -6,6 +6,7 @@ type Commit struct {
 	LastCommitID  string            `json:"last_commit_id,omitempty"`
 	Message       string            `json:"message,omitempty"`
 	ProjectID     string            `json:"project_id,omitempty"`
+	BranchID      string            `json:"branch_id,omitempty"`
 	SnapshotPaths []string          `json:"snapshot_paths,omitempty"`
 	PatchPaths    []string          `json:"patch_paths,omitempty"`
 	DeletedPaths  []string          `json:"deleted_paths,omitempty"`

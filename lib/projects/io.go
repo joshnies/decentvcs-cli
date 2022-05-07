@@ -91,7 +91,7 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 		}
 
 		// Skip directories
-		if info.IsDir() {
+		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
 		}
 
