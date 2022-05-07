@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/TwiN/go-color"
+	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -17,7 +19,7 @@ import (
 	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
-	"storj.io/uplink"
+	"golang.org/x/exp/maps"
 )
 
 // Push local changes to remote
@@ -103,21 +105,46 @@ func Push(c *cli.Context) error {
 	console.Verbose("Modified: %d", len(modifiedFilePaths))
 	console.Verbose("Deleted: %d", len(deletedFilePaths))
 
-	// Pull modified files from remote
-	var downloads []*uplink.Download
+	// Handle modified files
+	patches := map[string][]byte{}
 
 	if len(modifiedFilePaths) > 0 {
+		// Pull modified files from storage
 		console.Verbose("Downloading latest version of %d modified files...", len(modifiedFilePaths))
-		downloads, err = storj.DownloadBulk(projectConfig, modifiedFilePaths)
+		downloads, err := storj.DownloadBulk(projectConfig.ProjectID, projectConfig.CurrentCommitID, modifiedFilePaths)
 		if err != nil {
 			return err
 		}
 
-		console.Verbose("%d files downloaded successfully", len(downloads))
-	}
+		console.Verbose("%d files downloaded successfully", len(maps.Keys(downloads)))
 
-	// TODO: Create patch files (if files exist in remote)
-	// TODO: Compress patch files (if any were created)
+		// Create bspatch file for each modified file
+		for _, modFilePath := range modifiedFilePaths {
+			console.Verbose("Creating bspatch for %s...", modFilePath)
+
+			// Get associated remote (old) file data
+			oldFileBytes, ok := downloads[modFilePath]
+			if !ok {
+				return console.Error("Could not find downloaded data for remote modified file: %s", modFilePath)
+			}
+
+			// Read new file
+			newFileBytes, err := ioutil.ReadFile(modFilePath)
+			if err != nil {
+				return err
+			}
+
+			// Create bsdiff patch
+			patch, err := bsdiff.Bytes(oldFileBytes, newFileBytes)
+			if err != nil {
+				return err
+			}
+
+			patches[modFilePath] = patch
+		}
+
+		// TODO: Compress patch files (if any were created)
+	}
 
 	console.Verbose("Creating commit...")
 

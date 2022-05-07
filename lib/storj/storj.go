@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"time"
@@ -108,7 +109,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 // @param keys - List of object keys to download
 //
 // Returns an array of uplink download objects.
-func DownloadBulk(projectConfig models.ProjectConfig, keys []string) ([]*uplink.Download, error) {
+func DownloadBulk(projectId string, commitId string, keys []string) (map[string][]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -127,21 +128,32 @@ func DownloadBulk(projectConfig models.ProjectConfig, keys []string) ([]*uplink.
 
 	// Download objects
 	// TODO: Download objects in parallel
-	var downloads []*uplink.Download
+	prefix := fmt.Sprintf("%s/%s", projectId, commitId)
+	dataMap := map[string][]byte{}
 
 	for _, key := range keys {
-		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectConfig.ProjectID+"/"+key, nil)
+		// Download object
+		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, prefix+"/"+key, nil)
 		if err != nil && !errors.Is(err, uplink.ErrObjectNotFound) {
 			return nil, err
 		}
-
-		if d != nil {
-			defer d.Close()
-			downloads = append(downloads, d)
+		if d == nil {
+			return nil, console.Error("Failed to download object %s", key)
 		}
+		defer d.Close()
+
+		// Read object
+		buf := bytes.NewBuffer([]byte{})
+		_, err = io.Copy(buf, d)
+		if err != nil {
+			return nil, err
+		}
+
+		// Store object
+		dataMap[key] = buf.Bytes()
 	}
 
-	return downloads, nil
+	return dataMap, nil
 }
 
 // Upload objects in bulk to Storj.
