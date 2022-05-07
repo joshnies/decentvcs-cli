@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
@@ -54,14 +55,17 @@ func Push(c *cli.Context) error {
 
 	// Detect local changes
 	console.Info("Detecting changes...")
+	startTime := time.Now()
 	changes, hashMap, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
 
+	timeElapsed := time.Since(startTime).Truncate(time.Microsecond)
+
 	// If there are no changes, exit
 	if len(changes) == 0 {
-		console.Info("No changes detected")
+		console.Info("No changes detected (took %s)", timeElapsed)
 		return nil
 	}
 
@@ -91,7 +95,7 @@ func Push(c *cli.Context) error {
 		return entry.Path
 	})
 
-	console.Info("%d changes found. Pushing...", len(changes))
+	console.Info("%d changes found (took %s). Pushing...", len(changes), timeElapsed)
 	console.Verbose("Created: %d", len(createdFilePaths))
 	console.Verbose("Modified: %d", len(modifiedFilePaths))
 	console.Verbose("Deleted: %d", len(deletedFilePaths))

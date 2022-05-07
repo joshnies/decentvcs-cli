@@ -1,7 +1,6 @@
 package projects
 
 import (
-	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/models"
@@ -52,8 +52,7 @@ func WriteProjectConfig(path string, data models.ProjectConfig) (models.ProjectC
 	return mergedData, err
 }
 
-// Get file SHA1 hash. Can be used to detect file changes.
-// TODO: Use xxhash instead of SHA1
+// Get file hash. Can be used to detect file changes.
 func GetFileHash(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -61,7 +60,7 @@ func GetFileHash(path string) (string, error) {
 	}
 	defer file.Close()
 
-	hash := sha1.New()
+	hash := xxhash.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err
 	}
