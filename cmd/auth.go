@@ -13,6 +13,7 @@ import (
 	"github.com/grokify/go-pkce"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
+	"github.com/joshnies/qc-cli/lib/configio"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/system"
 	"github.com/joshnies/qc-cli/models"
@@ -173,32 +174,10 @@ func LogIn(c *cli.Context) error {
 			},
 		}
 
-		gcJson, err := json.MarshalIndent(gc, "", "  ")
+		err = configio.SaveGlobalConfig(gc)
 		if err != nil {
-			console.Verbose("Error while encoding auth data as JSON: %s", err)
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		userHomeDir, err := os.UserHomeDir()
-		if err != nil {
-			console.Verbose("Error while retrieving user home directory: %s", err)
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		gcFile, err := os.Create(userHomeDir + "/" + constants.GlobalConfigFileName)
-		if err != nil {
-			console.Verbose("Error while creating config file: %s", err)
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-		defer gcFile.Close()
-
-		gcFile.Write(gcJson)
-		if err != nil {
-			console.Verbose("Error while writing config file: %s", err)
-			console.ErrorPrint(constants.ErrMsgInternal)
+			console.ErrorPrint("Error while saving auth data to global config file: %s", err)
+			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
 
