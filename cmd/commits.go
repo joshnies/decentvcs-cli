@@ -140,10 +140,10 @@ func Push(c *cli.Context) error {
 				return err
 			}
 
+			// TODO: Compress patch data
+
 			patches[modFilePath] = patch
 		}
-
-		// TODO: Compress patch files (if any were created)
 	}
 
 	console.Verbose("Creating commit...")
@@ -182,14 +182,22 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	// TODO: Upload patch files to storage (if any patch files were created)
+	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
 
-	console.Verbose("Uploading %d created files as snapshots...", len(createdFilePaths))
+	// Upload patch files to storage (if any)
+	if len(patches) > 0 {
+		console.Verbose("Uploading %d patches for modified files...", len(patches))
+		err = storj.UploadBytesBulk(prefix, patches)
+		if err != nil {
+			return err
+		}
+	}
 
 	// TODO: Compress snapshots
 
+	console.Verbose("Uploading %d created files as snapshots...", len(createdFilePaths))
+
 	// Upload created files to storage as snapshots
-	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
 	err = storj.UploadBulk(prefix, createdFilePaths)
 	if err != nil {
 		return err

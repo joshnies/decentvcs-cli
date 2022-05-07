@@ -16,6 +16,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
 	"github.com/joshnies/qc-cli/models"
+	"golang.org/x/exp/maps"
 	"storj.io/uplink"
 )
 
@@ -208,12 +209,12 @@ func UploadBulk(prefix string, paths []string) error {
 	return nil
 }
 
-// Upload JSON data as new object to Storj.
+// Upload a single object as bytes to Storj.
 //
 // @param key - Key of object to upload
-// @param data - JSON data as bytes
+// @param data - Object data as bytes
 //
-func UploadJSON(key string, data []byte) error {
+func UploadBytes(key string, data []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -246,4 +247,50 @@ func UploadJSON(key string, data []byte) error {
 
 	// Commit upload
 	return upload.Commit()
+}
+
+// Upload objects as bytes to Storj in bulk.
+//
+// @param dataMap - Map of object keys to object data
+//
+func UploadBytesBulk(prefix string, dataMap map[string][]byte) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get access grant
+	accessGrant, err := GetAccessGrant()
+	if err != nil {
+		return err
+	}
+
+	// Open Storj project
+	sp, err := uplink.OpenProject(ctx, accessGrant)
+	if err != nil {
+		return err
+	}
+	defer sp.Close()
+
+	for _, path := range maps.Keys(dataMap) {
+		// Start upload
+		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, prefix+"/"+path, nil)
+		if err != nil {
+			return err
+		}
+
+		// Copy file data to upload buffer
+		buf := bytes.NewBuffer(dataMap[path])
+		_, err = io.Copy(upload, buf)
+		if err != nil {
+			_ = upload.Abort()
+			return console.Error("Failed to upload file: %v", err)
+		}
+
+		// Commit upload
+		err = upload.Commit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
