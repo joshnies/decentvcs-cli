@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/TwiN/go-color"
 	"github.com/grokify/go-pkce"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
@@ -218,17 +219,17 @@ func PrintAuthState(c *cli.Context) error {
 	}
 
 	// Print auth data
-	console.Info("Access token: %s", gc.Auth.AccessToken)
-	console.Info("Refresh token: %s", gc.Auth.RefreshToken)
-	console.Info("ID token: %s", gc.Auth.IDToken)
+	authAtf := time.Unix(gc.Auth.AuthenticatedAt, 0).Format(constants.TimeFormat)
+	fmt.Println(color.Ize(color.Cyan, "Access token: ") + color.Ize(color.Gray, gc.Auth.AccessToken))
+	fmt.Println(color.Ize(color.Cyan, "Refresh token: ") + color.Ize(color.Gray, gc.Auth.RefreshToken))
+	fmt.Println(color.Ize(color.Cyan, "ID token: ") + color.Ize(color.Gray, gc.Auth.IDToken))
+	fmt.Println(color.Ize(color.Cyan, "Authenticated at: "), color.Ize(color.Gray, authAtf))
 
 	expiresAt := time.Unix(gc.Auth.AuthenticatedAt, 0).Add(time.Duration(gc.Auth.ExpiresIn) * time.Second)
-	console.Info("Expires at: %s", expiresAt.Format(constants.TimeFormat))
+	fmt.Println(color.Ize(color.Cyan, "Expires at: ") + color.Ize(color.Gray, expiresAt.Format(constants.TimeFormat)))
 
 	expiresInHours := time.Until(expiresAt).Truncate(time.Second)
-	console.Info("Expires in: %s", expiresInHours)
-
-	console.Info("Authenticated at: %s", time.Unix(gc.Auth.AuthenticatedAt, 0).Format(constants.TimeFormat))
+	fmt.Println(color.Ize(color.Cyan, "Expires in: ") + color.Ize(color.Gray, expiresInHours.String()))
 
 	return nil
 }

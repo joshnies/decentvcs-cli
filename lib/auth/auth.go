@@ -42,10 +42,13 @@ func UseAccessToken(gc models.GlobalConfig) (models.GlobalConfig, error) {
 	}
 
 	// Refresh access token
+	console.Verbose("Access token has expired, refreshing...")
 	gc, err := refreshAccessToken(gc)
 	if err != nil {
 		return models.GlobalConfig{}, err
 	}
+
+	console.Verbose("Access token refreshed")
 
 	return gc, nil
 }
