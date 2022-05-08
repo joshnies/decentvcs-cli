@@ -201,7 +201,6 @@ func LogOut(c *cli.Context) error {
 	}
 
 	console.Info("Logged out")
-
 	return nil
 }
 
@@ -222,13 +221,14 @@ func PrintAuthState(c *cli.Context) error {
 	console.Info("Access token: %s", gc.Auth.AccessToken)
 	console.Info("Refresh token: %s", gc.Auth.RefreshToken)
 	console.Info("ID token: %s", gc.Auth.IDToken)
-	console.Info("Authenticated at: %s", time.Unix(gc.Auth.AuthenticatedAt, 0).Format(constants.TimeFormat))
 
 	expiresAt := time.Unix(gc.Auth.AuthenticatedAt, 0).Add(time.Duration(gc.Auth.ExpiresIn) * time.Second)
 	console.Info("Expires at: %s", expiresAt.Format(constants.TimeFormat))
 
 	expiresInHours := time.Until(expiresAt).Truncate(time.Second)
 	console.Info("Expires in: %s", expiresInHours)
+
+	console.Info("Authenticated at: %s", time.Unix(gc.Auth.AuthenticatedAt, 0).Format(constants.TimeFormat))
 
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -20,16 +19,38 @@ import (
 func Validate() models.GlobalConfig {
 	// Get global config
 	gc, err := config.GetGlobalConfig()
+	if err != nil {
+		console.Verbose("Error while getting global config: %s", err)
+		console.Fatal(constants.ErrMsgAuthFailed)
+	}
 
-	// TODO: Check for expiration and refresh the access token
-	if err != nil || gc.Auth.AccessToken == "" {
-		console.Fatal(constants.ErrMsgNotAuthenticated)
+	// Get or refresh access token
+	gc, err = UseAccessToken(gc)
+	if err != nil {
+		console.Verbose("Error while getting or refreshing access token: %s", err)
+		console.Fatal(constants.ErrMsgAuthFailed)
 	}
 
 	return gc
 }
 
-// Parse access token response from Auth0 Authentication API.
+// Get or refresh access token
+func UseAccessToken(gc models.GlobalConfig) (models.GlobalConfig, error) {
+	// If access token has not yet expired, return it
+	if gc.Auth.AuthenticatedAt+gc.Auth.ExpiresIn > time.Now().Unix() {
+		return gc, nil
+	}
+
+	// Refresh access token
+	gc, err := refreshAccessToken(gc)
+	if err != nil {
+		return models.GlobalConfig{}, err
+	}
+
+	return gc, nil
+}
+
+// Parse access token response from Auth0 Authentication API
 func ParseAccessTokenResponse(res *http.Response) (models.GlobalConfigAuth, error) {
 	// Parse response
 	var authConfig models.GlobalConfigAuth
@@ -61,7 +82,7 @@ func ParseAccessTokenResponse(res *http.Response) (models.GlobalConfigAuth, erro
 }
 
 // Refresh access token
-func RefreshAccessToken(gc models.GlobalConfig) error {
+func refreshAccessToken(gc models.GlobalConfig) (models.GlobalConfig, error) {
 	// Send request
 	reqUrl := fmt.Sprintf("%s/oauth/token", constants.Auth0DomainDev)
 	reqData := url.Values{}
@@ -75,21 +96,19 @@ func RefreshAccessToken(gc models.GlobalConfig) error {
 	)
 	if err != nil {
 		console.Verbose("Error while refreshing access token: %s", err)
-		console.ErrorPrint(constants.ErrMsgAuthFailed)
-		os.Exit(1)
+		return models.GlobalConfig{}, console.Error(constants.ErrMsgAuthFailed)
 	}
 
 	if res.StatusCode != 200 {
 		console.Verbose("Received non-200 status while refreshing access token: %s", res.Status)
-		return console.Error(constants.ErrMsgAuthFailed)
+		return models.GlobalConfig{}, console.Error(constants.ErrMsgAuthFailed)
 	}
 
 	// Parse response
 	authConfig, err := ParseAccessTokenResponse(res)
 	if err != nil {
 		console.Verbose("Error while parsing access token response: %s", err)
-		console.ErrorPrint(constants.ErrMsgAuthFailed)
-		os.Exit(1)
+		return models.GlobalConfig{}, console.Error(constants.ErrMsgAuthFailed)
 	}
 
 	// Save global config
@@ -97,8 +116,8 @@ func RefreshAccessToken(gc models.GlobalConfig) error {
 	err = configio.SaveGlobalConfig(gc)
 	if err != nil {
 		console.Verbose("Error while saving global config: %s", err)
-		return console.Error(constants.ErrMsgAuthFailed)
+		return models.GlobalConfig{}, console.Error(constants.ErrMsgAuthFailed)
 	}
 
-	return nil
+	return gc, nil
 }
