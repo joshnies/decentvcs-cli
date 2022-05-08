@@ -50,7 +50,7 @@ func main() {
 				Name:    "pull",
 				Usage:   "Pull latest changes from remote",
 				Aliases: []string{"down", "d"},
-				Action:  cmd.Pull,
+				Action:  cmd.Sync,
 			},
 			{
 				Name:    "changes",
