@@ -58,6 +58,12 @@ func main() {
 				Aliases: []string{"c"},
 				Action:  cmd.GetChanges,
 			},
+			{
+				Name:    "revert",
+				Usage:   "Revert last commit",
+				Aliases: []string{"r"},
+				Action:  cmd.RevertLastCommit,
+			},
 		},
 	}
 
