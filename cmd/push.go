@@ -106,6 +106,7 @@ func Push(c *cli.Context) error {
 	console.Verbose("Deleted: %d", len(deletedFilePaths))
 
 	// Handle modified files
+	// TODO: Move to snapshot model for modified files as well
 	patches := map[string][]byte{}
 
 	if len(modifiedFilePaths) > 0 {

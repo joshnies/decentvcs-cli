@@ -63,23 +63,20 @@ func DetectFileChanges(state map[string]models.CommitState) (FileChangeDetection
 			return err
 		}
 
-		var hostCommitId string
-		oldState, ok := state[path]
-		if !ok {
+		oldState, isInOldState := state[path]
+		if !isInOldState {
 			// File is new
 			pathsToUpdateHostCommitId = append(pathsToUpdateHostCommitId, path)
-		} else {
-			hostCommitId = oldState.HostCommitId
 		}
 
 		newState[path] = models.CommitState{
 			Hash:         newHash,
-			HostCommitId: hostCommitId,
+			HostCommitId: oldState.HostCommitId,
 		}
 
 		// Detect changes
 		// If host commit is unknown, then the file is new since it's never been uploaded to storage
-		if hostCommitId != "" {
+		if isInOldState {
 			if oldState.Hash != newHash {
 				// File was modified
 				changes = append(changes, models.FileChange{
