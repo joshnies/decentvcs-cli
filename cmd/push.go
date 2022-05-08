@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/TwiN/go-color"
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
@@ -210,100 +209,5 @@ func Push(c *cli.Context) error {
 	}
 
 	console.Success("Successful")
-	return nil
-}
-
-// Pull latest changes from remote
-func Pull(c *cli.Context) error {
-	gc := auth.Validate()
-
-	// Get project config
-	projectConfig, err := config.GetProjectConfig()
-	if err != nil {
-		return err
-	}
-
-	// Get newer commits from remote for current branch
-	apiUrl := api.BuildURLf("projects/%s/branches/%s/commits?after=%s", projectConfig.ProjectID, projectConfig.CurrentBranchID, projectConfig.CurrentCommitID)
-	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
-	if err != nil {
-		console.Verbose("Error fetching commits: %s", err)
-		return console.Error("Failed to fetch commits")
-	}
-
-	// Parse response
-	var commits []models.Commit
-	err = json.NewDecoder(res.Body).Decode(&commits)
-	if err != nil {
-		console.Verbose("Error parsing commits from API response: %s", err)
-		return console.Error("Failed to fetch commits")
-	}
-
-	// Return if no new commits found
-	if len(commits) == 0 {
-		console.Info("No changes to pull.")
-		return nil
-	}
-
-	// TODO: Download snapshots and patches
-	// TODO: Apply patches
-	// TODO: Delete deleted files
-
-	console.Success("Successful")
-	return nil
-}
-
-// Print list of current changes
-func GetChanges(c *cli.Context) error {
-	gc := auth.Validate()
-
-	// Get project config, implicitly making sure current directory is a project
-	projectConfig, err := config.GetProjectConfig()
-	if err != nil {
-		return err
-	}
-
-	// Get current branch w/ current commit
-	apiUrl := api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID)
-	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
-	if err != nil {
-		return err
-	}
-	defer currentBranchRes.Body.Close()
-
-	// Parse response
-	var currentBranch models.BranchWithCommit
-	err = json.NewDecoder(currentBranchRes.Body).Decode(&currentBranch)
-	if err != nil {
-		return err
-	}
-
-	// Detect local changes
-	changes, _, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
-	if err != nil {
-		return err
-	}
-
-	// If there are no changes, exit
-	if len(changes) == 0 {
-		console.Info("No changes detected")
-		return nil
-	}
-
-	// Print changes
-	console.Info("%d changes found:", len(changes))
-
-	for _, change := range changes {
-		switch change.Type {
-		case models.FileWasCreated:
-			fmt.Printf(color.Ize(color.Green, "  + %s\n"), change.Path)
-		case models.FileWasModified:
-			// TODO: Print lines added and removed
-			fmt.Printf(color.Ize(color.Cyan, "  * %s\n"), change.Path)
-		case models.FileWasDeleted:
-			fmt.Printf(color.Ize(color.Red, "  - %s\n"), change.Path)
-		}
-	}
-
 	return nil
 }
