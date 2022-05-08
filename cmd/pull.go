@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
@@ -53,7 +54,22 @@ func Pull(c *cli.Context) error {
 			return console.Error("Failed to download files from storage")
 		}
 
-		// TODO: Create new files in local file system
+		// Create new files in local file system
+		for path, data := range dataMap {
+			file, err := os.Open(path)
+			if err != nil {
+				console.Verbose("Error opening file: %s", err)
+				return console.Error("Failed to open file")
+			}
+			defer file.Close()
+
+			_, err = file.Write(data)
+			if err != nil {
+				console.Verbose("Error writing file: %s", err)
+				return console.Error("Failed to write file")
+			}
+		}
+
 		// TODO: Download patches
 		// TODO: Apply patches
 		// TODO: Delete deleted files
