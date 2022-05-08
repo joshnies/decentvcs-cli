@@ -13,6 +13,7 @@ import (
 	"github.com/grokify/go-pkce"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
+	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/configio"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/system"
@@ -119,41 +120,12 @@ func LogIn(c *cli.Context) error {
 		}
 
 		// Parse response
-		var authConfig models.GlobalConfigAuth
-		err = json.NewDecoder(tokenRes.Body).Decode(&authConfig)
+		authConfig, err := auth.ParseAccessTokenResponse(tokenRes)
 		if err != nil {
-			console.ErrorPrint("Error while parsing access token response: %s", err)
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		// Extract vars from response
-		if authConfig.AccessToken == "" {
-			console.ErrorPrint("Access token not found in response")
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		if authConfig.RefreshToken == "" {
-			console.ErrorPrint("Refresh token not found in response")
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		if authConfig.IDToken == "" {
-			console.ErrorPrint("ID token not found in response")
-			console.ErrorPrint(constants.ErrMsgInternal)
-			os.Exit(1)
-		}
-
-		if authConfig.ExpiresIn == 0 {
-			console.ErrorPrint("Expiration (expires_in) not found in response")
+			console.Verbose("Error while parsing access token response: %s", err)
 			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
-
-		// Add additional data
-		authConfig.AuthenticatedAt = time.Now().Unix()
 
 		// Print auth data
 		console.Verbose("Access token: %s", authConfig.AccessToken)

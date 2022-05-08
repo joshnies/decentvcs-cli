@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
@@ -26,6 +27,37 @@ func Validate() models.GlobalConfig {
 	}
 
 	return gc
+}
+
+// Parse access token response from Auth0 Authentication API.
+func ParseAccessTokenResponse(res *http.Response) (models.GlobalConfigAuth, error) {
+	// Parse response
+	var authConfig models.GlobalConfigAuth
+	err := json.NewDecoder(res.Body).Decode(&authConfig)
+	if err != nil {
+		return models.GlobalConfigAuth{}, err
+	}
+
+	// Extract vars from response
+	if authConfig.AccessToken == "" {
+		return models.GlobalConfigAuth{}, console.Error("Access token not found in response")
+	}
+
+	if authConfig.RefreshToken == "" {
+		return models.GlobalConfigAuth{}, console.Error("Refresh token not found in response")
+	}
+
+	if authConfig.IDToken == "" {
+		return models.GlobalConfigAuth{}, console.Error("ID token not found in response")
+	}
+
+	if authConfig.ExpiresIn == 0 {
+		return models.GlobalConfigAuth{}, console.Error("Expiration (expires_in) not found in response")
+	}
+
+	// Add additional data
+	authConfig.AuthenticatedAt = time.Now().Unix()
+	return authConfig, nil
 }
 
 // Refresh access token
@@ -53,45 +85,15 @@ func RefreshAccessToken(gc models.GlobalConfig) error {
 	}
 
 	// Parse response
-	var resData map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&resData)
+	authConfig, err := ParseAccessTokenResponse(res)
 	if err != nil {
-		console.Verbose("Error while parsing access token refresh response: %s", err)
-		return console.Error(constants.ErrMsgAuthFailed)
+		console.Verbose("Error while parsing access token response: %s", err)
+		console.ErrorPrint(constants.ErrMsgAuthFailed)
+		os.Exit(1)
 	}
-
-	accessToken := resData["access_token"]
-	if accessToken == nil {
-		console.Verbose("Access token not found in response")
-		return console.Error(constants.ErrMsgAuthFailed)
-	}
-
-	refreshToken := resData["refresh_token"]
-	if refreshToken == nil {
-		console.Verbose("Refresh token not found in response")
-		return console.Error(constants.ErrMsgAuthFailed)
-	}
-
-	idToken := resData["id_token"]
-	if idToken == nil {
-		console.Verbose("ID token not found in response")
-		return console.Error(constants.ErrMsgAuthFailed)
-	}
-
-	expiresInRaw := resData["expires_in"]
-	if expiresInRaw == nil {
-		console.Verbose("Expires in not found in response")
-		return console.Error(constants.ErrMsgAuthFailed)
-	}
-	expiresIn := int(expiresInRaw.(float64))
-
-	// Update global config
-	gc.Auth.AccessToken = accessToken.(string)
-	gc.Auth.RefreshToken = refreshToken.(string)
-	gc.Auth.IDToken = idToken.(string)
-	gc.Auth.ExpiresIn = expiresIn
 
 	// Save global config
+	gc.Auth = authConfig
 	err = configio.SaveGlobalConfig(gc)
 	if err != nil {
 		console.Verbose("Error while saving global config: %s", err)
