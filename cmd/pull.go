@@ -8,6 +8,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
+	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
@@ -44,9 +45,19 @@ func Pull(c *cli.Context) error {
 		return nil
 	}
 
-	// TODO: Download snapshots and patches
-	// TODO: Apply patches
-	// TODO: Delete deleted files
+	for _, commit := range commits {
+		// Download snapshots
+		dataMap, err := storj.DownloadBulk(commit.ProjectID, commit.ID, commit.SnapshotPaths)
+		if err != nil {
+			console.Verbose("Error downloading files: %s", err)
+			return console.Error("Failed to download files from storage")
+		}
+
+		// TODO: Create new files in local file system
+		// TODO: Download patches
+		// TODO: Apply patches
+		// TODO: Delete deleted files
+	}
 
 	console.Success("Successful")
 	return nil
