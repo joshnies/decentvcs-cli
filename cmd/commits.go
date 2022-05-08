@@ -217,12 +217,6 @@ func Push(c *cli.Context) error {
 func Pull(c *cli.Context) error {
 	gc := auth.Validate()
 
-	// Validate arguments
-	commitId := c.Args().Get(0)
-	if commitId == "" {
-		return console.Error("Please provide a commit ID")
-	}
-
 	// Get project config
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
@@ -230,7 +224,7 @@ func Pull(c *cli.Context) error {
 	}
 
 	// Get newer commits from remote for current branch
-	apiUrl := api.BuildURLf("projects/%s/branches/%s/commits?after=%s", projectConfig.ProjectID, projectConfig.CurrentBranchID, commitId)
+	apiUrl := api.BuildURLf("projects/%s/branches/%s/commits?after=%s", projectConfig.ProjectID, projectConfig.CurrentBranchID, projectConfig.CurrentCommitID)
 	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		console.Verbose("Error fetching commits: %s", err)
