@@ -41,21 +41,21 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	changes, _, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
+	fcdRes, err := projects.DetectFileChanges(currentBranch.Commit.State)
 	if err != nil {
 		return err
 	}
 
 	// If there are no changes, exit
-	if len(changes) == 0 {
+	if len(fcdRes.Changes) == 0 {
 		console.Info("No changes detected")
 		return nil
 	}
 
 	// Print changes
-	console.Info("%d changes found:", len(changes))
+	console.Info("%d changes found:", len(fcdRes.Changes))
 
-	for _, change := range changes {
+	for _, change := range fcdRes.Changes {
 		switch change.Type {
 		case models.FileWasCreated:
 			fmt.Printf(color.Ize(color.Green, "  + %s\n"), change.Path)

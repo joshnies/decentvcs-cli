@@ -60,11 +60,12 @@ func Push(c *cli.Context) error {
 	// Detect local changes
 	console.Info("Detecting changes...")
 	startTime := time.Now()
-	changes, hashMap, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
+	fcdRes, err := projects.DetectFileChanges(currentBranch.Commit.State)
 	if err != nil {
 		return err
 	}
 
+	changes := fcdRes.Changes
 	timeElapsed := time.Since(startTime).Truncate(time.Microsecond)
 
 	// If there are no changes, exit
@@ -161,7 +162,7 @@ func Push(c *cli.Context) error {
 		"snapshot_paths": createdFilePaths,
 		"patch_paths":    modifiedFilePaths,
 		"deleted_paths":  deletedFilePaths,
-		"hash_map":       hashMap,
+		"state":          fcdRes.State,
 	})
 	body := bytes.NewBuffer(bodyJson)
 	commitRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)

@@ -31,21 +31,20 @@ func GetFileHash(path string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+type FileChangeDetectionResult struct {
+	Changes                   []models.FileChange
+	State                     map[string]models.CommitState
+	PathsToUpdateHostCommitId []string
+}
+
 // Detect file changes.
-//
-// Returns:
-//
-// - list of FileChange objects.
-//
-// - regenerated hash map.
-//
-// - error.
-func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[string]string, error) {
+func DetectFileChanges(state map[string]models.CommitState) (FileChangeDetectionResult, error) {
 	// Get currently-known file paths
-	remainingPaths := maps.Keys(hashMap)
+	remainingPaths := maps.Keys(state)
 
 	var changes []models.FileChange
-	newHashMap := make(map[string]string)
+	newState := make(map[string]models.CommitState)
+	pathsToUpdateHostCommitId := []string{}
 
 	// Walk project directory
 	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
@@ -64,11 +63,24 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 			return err
 		}
 
-		newHashMap[path] = newHash
+		var hostCommitId string
+		oldState, ok := state[path]
+		if !ok {
+			// File is new
+			pathsToUpdateHostCommitId = append(pathsToUpdateHostCommitId, path)
+		} else {
+			hostCommitId = oldState.HostCommitId
+		}
+
+		newState[path] = models.CommitState{
+			Hash:         newHash,
+			HostCommitId: hostCommitId,
+		}
 
 		// Detect changes
-		if oldHash, ok := hashMap[path]; ok {
-			if oldHash != newHash {
+		// If host commit is unknown, then the file is new since it's never been uploaded to storage
+		if hostCommitId != "" {
+			if oldState.Hash != newHash {
 				// File was modified
 				changes = append(changes, models.FileChange{
 					Path: path,
@@ -91,7 +103,7 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 		return nil
 	})
 	if err != nil {
-		return nil, nil, console.Error("Failed to detected changes: %v", err)
+		return FileChangeDetectionResult{}, console.Error("Failed to detected changes: %v", err)
 	}
 
 	// Add changes for deleted files
@@ -103,5 +115,12 @@ func DetectFileChanges(hashMap map[string]string) ([]models.FileChange, map[stri
 		changes = append(changes, change)
 	}
 
-	return changes, newHashMap, nil
+	// Return result
+	res := FileChangeDetectionResult{
+		Changes:                   changes,
+		State:                     newState,
+		PathsToUpdateHostCommitId: pathsToUpdateHostCommitId,
+	}
+
+	return res, nil
 }

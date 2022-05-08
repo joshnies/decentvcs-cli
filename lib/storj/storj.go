@@ -105,6 +105,49 @@ func GetAccessGrant() (*uplink.Access, error) {
 	return access, nil
 }
 
+// Download a single object from Storj.
+//
+// @param key - Key of object to download
+//
+// Returns object data.
+func Download(projectId string, commitId string, key string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Get access grant
+	accessGrant, err := GetAccessGrant()
+	if err != nil {
+		return nil, err
+	}
+
+	// Open Storj project
+	sp, err := uplink.OpenProject(ctx, accessGrant)
+	if err != nil {
+		return nil, err
+	}
+	defer sp.Close()
+
+	// Download object
+	key = fmt.Sprintf("%s/%s/%s", projectId, commitId, key)
+	d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, key, nil)
+	if err != nil && !errors.Is(err, uplink.ErrObjectNotFound) {
+		return nil, err
+	}
+	if d == nil {
+		return nil, console.Error("Failed to download object %s", key)
+	}
+	defer d.Close()
+
+	// Read object
+	buf := bytes.NewBuffer([]byte{})
+	_, err = io.Copy(buf, d)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
 // Download objects in bulk from Storj.
 //
 // @param keys - List of object keys to download

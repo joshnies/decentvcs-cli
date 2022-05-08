@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
@@ -12,6 +10,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
+	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/maps"
@@ -20,8 +19,6 @@ import (
 // Sync local project to a commit
 func Sync(c *cli.Context) error {
 	gc := auth.Validate()
-	isFwd := true
-	var toCommit models.Commit
 
 	// Get project config
 	projectConfig, err := config.GetProjectConfig()
@@ -48,8 +45,10 @@ func Sync(c *cli.Context) error {
 		return console.Error(constants.ErrMsgInternal)
 	}
 
-	// Get specified commit ID from args
+	// Get specified commit ID from args; default to latest commit
+	var toCommit models.Commit
 	commitID := c.Args().Get(0)
+
 	if commitID == "" {
 		// Get latest commit on current branch
 		commitRes, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
@@ -76,8 +75,6 @@ func Sync(c *cli.Context) error {
 		if err != nil {
 			return console.Error(constants.ErrMsgInternal)
 		}
-
-		isFwd = time.Unix(toCommit.CreatedAt, 0).After(time.Unix(currentCommit.CreatedAt, 0))
 	}
 
 	// Return if commit is the same as current commit
@@ -86,33 +83,64 @@ func Sync(c *cli.Context) error {
 	}
 
 	// Get files to download
-	remotePaths := maps.Keys(currentCommit.HashMap)
-	localFileInfoArr, err := ioutil.ReadDir(".")
-	if err != nil {
-		return err
+	localPaths := maps.Keys(currentCommit.State)
+	downloadMap := map[string]string{} // map of storage key to commit ID
+
+	for key, state := range toCommit.State {
+		// Check if file existsLocally locally
+		existsLocally := false
+		for _, l := range localPaths {
+			if key == l {
+				existsLocally = true
+				break
+			}
+		}
+
+		// Add path to download list
+		if !existsLocally {
+			downloadMap[key] = state.HostCommitId
+		}
 	}
 
-	filesToDownload := []string{}
-
-	for _, path := range remotePaths {
-		// Check if file exists locally
-		for _, fileInfo := range localFileInfoArr {
-			if fileInfo.Name() == path {
-				// Add path to download list
-				filesToDownload = append(filesToDownload, path)
+	for _, l := range localPaths {
+		// Check if file existsRemotely remotely
+		existsRemotely := false
+		for _, r := range maps.Keys(toCommit.State) {
+			if l == r {
+				existsRemotely = true
 				break
 			}
 		}
 
 		// Delete file locally
-		err = os.Remove(path)
+		if !existsRemotely {
+			err = os.Remove(l)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Download new files
+	for key, hostCommitID := range downloadMap {
+		// Get file from storage
+		fileData, err := storj.Download(projectConfig.ProjectID, hostCommitID, key)
+		if err != nil {
+			return err
+		}
+
+		// Write file to local storage
+		file, err := os.Open(key)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		_, err = file.Write(fileData)
 		if err != nil {
 			return err
 		}
 	}
-
-	// TODO: Download new files
-	// TODO: Get patch files to apply (forward patches is isFwd, otherwise backward patches)
 
 	return nil
 }
