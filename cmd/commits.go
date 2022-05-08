@@ -186,24 +186,29 @@ func Push(c *cli.Context) error {
 
 	// Upload patch files to storage (if any)
 	if len(patches) > 0 {
-		console.Verbose("Uploading %d patches for modified files...", len(patches))
+		console.Verbose("Uploading %d patches...", len(patches))
+
 		err = storj.UploadBytesBulk(prefix, patches)
 		if err != nil {
 			return err
 		}
+
+		console.Verbose("Successfully uploaded patches")
 	}
-
-	// TODO: Compress snapshots
-
-	console.Verbose("Uploading %d created files as snapshots...", len(createdFilePaths))
 
 	// Upload created files to storage as snapshots
-	err = storj.UploadBulk(prefix, createdFilePaths)
-	if err != nil {
-		return err
+	if len(createdFilePaths) > 0 {
+		// TODO: Compress snapshots
+		console.Verbose("Uploading %d snapshots...", len(createdFilePaths))
+
+		err = storj.UploadBulk(prefix, createdFilePaths)
+		if err != nil {
+			return err
+		}
+
+		console.Verbose("Successfully uploaded snapshots")
 	}
 
-	console.Verbose("Successfully uploaded new files")
 	console.Success("Successful")
 	return nil
 }
