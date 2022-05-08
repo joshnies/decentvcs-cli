@@ -133,15 +133,21 @@ func Push(c *cli.Context) error {
 				return err
 			}
 
-			// Create bsdiff patch
-			patch, err := bsdiff.Bytes(oldFileBytes, newFileBytes)
+			// Create bsdiff patches
+			fwdPatch, err := bsdiff.Bytes(oldFileBytes, newFileBytes)
+			if err != nil {
+				return err
+			}
+
+			backPatch, err := bsdiff.Bytes(newFileBytes, oldFileBytes)
 			if err != nil {
 				return err
 			}
 
 			// TODO: Compress patch data
 
-			patches[modFilePath] = patch
+			patches[modFilePath+".f.patch"] = fwdPatch
+			patches[modFilePath+".b.patch"] = backPatch
 		}
 	}
 
@@ -185,7 +191,7 @@ func Push(c *cli.Context) error {
 
 	// Upload patch files to storage (if any)
 	if len(patches) > 0 {
-		console.Verbose("Uploading %d patches...", len(patches))
+		console.Verbose("Uploading %d patches (2 per file)...", len(patches))
 
 		err = storj.UploadBytesBulk(prefix, patches)
 		if err != nil {
