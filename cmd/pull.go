@@ -48,6 +48,12 @@ func Pull(c *cli.Context) error {
 		return nil
 	}
 
+	// TODO: Show progress bar for:
+	// - Downloading snapshots
+	// - Writing snapshots to local fs
+	// - Downloading patches
+	// - Applying patches to local fs
+	// - Removing deleted files from local fs
 	for _, commit := range commits {
 		// Download snapshots
 		dataMap, err := storj.DownloadBulk(commit.ProjectID, commit.ID, commit.SnapshotPaths)
@@ -56,7 +62,7 @@ func Pull(c *cli.Context) error {
 			return console.Error("Failed to download new files from storage")
 		}
 
-		// Create new files in local file system
+		// Create new files in local fs
 		for path, data := range dataMap {
 			file, err := os.Open(path)
 			if err != nil {
@@ -79,7 +85,7 @@ func Pull(c *cli.Context) error {
 			return console.Error("Failed to download modified files from storage")
 		}
 
-		// Apply patches
+		// Apply patches to local fs
 		for path, newData := range dataMap {
 			// Open local file
 			file, err := os.Open(path)
@@ -109,7 +115,14 @@ func Pull(c *cli.Context) error {
 			}
 		}
 
-		// TODO: Delete deleted files
+		// Remove deleted files from local fs
+		for _, path := range commit.DeletedPaths {
+			err := os.Remove(path)
+			if err != nil {
+				console.Verbose("Error deleting file: %s", err)
+				return console.Error("Failed to delete file: %s", path)
+			}
+		}
 	}
 
 	console.Success("Successful")
