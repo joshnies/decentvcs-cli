@@ -62,13 +62,11 @@ func ParseAccessTokenResponse(res *http.Response) (models.GlobalConfigAuth, erro
 		return models.GlobalConfigAuth{}, err
 	}
 
-	// Extract vars from response
+	// Validate response
+	// NOTE: Does not check if refresh token was returned, since it's not returned with all
+	// grant types.
 	if authConfig.AccessToken == "" {
 		return models.GlobalConfigAuth{}, console.Error("Access token not found in response")
-	}
-
-	if authConfig.RefreshToken == "" {
-		return models.GlobalConfigAuth{}, console.Error("Refresh token not found in response")
 	}
 
 	if authConfig.IDToken == "" {
@@ -89,7 +87,7 @@ func refreshAccessToken(gc models.GlobalConfig) (models.GlobalConfig, error) {
 	// Send request
 	reqUrl := fmt.Sprintf("%s/oauth/token", constants.Auth0DomainDev)
 	reqData := url.Values{}
-	reqData.Set("grant_type", "authorization_code")
+	reqData.Set("grant_type", "refresh_token")
 	reqData.Set("client_id", constants.Auth0ClientIDDev)
 	reqData.Set("refresh_token", gc.Auth.RefreshToken)
 	res, err := http.Post(
@@ -113,6 +111,9 @@ func refreshAccessToken(gc models.GlobalConfig) (models.GlobalConfig, error) {
 		console.Verbose("Error while parsing access token response: %s", err)
 		return models.GlobalConfig{}, console.Error(constants.ErrMsgAuthFailed)
 	}
+
+	// Retain refresh token
+	authConfig.RefreshToken = gc.Auth.RefreshToken
 
 	// Save global config
 	gc.Auth = authConfig

@@ -50,7 +50,7 @@ func LogIn(c *cli.Context) error {
 
 	console.Info("Opening browser to log in...")
 	console.Info("You can also open this URL:")
-	console.Info(authUrl)
+	fmt.Println(authUrl)
 	system.OpenBrowser(authUrl)
 
 	// Start local HTTP server for receiving Auth0 authentication callback requests
@@ -125,6 +125,12 @@ func LogIn(c *cli.Context) error {
 		if err != nil {
 			console.Verbose("Error while parsing access token response: %s", err)
 			console.ErrorPrint(constants.ErrMsgAuthFailed)
+			os.Exit(1)
+		}
+
+		// Make sure a refresh token was included in response
+		if authConfig.RefreshToken == "" {
+			console.ErrorPrint("Refresh token not found in response")
 			os.Exit(1)
 		}
 
