@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 
+	"github.com/gabstv/go-bsdiff/pkg/bspatch"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -50,8 +52,8 @@ func Pull(c *cli.Context) error {
 		// Download snapshots
 		dataMap, err := storj.DownloadBulk(commit.ProjectID, commit.ID, commit.SnapshotPaths)
 		if err != nil {
-			console.Verbose("Error downloading files: %s", err)
-			return console.Error("Failed to download files from storage")
+			console.Verbose("Error downloading snapshot files: %s", err)
+			return console.Error("Failed to download new files from storage")
 		}
 
 		// Create new files in local file system
@@ -70,8 +72,43 @@ func Pull(c *cli.Context) error {
 			}
 		}
 
-		// TODO: Download patches
-		// TODO: Apply patches
+		// Download patches
+		dataMap, err = storj.DownloadBulk(commit.ProjectID, commit.ID, commit.PatchPaths)
+		if err != nil {
+			console.Verbose("Error downloading patch files: %s", err)
+			return console.Error("Failed to download modified files from storage")
+		}
+
+		// Apply patches
+		for path, newData := range dataMap {
+			// Open local file
+			file, err := os.Open(path)
+			if err != nil {
+				console.Verbose("Error opening file: %s", err)
+				return console.Error("Failed to open file: %s", path)
+			}
+
+			// Read local file as bytes
+			oldData, err := ioutil.ReadAll(file)
+			if err != nil {
+				console.Verbose("Error reading file: %s", err)
+				return console.Error("Failed to read file: %s", path)
+			}
+
+			patched, err := bspatch.Bytes(oldData, newData)
+			if err != nil {
+				console.Verbose("Error applying patch: %s", err)
+				return console.Error("Failed to apply patch to file: %s", path)
+			}
+
+			// Write patched data to file
+			_, err = file.Write(patched)
+			if err != nil {
+				console.Verbose("Error writing patched file: %s", err)
+				return console.Error("Failed to write patched file: %s", path)
+			}
+		}
+
 		// TODO: Delete deleted files
 	}
 
