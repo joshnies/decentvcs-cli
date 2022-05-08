@@ -119,8 +119,8 @@ func LogIn(c *cli.Context) error {
 		}
 
 		// Parse response
-		var tokenResData map[string]interface{}
-		err = json.NewDecoder(tokenRes.Body).Decode(&tokenResData)
+		var authConfig models.GlobalConfigAuth
+		err = json.NewDecoder(tokenRes.Body).Decode(&authConfig)
 		if err != nil {
 			console.ErrorPrint("Error while parsing access token response: %s", err)
 			console.ErrorPrint(constants.ErrMsgInternal)
@@ -128,50 +128,43 @@ func LogIn(c *cli.Context) error {
 		}
 
 		// Extract vars from response
-		accessToken := tokenResData["access_token"]
-		if accessToken == nil {
+		if authConfig.AccessToken == "" {
 			console.ErrorPrint("Access token not found in response")
 			console.ErrorPrint(constants.ErrMsgInternal)
 			os.Exit(1)
 		}
 
-		refreshToken := tokenResData["refresh_token"]
-		if refreshToken == nil {
+		if authConfig.RefreshToken == "" {
 			console.ErrorPrint("Refresh token not found in response")
 			console.ErrorPrint(constants.ErrMsgInternal)
 			os.Exit(1)
 		}
 
-		idToken := tokenResData["id_token"]
-		if idToken == nil {
+		if authConfig.IDToken == "" {
 			console.ErrorPrint("ID token not found in response")
 			console.ErrorPrint(constants.ErrMsgInternal)
 			os.Exit(1)
 		}
 
-		expiresInRaw := tokenResData["expires_in"]
-		if expiresInRaw == nil {
+		if authConfig.ExpiresIn == 0 {
 			console.ErrorPrint("Expiration (expires_in) not found in response")
 			console.ErrorPrint(constants.ErrMsgAuthFailed)
 			os.Exit(1)
 		}
-		expiresIn := int(expiresInRaw.(float64))
+
+		// Add additional data
+		authConfig.AuthenticatedAt = time.Now().Unix()
 
 		// Print auth data
-		console.Verbose("Access token: %s", tokenResData["access_token"])
-		console.Verbose("Refresh token: %s", tokenResData["refresh_token"])
-		console.Verbose("ID token: %s", tokenResData["id_token"])
-		console.Verbose("Expires in: %d hours", expiresIn/60/60)
+		console.Verbose("Access token: %s", authConfig.AccessToken)
+		console.Verbose("Refresh token: %s", authConfig.RefreshToken)
+		console.Verbose("ID token: %s", authConfig.IDToken)
+		console.Verbose("Expires in: %d hours", authConfig.ExpiresIn/60/60)
+		console.Verbose("Authenticated at: %s", authConfig.AuthenticatedAt)
 
 		// Save auth data to global config file
 		gc := models.GlobalConfig{
-			Auth: models.GlobalConfigAuth{
-				AccessToken:     tokenResData["access_token"].(string),
-				RefreshToken:    tokenResData["refresh_token"].(string),
-				IDToken:         tokenResData["id_token"].(string),
-				ExpiresIn:       expiresIn,
-				AuthenticatedAt: time.Now().Unix(),
-			},
+			Auth: authConfig,
 		}
 
 		err = configio.SaveGlobalConfig(gc)
