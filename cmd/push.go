@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/joshnies/qc-cli/config"
@@ -110,8 +109,6 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
-
 	// Upload snapshots of created and modified files to storage
 	uploadHashMap := make(map[string]string)
 	filesToUpload := []string{}
@@ -125,7 +122,7 @@ func Push(c *cli.Context) error {
 		// TODO: Compress files before uploading
 		console.Verbose("Uploading %d files...", len(filesToUpload))
 
-		err = storj.UploadBulk(prefix, uploadHashMap)
+		err = storj.UploadBulk(projectConfig.ProjectID, uploadHashMap)
 		if err != nil {
 			return err
 		}

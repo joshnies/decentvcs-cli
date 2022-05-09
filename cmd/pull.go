@@ -79,6 +79,7 @@ func Sync(c *cli.Context) error {
 		console.Info("You are already on this commit")
 	}
 
+	// TODO: Gather keys for files to download
 	// TODO: Download new files
 	// TODO: Delete deleted files
 
