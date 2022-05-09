@@ -54,18 +54,21 @@ func Sync(c *cli.Context) error {
 	commitID := c.Args().Get(0)
 
 	if commitID == "" {
-		// Get latest commit on current branch
-		commitRes, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
+		// Get current branch with latest commit
+		res, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
 		if err != nil {
 			return err
 		}
-		defer commitRes.Body.Close()
+		defer res.Body.Close()
 
 		// Parse commit
-		err = json.NewDecoder(commitRes.Body).Decode(&toCommit)
+		var branchwc models.BranchWithCommit
+		err = json.NewDecoder(res.Body).Decode(&branchwc)
 		if err != nil {
 			return console.Error(constants.ErrMsgInternal)
 		}
+
+		toCommit = branchwc.Commit
 	} else {
 		// Get user-specified commit
 		commitRes, err = httpw.Get(api.BuildURLf("projects/%s/commits/%s", projectConfig.ProjectID, commitID), gc.Auth.AccessToken)
@@ -84,6 +87,7 @@ func Sync(c *cli.Context) error {
 	// Return if commit is the same as current commit
 	if toCommit.ID == projectConfig.CurrentCommitID {
 		console.Info("You are already on this commit")
+		return nil
 	}
 
 	console.Info("Syncing to commit %s", toCommit.ID)
