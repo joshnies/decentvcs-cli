@@ -86,6 +86,8 @@ func Sync(c *cli.Context) error {
 		console.Info("You are already on this commit")
 	}
 
+	console.Info("Syncing to commit %s", toCommit.ID)
+
 	// Get keys for new files by comparing hash maps
 	downloadMap := make(map[string]string)
 	overriddenFiles := []string{}
@@ -118,7 +120,7 @@ func Sync(c *cli.Context) error {
 
 		console.Warning("Are you sure you want to continue? (y/n)")
 		var answer string
-		fmt.Scan(&answer)
+		fmt.Scanln(&answer)
 
 		if strings.ToLower(answer) != "y" {
 			console.Info("Sync cancelled")
@@ -145,7 +147,7 @@ func Sync(c *cli.Context) error {
 	// Prompt user to confirm sync
 	console.Info("Are you sure you want to sync to commit %s? (y/n)", toCommit.ID)
 	var answer string
-	fmt.Scan(&answer)
+	fmt.Scanln(&answer)
 
 	if strings.ToLower(answer) != "y" {
 		console.Info("Sync cancelled")
@@ -184,6 +186,13 @@ func Sync(c *cli.Context) error {
 		if err != nil {
 			return console.Error("Failed to delete file %s; %s", key, err)
 		}
+	}
+
+	// Update current commit ID in project config
+	projectConfig.CurrentCommitID = toCommit.ID
+	_, err = config.SaveProjectConfig(".", projectConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil
