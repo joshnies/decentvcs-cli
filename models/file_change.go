@@ -7,8 +7,3 @@ const (
 	FileWasModified
 	FileWasDeleted
 )
-
-type FileChange struct {
-	Path string         `json:"path,omitempty"`
-	Type FileChangeType `json:"type,omitempty"`
-}

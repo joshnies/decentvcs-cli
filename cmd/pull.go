@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"os"
 
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/constants"
@@ -10,10 +9,8 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
-	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/exp/maps"
 )
 
 // Sync local project to a commit
@@ -82,65 +79,8 @@ func Sync(c *cli.Context) error {
 		console.Info("You are already on this commit")
 	}
 
-	// Get files to download
-	localPaths := maps.Keys(currentCommit.State)
-	downloadMap := map[string]string{} // map of storage key to commit ID
-
-	for key, state := range toCommit.State {
-		// Check if file existsLocally locally
-		existsLocally := false
-		for _, l := range localPaths {
-			if key == l {
-				existsLocally = true
-				break
-			}
-		}
-
-		// Add path to download list
-		if !existsLocally {
-			downloadMap[key] = state.HostCommitId
-		}
-	}
-
-	for _, l := range localPaths {
-		// Check if file existsRemotely remotely
-		existsRemotely := false
-		for _, r := range maps.Keys(toCommit.State) {
-			if l == r {
-				existsRemotely = true
-				break
-			}
-		}
-
-		// Delete file locally
-		if !existsRemotely {
-			err = os.Remove(l)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// Download new files
-	for key, hostCommitID := range downloadMap {
-		// Get file from storage
-		fileData, err := storj.Download(projectConfig.ProjectID, hostCommitID, key)
-		if err != nil {
-			return err
-		}
-
-		// Write file to local storage
-		file, err := os.Open(key)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		_, err = file.Write(fileData)
-		if err != nil {
-			return err
-		}
-	}
+	// TODO: Download new files
+	// TODO: Delete deleted files
 
 	return nil
 }

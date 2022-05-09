@@ -10,12 +10,12 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
-	"github.com/joshnies/qc-cli/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 )
 
 // Get file hash. Can be used to detect file changes.
+// Uses XXH64 algorithm.
 func GetFileHash(path string) (string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -32,19 +32,21 @@ func GetFileHash(path string) (string, error) {
 }
 
 type FileChangeDetectionResult struct {
-	Changes                   []models.FileChange
-	State                     map[string]models.CommitState
-	PathsToUpdateHostCommitId []string
+	CreatedFilePaths  []string
+	ModifiedFilePaths []string
+	DeletedFilePaths  []string
+	// Map of file path to hash
+	HashMap map[string]string
 }
 
 // Detect file changes.
-func DetectFileChanges(state map[string]models.CommitState) (FileChangeDetectionResult, error) {
-	// Get currently-known file paths
-	remainingPaths := maps.Keys(state)
+func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult, error) {
+	// Get known file paths in current commit
+	remainingPaths := maps.Keys(oldHashMap)
 
-	var changes []models.FileChange
-	newState := make(map[string]models.CommitState)
-	pathsToUpdateHostCommitId := []string{}
+	createdFilePaths := []string{}
+	modifiedFilePaths := []string{}
+	newHashMap := make(map[string]string)
 
 	// Walk project directory
 	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
@@ -63,33 +65,17 @@ func DetectFileChanges(state map[string]models.CommitState) (FileChangeDetection
 			return err
 		}
 
-		oldState, isInOldState := state[path]
-		if !isInOldState {
-			// File is new
-			pathsToUpdateHostCommitId = append(pathsToUpdateHostCommitId, path)
-		}
-
-		newState[path] = models.CommitState{
-			Hash:         newHash,
-			HostCommitId: oldState.HostCommitId,
-		}
+		newHashMap[path] = newHash
 
 		// Detect changes
-		// If host commit is unknown, then the file is new since it's never been uploaded to storage
-		if isInOldState {
-			if oldState.Hash != newHash {
+		if oldHash, ok := oldHashMap[path]; ok {
+			if oldHash != newHash {
 				// File was modified
-				changes = append(changes, models.FileChange{
-					Path: path,
-					Type: models.FileWasModified,
-				})
+				modifiedFilePaths = append(modifiedFilePaths, path)
 			}
 		} else {
 			// File is new
-			changes = append(changes, models.FileChange{
-				Path: path,
-				Type: models.FileWasCreated,
-			})
+			createdFilePaths = append(createdFilePaths, path)
 		}
 
 		// Remove file path from remaining file paths
@@ -103,20 +89,12 @@ func DetectFileChanges(state map[string]models.CommitState) (FileChangeDetection
 		return FileChangeDetectionResult{}, console.Error("Failed to detected changes: %v", err)
 	}
 
-	// Add changes for deleted files
-	for _, path := range remainingPaths {
-		change := models.FileChange{
-			Path: path,
-			Type: models.FileWasDeleted,
-		}
-		changes = append(changes, change)
-	}
-
 	// Return result
 	res := FileChangeDetectionResult{
-		Changes:                   changes,
-		State:                     newState,
-		PathsToUpdateHostCommitId: pathsToUpdateHostCommitId,
+		CreatedFilePaths:  createdFilePaths,
+		ModifiedFilePaths: modifiedFilePaths,
+		DeletedFilePaths:  remainingPaths,
+		HashMap:           newHashMap,
 	}
 
 	return res, nil

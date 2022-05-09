@@ -110,7 +110,7 @@ func GetAccessGrant() (*uplink.Access, error) {
 // @param key - Key of object to download
 //
 // Returns object data.
-func Download(projectId string, commitId string, key string) ([]byte, error) {
+func Download(projectId string, key string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -128,7 +128,7 @@ func Download(projectId string, commitId string, key string) ([]byte, error) {
 	defer sp.Close()
 
 	// Download object
-	key = fmt.Sprintf("%s/%s/%s", projectId, commitId, key)
+	key = fmt.Sprintf("%s/%s", projectId, key)
 	d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, key, nil)
 	if err != nil && !errors.Is(err, uplink.ErrObjectNotFound) {
 		return nil, err
@@ -150,10 +150,11 @@ func Download(projectId string, commitId string, key string) ([]byte, error) {
 
 // Download objects in bulk from Storj.
 //
+// @param projectId - Project ID
 // @param keys - List of object keys to download
 //
-// Returns an array of uplink download objects.
-func DownloadBulk(projectId string, commitId string, keys []string) (map[string][]byte, error) {
+// Returns map of object key to object data.
+func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -172,12 +173,11 @@ func DownloadBulk(projectId string, commitId string, keys []string) (map[string]
 
 	// Download objects
 	// TODO: Download objects in parallel
-	prefix := fmt.Sprintf("%s/%s", projectId, commitId)
 	dataMap := map[string][]byte{}
 
 	for _, key := range keys {
 		// Download object
-		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, prefix+"/"+key, nil)
+		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectId+"/"+key, nil)
 		if err != nil && !errors.Is(err, uplink.ErrObjectNotFound) {
 			return nil, err
 		}
@@ -202,9 +202,10 @@ func DownloadBulk(projectId string, commitId string, keys []string) (map[string]
 
 // Upload objects in bulk to Storj.
 //
-// @param paths - Paths to files that will be uploaded
+// @param prefix - Prefix to use for uploaded objects
+// @param hashMap - Map of file path to hash
 //
-func UploadBulk(prefix string, paths []string) error {
+func UploadBulk(prefix string, hashMap map[string]string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -221,7 +222,7 @@ func UploadBulk(prefix string, paths []string) error {
 	}
 	defer sp.Close()
 
-	for _, path := range paths {
+	for path, hash := range hashMap {
 		// Read file
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
@@ -229,7 +230,7 @@ func UploadBulk(prefix string, paths []string) error {
 		}
 
 		// Start upload
-		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, prefix+"/"+path, nil)
+		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, prefix+"/"+hash, nil)
 		if err != nil {
 			return err
 		}
@@ -241,6 +242,11 @@ func UploadBulk(prefix string, paths []string) error {
 			_ = upload.Abort()
 			return console.Error("Failed to upload file: %v", err)
 		}
+
+		// Add path to object metadata
+		upload.SetCustomMetadata(ctx, uplink.CustomMetadata{
+			"path": path,
+		})
 
 		// Commit upload
 		err = upload.Commit()

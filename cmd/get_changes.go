@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
@@ -41,30 +42,34 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	fcdRes, err := projects.DetectFileChanges(currentBranch.Commit.State)
+	startTime := time.Now()
+	fc, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
 
+	timeElapsed := time.Since(startTime).Truncate(time.Microsecond)
+
 	// If there are no changes, exit
-	if len(fcdRes.Changes) == 0 {
-		console.Info("No changes detected")
+	changeCount := len(fc.CreatedFilePaths) + len(fc.ModifiedFilePaths) + len(fc.DeletedFilePaths)
+	if changeCount == 0 {
+		console.Info("No changes detected (took %s)", timeElapsed)
 		return nil
 	}
 
 	// Print changes
-	console.Info("%d changes found:", len(fcdRes.Changes))
+	console.Info("%d changes found:", changeCount)
 
-	for _, change := range fcdRes.Changes {
-		switch change.Type {
-		case models.FileWasCreated:
-			fmt.Printf(color.Ize(color.Green, "  + %s\n"), change.Path)
-		case models.FileWasModified:
-			// TODO: Print lines added and removed
-			fmt.Printf(color.Ize(color.Cyan, "  * %s\n"), change.Path)
-		case models.FileWasDeleted:
-			fmt.Printf(color.Ize(color.Red, "  - %s\n"), change.Path)
-		}
+	for _, path := range fc.CreatedFilePaths {
+		fmt.Printf(color.Ize(color.Green, "  + %s\n"), path)
+	}
+
+	for _, path := range fc.ModifiedFilePaths {
+		fmt.Printf(color.Ize(color.Blue, "  * %s\n"), path)
+	}
+
+	for _, path := range fc.DeletedFilePaths {
+		fmt.Printf(color.Ize(color.Red, "  - %s\n"), path)
 	}
 
 	return nil

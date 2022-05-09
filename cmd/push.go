@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"time"
 
-	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -16,9 +14,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/lib/storj"
 	"github.com/joshnies/qc-cli/models"
-	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/exp/maps"
 )
 
 // Push local changes to remote
@@ -60,99 +56,24 @@ func Push(c *cli.Context) error {
 	// Detect local changes
 	console.Info("Detecting changes...")
 	startTime := time.Now()
-	fcdRes, err := projects.DetectFileChanges(currentBranch.Commit.State)
+	fc, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
 
-	changes := fcdRes.Changes
 	timeElapsed := time.Since(startTime).Truncate(time.Microsecond)
 
 	// If there are no changes, exit
-	if len(changes) == 0 {
+	changeCount := len(fc.CreatedFilePaths) + len(fc.ModifiedFilePaths) + len(fc.DeletedFilePaths)
+	if changeCount == 0 {
 		console.Info("No changes detected (took %s)", timeElapsed)
 		return nil
 	}
 
-	// Create slice for each change type
-	createdFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
-		return change.Type == models.FileWasCreated
-	})
-
-	modifiedFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
-		return change.Type == models.FileWasModified
-	})
-
-	deletedFileChanges := lo.Filter(changes, func(change models.FileChange, _ int) bool {
-		return change.Type == models.FileWasDeleted
-	})
-
-	// Get only file paths for each change type
-	createdFilePaths := lo.Map(createdFileChanges, func(entry models.FileChange, _ int) string {
-		return entry.Path
-	})
-
-	modifiedFilePaths := lo.Map(modifiedFileChanges, func(entry models.FileChange, _ int) string {
-		return entry.Path
-	})
-
-	deletedFilePaths := lo.Map(deletedFileChanges, func(entry models.FileChange, _ int) string {
-		return entry.Path
-	})
-
-	console.Info("%d changes found (took %s). Pushing...", len(changes), timeElapsed)
-	console.Verbose("Created: %d", len(createdFilePaths))
-	console.Verbose("Modified: %d", len(modifiedFilePaths))
-	console.Verbose("Deleted: %d", len(deletedFilePaths))
-
-	// Handle modified files
-	// TODO: Move to snapshot model for modified files as well
-	patches := map[string][]byte{}
-
-	if len(modifiedFilePaths) > 0 {
-		// Pull modified files from storage
-		console.Verbose("Downloading latest version of %d modified files...", len(modifiedFilePaths))
-		downloads, err := storj.DownloadBulk(projectConfig.ProjectID, projectConfig.CurrentCommitID, modifiedFilePaths)
-		if err != nil {
-			return err
-		}
-
-		console.Verbose("%d files downloaded successfully", len(maps.Keys(downloads)))
-
-		// Create bspatch file for each modified file
-		for _, modFilePath := range modifiedFilePaths {
-			console.Verbose("Creating bspatch for %s...", modFilePath)
-
-			// Get associated remote (old) file data
-			oldFileBytes, ok := downloads[modFilePath]
-			if !ok {
-				return console.Error("Could not find downloaded data for remote modified file: %s", modFilePath)
-			}
-
-			// Read new file
-			newFileBytes, err := ioutil.ReadFile(modFilePath)
-			if err != nil {
-				return err
-			}
-
-			// Create bsdiff patches
-			fwdPatch, err := bsdiff.Bytes(oldFileBytes, newFileBytes)
-			if err != nil {
-				return err
-			}
-
-			backPatch, err := bsdiff.Bytes(newFileBytes, oldFileBytes)
-			if err != nil {
-				return err
-			}
-
-			// TODO: Compress patch data
-
-			patches[modFilePath+".f.patch"] = fwdPatch
-			patches[modFilePath+".b.patch"] = backPatch
-		}
-	}
-
+	console.Info("%d changes found (took %s). Pushing...", changeCount, timeElapsed)
+	console.Verbose("Created: %d", len(fc.CreatedFilePaths))
+	console.Verbose("Modified: %d", len(fc.ModifiedFilePaths))
+	console.Verbose("Deleted: %d", len(fc.DeletedFilePaths))
 	console.Verbose("Creating commit...")
 
 	// Create commit in database
@@ -160,10 +81,10 @@ func Push(c *cli.Context) error {
 	bodyJson, _ := json.Marshal(map[string]any{
 		"branch_id":      projectConfig.CurrentBranchID,
 		"message":        msg,
-		"snapshot_paths": createdFilePaths,
-		"patch_paths":    modifiedFilePaths,
-		"deleted_paths":  deletedFilePaths,
-		"state":          fcdRes.State,
+		"created_files":  fc.CreatedFilePaths,
+		"modified_files": fc.ModifiedFilePaths,
+		"deleted_files":  fc.DeletedFilePaths,
+		"hash_map":       fc.HashMap,
 	})
 	body := bytes.NewBuffer(bodyJson)
 	commitRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)
@@ -191,31 +112,27 @@ func Push(c *cli.Context) error {
 
 	prefix := fmt.Sprintf("%s/%s", projectConfig.ProjectID, commit.ID)
 
-	// Upload patch files to storage (if any)
-	if len(patches) > 0 {
-		console.Verbose("Uploading %d patches (2 per file)...", len(patches))
+	// Upload snapshots of created and modified files to storage
+	uploadHashMap := make(map[string]string)
+	filesToUpload := []string{}
+	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
+	filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
+	for _, path := range filesToUpload {
+		uploadHashMap[path] = fc.HashMap[path]
+	}
 
-		err = storj.UploadBytesBulk(prefix, patches)
+	if len(filesToUpload) > 0 {
+		// TODO: Compress files before uploading
+		console.Verbose("Uploading %d files...", len(filesToUpload))
+
+		err = storj.UploadBulk(prefix, uploadHashMap)
 		if err != nil {
 			return err
 		}
 
-		console.Verbose("Successfully uploaded patches")
+		console.Verbose("Successfully uploaded files")
 	}
 
-	// Upload created files to storage as snapshots
-	if len(createdFilePaths) > 0 {
-		// TODO: Compress snapshots
-		console.Verbose("Uploading %d snapshots...", len(createdFilePaths))
-
-		err = storj.UploadBulk(prefix, createdFilePaths)
-		if err != nil {
-			return err
-		}
-
-		console.Verbose("Successfully uploaded snapshots")
-	}
-
-	console.Success("Successful")
+	console.Success("New commit pushed: %s", commit.ID)
 	return nil
 }
