@@ -76,13 +76,13 @@ func Init(c *cli.Context) error {
 
 	console.Verbose("Project ID: %s", project.ID)
 	console.Verbose("Current branch ID: %s", currentBranch.ID)
-	console.Verbose("Current commit ID: %s", currentBranch.Commit.ID)
+	console.Verbose("Current commit index: %d", currentBranch.Commit.Index)
 
 	// Create QC project file
 	projectFileData := models.ProjectConfig{
-		ProjectID:       project.ID,
-		CurrentBranchID: currentBranch.ID,
-		CurrentCommitID: currentBranch.Commit.ID,
+		ProjectID:          project.ID,
+		CurrentBranchID:    currentBranch.ID,
+		CurrentCommitIndex: currentBranch.Commit.Index,
 	}
 	config.SaveProjectConfig(absPath, projectFileData)
 

@@ -30,13 +30,13 @@ func Sync(c *cli.Context) error {
 		return err
 	}
 
-	if projectConfig.CurrentCommitID == "" {
+	if projectConfig.CurrentCommitIndex <= 0 {
 		// TODO: Add option for user to sync local project with remote, no matter what commit they're on
 		return console.Error("Current commit ID is invalid. Please check your project config file.")
 	}
 
 	// Get current commit
-	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/%s", projectConfig.ProjectID, projectConfig.CurrentCommitID), gc.Auth.AccessToken)
+	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/%s", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func Sync(c *cli.Context) error {
 	}
 
 	// Return if commit is the same as current commit
-	if toCommit.ID == projectConfig.CurrentCommitID {
+	if toCommit.Index == projectConfig.CurrentCommitIndex {
 		console.Info("You are already on this commit")
 		return nil
 	}
@@ -193,7 +193,7 @@ func Sync(c *cli.Context) error {
 	}
 
 	// Update current commit ID in project config
-	projectConfig.CurrentCommitID = toCommit.ID
+	projectConfig.CurrentCommitIndex = toCommit.Index
 	_, err = config.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err

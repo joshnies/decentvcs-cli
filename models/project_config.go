@@ -1,13 +1,14 @@
 package models
 
 type ProjectConfig struct {
-	ProjectID       string `json:"project_id,omitempty"`
-	CurrentBranchID string `json:"current_branch_id,omitempty"`
-	CurrentCommitID string `json:"current_commit_id,omitempty"`
+	ProjectID          string `json:"project_id,omitempty"`
+	CurrentBranchID    string `json:"current_branch_id,omitempty"`
+	CurrentCommitIndex int    `json:"current_commit_index,omitempty"`
 }
 
-func MergeProjectConfigs(existingData, newData ProjectConfig) ProjectConfig {
-	merged := existingData
+// Merge new project config into the old one.
+func MergeProjectConfigs(oldData ProjectConfig, newData ProjectConfig) ProjectConfig {
+	merged := oldData
 
 	if newData.ProjectID != "" {
 		merged.ProjectID = newData.ProjectID
@@ -17,8 +18,8 @@ func MergeProjectConfigs(existingData, newData ProjectConfig) ProjectConfig {
 		merged.CurrentBranchID = newData.CurrentBranchID
 	}
 
-	if newData.CurrentCommitID != "" {
-		merged.CurrentCommitID = newData.CurrentCommitID
+	if newData.CurrentCommitIndex != 0 {
+		merged.CurrentCommitIndex = newData.CurrentCommitIndex
 	}
 
 	return merged
