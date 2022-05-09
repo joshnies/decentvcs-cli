@@ -4,7 +4,6 @@ package constants
 const ProjectFileName = ".qc"
 const IgnoreFileName = ".qcignore"
 const GlobalConfigFileName = ".qcconfig"
-const StateFileName = ".qcstate"
 
 // Auth0
 const Auth0DomainDev = "https://dev--4bueuyj.us.auth0.com"
