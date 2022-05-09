@@ -99,7 +99,7 @@ func Push(c *cli.Context) error {
 		return err
 	}
 
-	console.Verbose("Commit %s created successfully", commit.ID)
+	console.Verbose("Commit %d (ID: %s) created successfully", commit.Index, commit.ID)
 	console.Verbose("Updating current commit ID in project config...")
 
 	// Update current commit ID in project config
@@ -130,6 +130,6 @@ func Push(c *cli.Context) error {
 		console.Verbose("Successfully uploaded files")
 	}
 
-	console.Success("New commit pushed: %s", commit.ID)
+	console.Success("Commit %d pushed", commit.Index)
 	return nil
 }
