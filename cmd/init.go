@@ -86,6 +86,6 @@ func Init(c *cli.Context) error {
 	}
 	config.SaveProjectConfig(absPath, projectFileData)
 
-	console.Info("Project created successfully")
+	console.Info("Created project \"%s\"", name)
 	return nil
 }
