@@ -153,7 +153,11 @@ func Download(projectId string, key string) ([]byte, error) {
 // @param projectId - Project ID
 // @param keys - List of object keys to download
 //
-// Returns map of object key to object data.
+// Returns:
+//
+// - map of object key to object data.
+//
+// - any error that occurred.
 func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -205,6 +209,7 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 // @param prefix - Prefix to use for uploaded objects
 // @param hashMap - Map of file path to hash
 //
+// Returns any error that occurred.
 func UploadBulk(prefix string, hashMap map[string]string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

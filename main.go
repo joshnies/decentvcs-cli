@@ -43,13 +43,13 @@ func main() {
 			{
 				Name:    "push",
 				Usage:   "Push local changes to remote",
-				Aliases: []string{"up", "u"},
+				Aliases: []string{"p"},
 				Action:  cmd.Push,
 			},
 			{
-				Name:    "pull",
-				Usage:   "Pull latest changes from remote",
-				Aliases: []string{"down", "d"},
+				Name:    "sync",
+				Usage:   "Sync to commit, downloading changes from remote",
+				Aliases: []string{"to", "t"},
 				Action:  cmd.Sync,
 			},
 			{
