@@ -50,11 +50,11 @@ func GetAccessGrant() (*uplink.Access, error) {
 		return nil, err
 	}
 
-	expiration := time.Unix(project.AccessGrantExpiration, 0)
+	expiresAt := time.Unix(project.StorjAccessGrantExpiresAt, 0)
 
-	if time.Now().Before(expiration) {
+	if time.Now().Before(expiresAt) {
 		// Parse existing access grant
-		access, err := uplink.ParseAccess(project.AccessGrant)
+		access, err := uplink.ParseAccess(project.StorjAccessGrant)
 		if err == nil {
 			return access, nil
 		}
@@ -88,9 +88,9 @@ func GetAccessGrant() (*uplink.Access, error) {
 	// Update project with new access grant and expiration
 	apiUrl = api.BuildURLf("projects/%s", projectId)
 	projectUpdateData := models.Project{
-		AccessGrant: accessGrantStr,
+		StorjAccessGrant: accessGrantStr,
 		// TODO: Enforce this 24-hour expiration in Storj itself
-		AccessGrantExpiration: time.Now().Add(time.Hour * 24).Unix(),
+		StorjAccessGrantExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 	}
 	body := bytes.NewBuffer([]byte{})
 	err = json.NewEncoder(body).Encode(projectUpdateData)
