@@ -41,6 +41,12 @@ func main() {
 				Action:  cmd.Init,
 			},
 			{
+				Name:    "changes",
+				Usage:   "Print current changes",
+				Aliases: []string{"c"},
+				Action:  cmd.GetChanges,
+			},
+			{
 				Name:    "push",
 				Usage:   "Push local changes to remote",
 				Aliases: []string{"p"},
@@ -53,22 +59,20 @@ func main() {
 				Action:  cmd.Sync,
 			},
 			{
-				Name:    "changes",
-				Usage:   "Print current changes",
-				Aliases: []string{"c"},
-				Action:  cmd.GetChanges,
-			},
-			{
-				Name:    "revert",
-				Usage:   "Reset all current changes and sync to last commit",
+				Name:    "reset",
+				Usage:   "Reset all changes",
 				Aliases: []string{"r"},
-				Action:  cmd.Revert,
+				Action:  cmd.Reset,
 			},
 			{
-				Name:    "status",
-				Usage:   "Print local project status",
-				Aliases: []string{"stat"},
-				Action:  cmd.PrintStatus,
+				Name:   "revert",
+				Usage:  "Reset all changes and sync to last commit",
+				Action: cmd.Revert,
+			},
+			{
+				Name:   "status",
+				Usage:  "Print local project status",
+				Action: cmd.PrintStatus,
 			},
 		},
 	}
