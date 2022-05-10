@@ -16,5 +16,7 @@ type Commit struct {
 	DeletedFiles []string `json:"deleted_files,omitempty"`
 	// Map of file path to hash
 	HashMap map[string]string `json:"hash_map,omitempty"`
-	// TODO: Add user ID
+	// ID of the user who made the commit.
+	// If empty, then the system created it.
+	AuthorID string `json:"author_id,omitempty"`
 }
