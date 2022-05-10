@@ -51,6 +51,13 @@ func main() {
 				Usage:   "Push local changes to remote",
 				Aliases: []string{"p"},
 				Action:  cmd.Push,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-confirm",
+						Aliases: []string{"y"},
+						Usage:   "Skip confirmation",
+					},
+				},
 			},
 			{
 				Name:    "sync",

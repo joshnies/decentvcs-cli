@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/joshnies/qc-cli/config"
@@ -25,6 +26,8 @@ func Push(c *cli.Context) error {
 	if msg == "" {
 		msg = "No message"
 	}
+
+	confirm := !c.Bool("no-confirm")
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
@@ -69,10 +72,38 @@ func Push(c *cli.Context) error {
 		return nil
 	}
 
-	console.Info("%d changes found (took %s). Pushing...", changeCount, timeElapsed)
-	console.Verbose("Created: %d", len(fc.CreatedFilePaths))
-	console.Verbose("Modified: %d", len(fc.ModifiedFilePaths))
-	console.Verbose("Deleted: %d", len(fc.DeletedFilePaths))
+	// Print local changes
+	console.Info("Local changes:")
+	if len(fc.CreatedFilePaths) > 0 {
+		console.Info("  Created files:")
+		for _, fp := range fc.CreatedFilePaths {
+			console.Info("    %s", fp)
+		}
+	}
+	if len(fc.ModifiedFilePaths) > 0 {
+		console.Info("  Modified files:")
+		for _, fp := range fc.ModifiedFilePaths {
+			console.Info("    %s", fp)
+		}
+	}
+	if len(fc.DeletedFilePaths) > 0 {
+		console.Info("  Deleted files:")
+		for _, fp := range fc.DeletedFilePaths {
+			console.Info("    %s", fp)
+		}
+	}
+
+	// Prompt user for confirmation
+	if confirm {
+		console.Warning("Are you sure you want to push these changes to \"%s\" branch?", currentBranch.Name)
+		var answer string
+		fmt.Scanln(&answer)
+		if answer != "y" {
+			console.Info("Aborted")
+			return nil
+		}
+	}
+
 	console.Verbose("Creating commit...")
 
 	// Create commit in database
