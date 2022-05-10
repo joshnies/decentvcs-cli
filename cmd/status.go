@@ -14,7 +14,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GetStatus(c *cli.Context) error {
+// Print info for the current project, branch, and commit
+func PrintStatus(c *cli.Context) error {
 	gc := auth.Validate()
 
 	// Get project config

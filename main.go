@@ -68,7 +68,7 @@ func main() {
 				Name:    "status",
 				Usage:   "Print local project status",
 				Aliases: []string{"s"},
-				Action:  cmd.GetStatus,
+				Action:  cmd.PrintStatus,
 			},
 		},
 	}
