@@ -114,7 +114,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		fmt.Scanln(&answer)
 
 		if strings.ToLower(answer) != "y" {
-			console.Info("Sync cancelled")
+			console.Info("Aborted")
 			return nil
 		}
 	}
@@ -141,7 +141,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	fmt.Scanln(&answer)
 
 	if strings.ToLower(answer) != "y" {
-		console.Info("Sync cancelled")
+		console.Info("Aborted")
 		return nil
 	}
 

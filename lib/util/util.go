@@ -1,13 +1,13 @@
 package util
 
-import "math/rand"
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func RandSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+// Return key for given value in a string map.
+// Returns empty string if value is not found.
+func ReverseLookup(strMap map[string]string, value string) string {
+	for k, v := range strMap {
+		if v == value {
+			return k
+		}
 	}
-	return string(b)
+
+	return ""
 }

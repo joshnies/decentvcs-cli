@@ -177,6 +177,7 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 
 	// Download objects
 	// TODO: Download objects in parallel
+	// TODO: Implement progress bar
 	dataMap := map[string][]byte{}
 
 	for _, key := range keys {

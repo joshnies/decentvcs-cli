@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/commits"
@@ -15,7 +14,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Reset all changes and sync to last commit.
+// Reset all local changes and sync to last commit.
 func Revert(c *cli.Context) error {
 	gc := auth.Validate()
 
@@ -40,12 +39,13 @@ func Revert(c *cli.Context) error {
 	var currentCommit models.Commit
 	err = json.NewDecoder(commitRes.Body).Decode(&currentCommit)
 	if err != nil {
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error("Failed to parse commit: %s", err)
 	}
 
 	// Reset all changes to current commit
-	err = projects.ResetChanges(c)
+	err = projects.ResetChanges(gc)
 	if err != nil {
+		console.ErrorPrint("An error occurred while resetting changes")
 		return err
 	}
 

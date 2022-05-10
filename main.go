@@ -60,13 +60,13 @@ func main() {
 			},
 			{
 				Name:    "reset",
-				Usage:   "Reset all changes",
+				Usage:   "Reset all local changes",
 				Aliases: []string{"r"},
 				Action:  cmd.Reset,
 			},
 			{
 				Name:   "revert",
-				Usage:  "Reset all changes and sync to last commit",
+				Usage:  "Reset all local changes and sync to last commit",
 				Action: cmd.Revert,
 			},
 			{
