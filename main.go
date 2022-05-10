@@ -49,7 +49,7 @@ func main() {
 			{
 				Name:    "sync",
 				Usage:   "Sync to commit, downloading changes from remote",
-				Aliases: []string{"to", "t"},
+				Aliases: []string{"to", "s"},
 				Action:  cmd.Sync,
 			},
 			{
@@ -67,7 +67,7 @@ func main() {
 			{
 				Name:    "status",
 				Usage:   "Print local project status",
-				Aliases: []string{"s"},
+				Aliases: []string{"stat"},
 				Action:  cmd.PrintStatus,
 			},
 		},
