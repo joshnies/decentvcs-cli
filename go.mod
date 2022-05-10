@@ -8,6 +8,7 @@ require (
 	github.com/grokify/go-pkce v0.2.0
 	github.com/lucsky/cuid v1.2.1
 	github.com/samber/lo v1.17.0
+	github.com/schollz/progressbar/v3 v3.8.6
 	github.com/urfave/cli/v2 v2.4.8
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17
 	storj.io/uplink v1.8.2
@@ -21,7 +22,6 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/schollz/progressbar/v3 v3.8.6 // indirect
 	github.com/spacemonkeygo/monkit/v3 v3.0.17 // indirect
 	github.com/vivint/infectious v0.0.0-20200605153912-25a574ae18a3 // indirect
 	github.com/zeebo/errs v1.3.0 // indirect
