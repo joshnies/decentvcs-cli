@@ -20,6 +20,8 @@ import (
 
 // Sync to a specific commit.
 func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int, confirm bool) error {
+	console.Verbose("Getting current commit...")
+
 	// Get current commit
 	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
 	if err != nil {
@@ -38,6 +40,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	var toCommit models.Commit
 
 	if commitIndex == 0 {
+		console.Verbose("Getting current branch with latest commit...")
+
 		// Get current branch with latest commit
 		res, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
 		if err != nil {
@@ -54,6 +58,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 		toCommit = branchwc.Commit
 	} else {
+		console.Verbose("Getting specified commit with index %d...", commitIndex)
+
 		// Validate commit index
 		if commitIndex <= 0 {
 			return console.Error("Invalid commit index. Must be a positive integer.")
@@ -80,24 +86,37 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Get keys for new files by comparing hash maps
+	console.Verbose("\"to\" commit hash map: %v", toCommit.HashMap)
+	console.Verbose("Current commit hash map: %v", currentCommit.HashMap)
+
 	downloadMap := make(map[string]string)
 	overriddenFiles := []string{}
 	for key, hash := range toCommit.HashMap {
-		if curHash, ok := currentCommit.HashMap[key]; !ok {
-			// File is new from last commit. Check if it exists in current changes
-			if _, err := os.Stat(key); err == nil {
-				// File exists in current changes. Compare hashes
-				if hash != curHash {
-					// File is changed in local and is different from remote, there's a conflict!
-					// TODO: Add file to list of conflicts and try to create merge remote file into local file
-					overriddenFiles = append(overriddenFiles, key)
-				}
+		if curHash, ok := currentCommit.HashMap[key]; ok {
+			// File exists in both commits
+			//
+			// If file is modified, add to download map
+			if hash != curHash {
+				downloadMap[key] = hash
 			}
-
-			// Add file to list of files to download
-			// filesToDownload = append(filesToDownload, key)
-			downloadMap[key] = hash
+			continue
 		}
+
+		// File is new from last commit
+		//
+		// Add to override list if it exists in local changes
+		if _, err := os.Stat(key); err == nil {
+			overriddenFiles = append(overriddenFiles, key)
+		}
+
+		// Add new file to download map
+		downloadMap[key] = hash
+	}
+
+	if len(maps.Keys(downloadMap)) == 0 {
+		console.Info("Your local changes are equivalent to the commit you are syncing to.")
+		console.Info("Aborted")
+		return nil
 	}
 
 	// Warn user about overridden files and prompt to continue
@@ -109,7 +128,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 			console.Warning("\t%s", key)
 		}
 
-		console.Warning("Are you sure you want to continue? (y/n)")
+		console.Warning("Continue? (y/n)")
 		var answer string
 		fmt.Scanln(&answer)
 
@@ -136,7 +155,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Prompt user to confirm sync
-	console.Info("Are you sure you want to sync to commit #%d? (y/n)", toCommit.Index)
+	console.Warning("Sync to commit #%d? (y/n)", toCommit.Index)
 	var answer string
 	fmt.Scanln(&answer)
 

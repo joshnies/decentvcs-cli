@@ -74,7 +74,7 @@ func Push(c *cli.Context) error {
 
 	// Prompt user for confirmation
 	if confirm {
-		console.Warning("Are you sure you want to push these changes to \"%s\" branch?", currentBranch.Name)
+		console.Warning("Push these changes to \"%s\" branch? (y/n)", currentBranch.Name)
 		var answer string
 		fmt.Scanln(&answer)
 		if answer != "y" {

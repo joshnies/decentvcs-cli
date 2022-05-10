@@ -67,7 +67,7 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 		console.Warning("- Revert all modified files to their original state")
 		console.Warning("- Recreate all deleted files")
 		console.Warning("")
-		console.Warning("Are you sure you want to continue?")
+		console.Warning("Continue? (y/n)")
 		var answer string
 		fmt.Scanln(&answer)
 		if answer != "y" {
