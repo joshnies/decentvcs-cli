@@ -21,7 +21,7 @@ import (
 // Sync to a specific commit.
 func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int) error {
 	// Get current commit
-	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/index/%s", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
+	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 
 		// Get user-specified commit
-		commitRes, err = httpw.Get(api.BuildURLf("projects/%s/commits/index/%s", projectConfig.ProjectID, commitIndex), gc.Auth.AccessToken)
+		commitRes, err = httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, commitIndex), gc.Auth.AccessToken)
 		if err != nil {
 			return err
 		}

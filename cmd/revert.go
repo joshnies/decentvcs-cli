@@ -30,7 +30,7 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Get current commit by index
-	apiUrl := api.BuildURLf("projects/%s/commits/index/%s", projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	apiUrl := api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
 	commitRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err
