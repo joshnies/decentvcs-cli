@@ -43,12 +43,12 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Reset all changes to current commit
-	err = projects.ResetChanges(gc)
+	err = projects.ResetChanges(gc, !c.Bool("no-confirm"))
 	if err != nil {
 		console.ErrorPrint("An error occurred while resetting changes")
 		return err
 	}
 
 	// Sync to last commit
-	return commits.SyncToCommit(gc, projectConfig, currentCommit.Index-1)
+	return commits.SyncToCommit(gc, projectConfig, currentCommit.Index-1, !c.Bool("no-confirm"))
 }

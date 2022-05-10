@@ -25,5 +25,5 @@ func Sync(c *cli.Context) error {
 	}
 
 	commitIndex, _ := strconv.Atoi(c.Args().Get(0))
-	return commits.SyncToCommit(gc, projectConfig, commitIndex)
+	return commits.SyncToCommit(gc, projectConfig, commitIndex, !c.Bool("no-confirm"))
 }

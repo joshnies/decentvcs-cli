@@ -19,7 +19,7 @@ import (
 )
 
 // Sync to a specific commit.
-func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int) error {
+func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int, confirm bool) error {
 	// Get current commit
 	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
 	if err != nil {
@@ -102,7 +102,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Warn user about overridden files and prompt to continue
 	// TODO: Implement merge attempt instead for non-binary files
-	if len(overriddenFiles) > 0 {
+	if len(overriddenFiles) > 0 && confirm {
 		console.Warning("The following files will be overridden by remote changes:")
 
 		for _, key := range overriddenFiles {

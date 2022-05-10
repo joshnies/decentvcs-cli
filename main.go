@@ -57,17 +57,38 @@ func main() {
 				Usage:   "Sync to commit, downloading changes from remote",
 				Aliases: []string{"to", "s"},
 				Action:  cmd.Sync,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-confirm",
+						Aliases: []string{"y"},
+						Usage:   "Skip confirmation",
+					},
+				},
 			},
 			{
 				Name:    "reset",
 				Usage:   "Reset all local changes",
 				Aliases: []string{"r"},
 				Action:  cmd.Reset,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-confirm",
+						Aliases: []string{"y"},
+						Usage:   "Skip confirmation",
+					},
+				},
 			},
 			{
 				Name:   "revert",
 				Usage:  "Reset all local changes and sync to last commit",
 				Action: cmd.Revert,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-confirm",
+						Aliases: []string{"y"},
+						Usage:   "Skip confirmation",
+					},
+				},
 			},
 			{
 				Name:   "status",

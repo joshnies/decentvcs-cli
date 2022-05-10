@@ -26,7 +26,9 @@ import (
 // - Recreate all deleted files
 //
 // @param gc Global config
-func ResetChanges(gc models.GlobalConfig) error {
+// @param confirm Whether to prompt user for confirmation before resetting
+//
+func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	// Get project config
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
@@ -80,17 +82,19 @@ func ResetChanges(gc models.GlobalConfig) error {
 	}
 
 	// Prompt user for confirmation
-	console.Warning("You are about to reset all local changes. This will:")
-	console.Warning("- Delete all created files")
-	console.Warning("- Revert all modified files to their original state")
-	console.Warning("- Recreate all deleted files")
-	console.Warning("")
-	console.Warning("Are you sure you want to continue?")
-	var answer string
-	fmt.Scanln(&answer)
-	if answer != "y" {
-		console.Info("Aborted")
-		return nil
+	if confirm {
+		console.Warning("You are about to reset all local changes. This will:")
+		console.Warning("- Delete all created files")
+		console.Warning("- Revert all modified files to their original state")
+		console.Warning("- Recreate all deleted files")
+		console.Warning("")
+		console.Warning("Are you sure you want to continue?")
+		var answer string
+		fmt.Scanln(&answer)
+		if answer != "y" {
+			console.Info("Aborted")
+			return nil
+		}
 	}
 
 	// Delete all created files

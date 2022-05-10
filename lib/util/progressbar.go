@@ -1,8 +1,6 @@
 package util
 
 import (
-	"fmt"
-
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -12,6 +10,5 @@ func NewProgressBar(max int, description string) *progressbar.ProgressBar {
 		max,
 		progressbar.OptionSetDescription(description),
 		progressbar.OptionShowCount(),
-		progressbar.OptionOnCompletion(func() { fmt.Println() }),
 	)
 }
