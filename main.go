@@ -64,6 +64,12 @@ func main() {
 				Aliases: []string{"r"},
 				Action:  cmd.Revert,
 			},
+			{
+				Name:    "status",
+				Usage:   "Print local project status",
+				Aliases: []string{"s"},
+				Action:  cmd.GetStatus,
+			},
 		},
 	}
 
