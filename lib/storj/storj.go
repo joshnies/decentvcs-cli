@@ -201,8 +201,9 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 
 		// Store object
 		dataMap[key] = buf.Bytes()
-		bar.Add(1)
+		bar.Increment()
 	}
+	bar.Wait()
 
 	return dataMap, nil
 }
@@ -263,8 +264,9 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 			return err
 		}
 
-		bar.Add(1)
+		bar.Increment()
 	}
+	bar.Wait()
 
 	return nil
 }
