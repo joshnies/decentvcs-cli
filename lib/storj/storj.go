@@ -15,6 +15,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/lib/httpw"
+	"github.com/joshnies/qc-cli/lib/util"
 	"github.com/joshnies/qc-cli/models"
 	"golang.org/x/exp/maps"
 	"storj.io/uplink"
@@ -177,9 +178,9 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 
 	// Download objects
 	// TODO: Download objects in parallel
-	// TODO: Implement progress bar
 	dataMap := map[string][]byte{}
 
+	bar := util.NewProgressBar(len(keys), "Downloading objects")
 	for _, key := range keys {
 		// Download object
 		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectId+"/"+key, nil)
@@ -200,6 +201,7 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 
 		// Store object
 		dataMap[key] = buf.Bytes()
+		bar.Add(1)
 	}
 
 	return dataMap, nil
@@ -228,6 +230,7 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 	}
 	defer sp.Close()
 
+	bar := util.NewProgressBar(len(maps.Keys(hashMap)), "Uploading objects")
 	for path, hash := range hashMap {
 		// Read file
 		data, err := ioutil.ReadFile(path)
@@ -259,6 +262,8 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 		if err != nil {
 			return err
 		}
+
+		bar.Add(1)
 	}
 
 	return nil

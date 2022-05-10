@@ -41,6 +41,8 @@ type FileChangeDetectionResult struct {
 
 // Detect file changes.
 func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult, error) {
+	console.Info("Checking for changes...")
+
 	// Get known file paths in current commit
 	remainingPaths := maps.Keys(oldHashMap)
 
