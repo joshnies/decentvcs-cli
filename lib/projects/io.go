@@ -2,11 +2,13 @@ package projects
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/TwiN/go-color"
 	"github.com/cespare/xxhash/v2"
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
@@ -89,6 +91,26 @@ func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult,
 	})
 	if err != nil {
 		return FileChangeDetectionResult{}, console.Error("Failed to detected changes: %v", err)
+	}
+
+	// Print result
+	if len(createdFilePaths) > 0 {
+		fmt.Println(color.InGreen(color.InBold("Created files:")))
+		for _, fp := range createdFilePaths {
+			fmt.Printf(color.InGreen("  + %s\n"), fp)
+		}
+	}
+	if len(modifiedFilePaths) > 0 {
+		console.Info(color.InBlue(color.InBold("Modified files:")))
+		for _, fp := range modifiedFilePaths {
+			fmt.Printf(color.InBlue("  * %s\n"), fp)
+		}
+	}
+	if len(remainingPaths) > 0 {
+		console.Info(color.InRed(color.InBold("Deleted files:")))
+		for _, fp := range remainingPaths {
+			fmt.Printf(color.InRed("  - %s\n"), fp)
+		}
 	}
 
 	// Return result

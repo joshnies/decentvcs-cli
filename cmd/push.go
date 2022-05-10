@@ -72,27 +72,6 @@ func Push(c *cli.Context) error {
 		return nil
 	}
 
-	// Print local changes
-	console.Info("Local changes:")
-	if len(fc.CreatedFilePaths) > 0 {
-		console.Info("  Created files:")
-		for _, fp := range fc.CreatedFilePaths {
-			console.Info("    %s", fp)
-		}
-	}
-	if len(fc.ModifiedFilePaths) > 0 {
-		console.Info("  Modified files:")
-		for _, fp := range fc.ModifiedFilePaths {
-			console.Info("    %s", fp)
-		}
-	}
-	if len(fc.DeletedFilePaths) > 0 {
-		console.Info("  Deleted files:")
-		for _, fp := range fc.DeletedFilePaths {
-			console.Info("    %s", fp)
-		}
-	}
-
 	// Prompt user for confirmation
 	if confirm {
 		console.Warning("Are you sure you want to push these changes to \"%s\" branch?", currentBranch.Name)
