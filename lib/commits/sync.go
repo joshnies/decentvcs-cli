@@ -79,8 +79,6 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		return nil
 	}
 
-	console.Info("Syncing to commit %s", toCommit.ID)
-
 	// Get keys for new files by comparing hash maps
 	downloadMap := make(map[string]string)
 	overriddenFiles := []string{}
@@ -138,7 +136,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Prompt user to confirm sync
-	console.Info("Are you sure you want to sync to commit %s? (y/n)", toCommit.ID)
+	console.Info("Are you sure you want to sync to commit #%d? (y/n)", toCommit.Index)
 	var answer string
 	fmt.Scanln(&answer)
 
