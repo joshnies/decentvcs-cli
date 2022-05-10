@@ -60,9 +60,9 @@ func main() {
 			},
 			{
 				Name:    "revert",
-				Usage:   "Revert last commit",
+				Usage:   "Reset all current changes and sync to last commit",
 				Aliases: []string{"r"},
-				Action:  cmd.RevertLastCommit,
+				Action:  cmd.Revert,
 			},
 		},
 	}
