@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
-	"time"
 
-	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -42,34 +39,16 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	startTime := time.Now()
 	fc, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}
 
-	timeElapsed := time.Since(startTime).Truncate(time.Microsecond)
-
 	// If there are no changes, exit
 	changeCount := len(fc.CreatedFilePaths) + len(fc.ModifiedFilePaths) + len(fc.DeletedFilePaths)
 	if changeCount == 0 {
-		console.Info("No changes detected (took %s)", timeElapsed)
+		console.Info("No changes detected")
 		return nil
-	}
-
-	// Print changes
-	console.Info("%d changes found:", changeCount)
-
-	for _, path := range fc.CreatedFilePaths {
-		fmt.Printf(color.Ize(color.Green, "  + %s\n"), path)
-	}
-
-	for _, path := range fc.ModifiedFilePaths {
-		fmt.Printf(color.Ize(color.Blue, "  * %s\n"), path)
-	}
-
-	for _, path := range fc.DeletedFilePaths {
-		fmt.Printf(color.Ize(color.Red, "  - %s\n"), path)
 	}
 
 	return nil

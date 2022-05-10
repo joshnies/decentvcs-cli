@@ -12,6 +12,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/joshnies/qc-cli/constants"
 	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc-cli/lib/util"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 )
@@ -51,6 +52,7 @@ func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult,
 	createdFilePaths := []string{}
 	modifiedFilePaths := []string{}
 	newHashMap := make(map[string]string)
+	fileInfoMap := make(map[string]os.FileInfo)
 
 	// Walk project directory
 	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
@@ -70,6 +72,7 @@ func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult,
 		}
 
 		newHashMap[path] = newHash
+		fileInfoMap[path] = info
 
 		// Detect changes
 		if oldHash, ok := oldHashMap[path]; ok {
@@ -97,19 +100,22 @@ func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult,
 	if len(createdFilePaths) > 0 {
 		fmt.Println(color.InGreen(color.InBold("Created files:")))
 		for _, fp := range createdFilePaths {
-			fmt.Printf(color.InGreen("  + %s\n"), fp)
+			fileInfo := fileInfoMap[fp]
+			fmt.Printf(color.InGreen("  + %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
 		}
 	}
 	if len(modifiedFilePaths) > 0 {
 		console.Info(color.InBlue(color.InBold("Modified files:")))
 		for _, fp := range modifiedFilePaths {
-			fmt.Printf(color.InBlue("  * %s\n"), fp)
+			fileInfo := fileInfoMap[fp]
+			fmt.Printf(color.InBlue("  * %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
 		}
 	}
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
-			fmt.Printf(color.InRed("  - %s\n"), fp)
+			fileInfo := fileInfoMap[fp]
+			fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
 		}
 	}
 
