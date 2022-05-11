@@ -113,6 +113,20 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:    "history",
+				Aliases: []string{"h"},
+				Usage:   "Print commit history",
+				Action:  cmd.PrintHistory,
+				Flags: []cli.Flag{
+					&cli.IntFlag{
+						Name:    "limit",
+						Aliases: []string{"l"},
+						Usage:   "Limit number of commits",
+						Value:   10,
+					},
+				},
+			},
 		},
 	}
 
