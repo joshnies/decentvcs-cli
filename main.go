@@ -102,6 +102,17 @@ func main() {
 				Usage:  "Print local project status",
 				Action: cmd.PrintStatus,
 			},
+			{
+				Name: "branch",
+				Subcommands: []*cli.Command{
+					{
+						Name:    "new",
+						Aliases: []string{"n"},
+						Usage:   "Create a new branch",
+						Action:  cmd.NewBranch,
+					},
+				},
+			},
 		},
 	}
 
