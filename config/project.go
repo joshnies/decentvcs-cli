@@ -7,15 +7,17 @@ import (
 	"path/filepath"
 
 	"github.com/joshnies/qc-cli/constants"
+	"github.com/joshnies/qc-cli/lib/console"
 	"github.com/joshnies/qc-cli/models"
 )
 
 // Get project config from `.qc` file in current directory.
 func GetProjectConfig() (models.ProjectConfig, error) {
 	// Open `.qc` file
+	// TODO: Find project config file within parent directories?
 	jsonFile, err := os.Open(".qc")
 	if err != nil {
-		return models.ProjectConfig{}, err
+		return models.ProjectConfig{}, console.Error(constants.ErrMsgNoProject)
 	}
 	defer jsonFile.Close()
 

@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/qc-cli/config"
 )
 
 type LogLevel int64
@@ -20,7 +19,8 @@ const (
 // Log verbose message to console.
 // `VERBOSE` environment variable must be set to `1` for message to be printed.
 func Verbose(message string, vars ...any) {
-	if !config.I.Verbose {
+	// Get env var directly to prevent circular import
+	if os.Getenv("VERBOSE") != "1" {
 		return
 	}
 
