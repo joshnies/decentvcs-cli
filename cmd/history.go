@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/TwiN/go-color"
 	"github.com/joshnies/qc-cli/config"
 	"github.com/joshnies/qc-cli/lib/api"
 	"github.com/joshnies/qc-cli/lib/auth"
@@ -45,9 +46,8 @@ func PrintHistory(c *cli.Context) error {
 
 	// Print commits
 	for _, c := range commits {
-		// TODO: Colorize
 		createdAt := time.Unix(c.CreatedAt, 0).Format(time.RFC1123)
-		fmt.Printf("%s [%s; #%d] %s\n", createdAt, c.Branch.Name, c.Index, c.Message)
+		fmt.Printf("%s "+color.InCyan(color.InBold("[%s; #%d]"))+" %s\n", createdAt, c.Branch.Name, c.Index, c.Message)
 	}
 
 	return nil
