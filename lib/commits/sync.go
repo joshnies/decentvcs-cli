@@ -43,7 +43,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		console.Verbose("Getting current branch with latest commit...")
 
 		// Get current branch with latest commit
-		res, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
+		res, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
 		if err != nil {
 			return err
 		}

@@ -30,7 +30,7 @@ func UseBranch(c *cli.Context) error {
 	}
 
 	// Get specified branch
-	apiUrl := api.BuildURLf("projects/%s/branches?name=%s&join=commit", projectConfig.ProjectID, branchName)
+	apiUrl := api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, branchName)
 	branchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err

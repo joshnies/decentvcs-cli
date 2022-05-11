@@ -36,7 +36,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Get current branch w/ current commit
-	apiUrl := api.BuildURLf("projects/%s/branches/%s/commit", projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	apiUrl := api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err
