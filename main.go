@@ -111,6 +111,12 @@ func main() {
 						Usage:   "Create a new branch",
 						Action:  cmd.NewBranch,
 					},
+					{
+						Name:    "use",
+						Aliases: []string{"u"},
+						Usage:   "Switch to a different branch, syncing to its latest commit",
+						Action:  cmd.UseBranch,
+					},
 				},
 			},
 			{
