@@ -1,0 +1,60 @@
+package cmd
+
+import (
+	"encoding/json"
+
+	"github.com/joshnies/qc-cli/config"
+	"github.com/joshnies/qc-cli/lib/api"
+	"github.com/joshnies/qc-cli/lib/auth"
+	"github.com/joshnies/qc-cli/lib/commits"
+	"github.com/joshnies/qc-cli/lib/httpw"
+	"github.com/joshnies/qc-cli/models"
+	"github.com/urfave/cli/v2"
+)
+
+// Switch to the specified branch.
+// This will also sync to the latest commit on that branch.
+func UseBranch(c *cli.Context) error {
+	gc := auth.Validate()
+
+	// Get the branch name
+	branchName := c.Args().First()
+	if branchName == "" {
+		return cli.Exit("You must specify a branch name", 1)
+	}
+
+	// Get project config
+	projectConfig, err := config.GetProjectConfig()
+	if err != nil {
+		return err
+	}
+
+	// Get specified branch
+	apiUrl := api.BuildURLf("projects/%s/branches?name=%s&join=commit", projectConfig.ProjectID, branchName)
+	branchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	if err != nil {
+		return err
+	}
+
+	// Parse response
+	var branch models.BranchWithCommit
+	err = json.NewDecoder(branchRes.Body).Decode(&branch)
+	if err != nil {
+		return err
+	}
+
+	// Set the current branch in project config
+	projectConfig.CurrentBranchID = branch.ID
+	projectConfig, err = config.SaveProjectConfig(".", projectConfig)
+	if err != nil {
+		return err
+	}
+
+	// Sync
+	err = commits.SyncToCommit(gc, projectConfig, branch.Commit.Index, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
