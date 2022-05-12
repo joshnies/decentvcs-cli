@@ -127,9 +127,14 @@ func main() {
 				},
 			},
 			{
+				Name:   "branches",
+				Usage:  "List all branches in the project",
+				Action: cmd.ListBranches,
+			},
+			{
 				Name:    "history",
 				Aliases: []string{"h"},
-				Usage:   "Print commit history",
+				Usage:   "List commit history",
 				Action:  cmd.PrintHistory,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
