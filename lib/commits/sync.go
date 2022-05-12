@@ -148,6 +148,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 	}
 
+	console.Verbose("\nFiles to delete: %v", filesToDelete)
+
 	if len(maps.Keys(downloadMap)) == 0 && len(filesToDelete) == 0 {
 		console.Info("Your local changes are equivalent to the commit you are syncing to.")
 		console.Info("Aborted")
