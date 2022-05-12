@@ -124,6 +124,19 @@ func main() {
 							},
 						},
 					},
+					{
+						Name:    "delete",
+						Aliases: []string{"d"},
+						Usage:   "Delete a branch",
+						Action:  cmd.DeleteBranch,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:    "no-confirm",
+								Aliases: []string{"y"},
+								Usage:   "Skip confirmation",
+							},
+						},
+					},
 				},
 			},
 			{

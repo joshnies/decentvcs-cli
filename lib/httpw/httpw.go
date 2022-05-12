@@ -80,3 +80,39 @@ func Post(url string, body *bytes.Buffer, accessToken string) (*http.Response, e
 
 	return res, nil
 }
+
+// Send a DELETE request to the specified URL.
+func Delete(url string, accessToken string) (*http.Response, error) {
+	// Build request
+	httpClient := &http.Client{}
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	// Send request
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check response status
+	switch res.StatusCode {
+	case http.StatusUnauthorized:
+		return nil, console.Error("Unauthorized")
+	case http.StatusNotFound:
+		return nil, console.Error("Resource not found")
+	case http.StatusRequestTimeout:
+		return nil, console.Error("HTTP request timed out")
+	case http.StatusBadRequest:
+		return nil, console.Error(constants.ErrMsgInternal)
+	case http.StatusInternalServerError:
+		return nil, console.Error(constants.ErrMsgInternal)
+	case http.StatusServiceUnavailable:
+		return nil, console.Error(constants.ErrMsgInternal)
+	}
+
+	return res, nil
+}
