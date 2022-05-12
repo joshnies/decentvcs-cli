@@ -44,6 +44,11 @@ func DeleteBranch(c *cli.Context) error {
 		return err
 	}
 
+	// Prevent deletion of current branch
+	if branch.ID == projectConfig.CurrentBranchID {
+		return console.Error("You cannot delete the current branch. Please switch to another branch first.")
+	}
+
 	// Ask for confirmation
 	if !c.Bool("no-confirm") {
 		console.Warning("Are you sure you want to delete the branch \"%s\"?", branchName)
