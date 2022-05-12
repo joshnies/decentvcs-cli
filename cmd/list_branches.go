@@ -40,7 +40,14 @@ func ListBranches(c *cli.Context) error {
 
 	// Print branches
 	for _, branch := range branches {
-		fmt.Printf(color.InBold(color.InCyan("%s:"))+" commit #%d\n", branch.Name, branch.Commit.Index)
+		isCurrentBranch := projectConfig.CurrentBranchID == branch.ID
+
+		currentNote := ""
+		if isCurrentBranch {
+			currentNote = " (current)"
+		}
+
+		fmt.Printf(color.InBold(color.InCyan("%s%s:"))+" commit #%d\n", branch.Name, currentNote, branch.Commit.Index)
 	}
 
 	return nil
