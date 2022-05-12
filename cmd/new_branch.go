@@ -20,13 +20,13 @@ func NewBranch(c *cli.Context) error {
 	// Get branch name from args
 	branchName := c.Args().First()
 	if branchName == "" {
-		return cli.Exit("Branch name is required", 1)
+		return console.Error("Branch name is required")
 	}
 
 	// Get project config
 	projectConfig, err := config.GetProjectConfig()
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return err
 	}
 
 	// Create branch
@@ -36,27 +36,27 @@ func NewBranch(c *cli.Context) error {
 		CommitIndex: projectConfig.CurrentCommitIndex,
 	})
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return err
 	}
 
 	body := bytes.NewBuffer(bodyJson)
 	branchRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return err
 	}
 
 	// Parse response
 	var branch models.Branch
 	err = json.NewDecoder(branchRes.Body).Decode(&branch)
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return err
 	}
 
 	// Set current branch
 	projectConfig.CurrentBranchID = branch.ID
 	_, err = config.SaveProjectConfig(".", projectConfig)
 	if err != nil {
-		return cli.Exit(err.Error(), 1)
+		return err
 	}
 
 	console.Info("Created and switched to branch %s", branch.Name)

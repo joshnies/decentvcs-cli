@@ -59,6 +59,5 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	console.Success("Branch deleted")
-	console.Info("You can recover the branch at any time by running \"qc-cli branch recover %s\"", branchName)
 	return nil
 }

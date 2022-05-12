@@ -69,6 +69,8 @@ func Post(url string, body *bytes.Buffer, accessToken string) (*http.Response, e
 		return nil, console.Error("Unauthorized")
 	case http.StatusNotFound:
 		return nil, console.Error("Resource not found")
+	case http.StatusConflict:
+		return nil, console.Error("Resource already exists")
 	case http.StatusRequestTimeout:
 		return nil, console.Error("HTTP request timed out")
 	}
