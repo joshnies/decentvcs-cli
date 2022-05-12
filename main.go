@@ -116,6 +116,13 @@ func main() {
 						Aliases: []string{"u"},
 						Usage:   "Switch to a different branch, syncing to its latest commit",
 						Action:  cmd.UseBranch,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:    "no-confirm",
+								Aliases: []string{"y"},
+								Usage:   "Skip confirmation",
+							},
+						},
 					},
 				},
 			},

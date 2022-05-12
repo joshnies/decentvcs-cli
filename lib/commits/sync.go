@@ -86,8 +86,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Get keys for new files by comparing hash maps
-	console.Verbose("\"to\" commit hash map: %v", toCommit.HashMap)
-	console.Verbose("Current commit hash map: %v", currentCommit.HashMap)
+	console.Verbose("\n\"to\" commit hash map:\n%v", toCommit.HashMap)
+	console.Verbose("\nCurrent commit hash map:\n%v\n", currentCommit.HashMap)
 
 	downloadMap := make(map[string]string)
 	overriddenFiles := []string{}
@@ -111,12 +111,6 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 		// Add new file to download map
 		downloadMap[key] = hash
-	}
-
-	if len(maps.Keys(downloadMap)) == 0 {
-		console.Info("Your local changes are equivalent to the commit you are syncing to.")
-		console.Info("Aborted")
-		return nil
 	}
 
 	// Warn user about overridden files and prompt to continue
@@ -154,6 +148,12 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 	}
 
+	if len(maps.Keys(downloadMap)) == 0 && len(filesToDelete) == 0 {
+		console.Info("Your local changes are equivalent to the commit you are syncing to.")
+		console.Info("Aborted")
+		return nil
+	}
+
 	// Prompt user to confirm sync
 	console.Warning("Sync to commit #%d? (y/n)", toCommit.Index)
 	var answer string
@@ -165,28 +165,30 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Download new files
-	dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(downloadMap))
-	if err != nil {
-		return err
-	}
-
-	for _, hash := range maps.Keys(dataMap) {
-		// Write file to local filesystem
-		var path string
-		for p, h := range downloadMap {
-			if hash == h {
-				path = p
-				break
-			}
-		}
-
-		if path == "" {
-			return console.Error("Failed to download file with hash %s", hash)
-		}
-
-		err = ioutil.WriteFile(path, dataMap[hash], 0644)
+	if len(maps.Keys(downloadMap)) > 0 {
+		dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(downloadMap))
 		if err != nil {
-			return console.Error("Failed to write file (%s) after downloading: %s", path, err)
+			return err
+		}
+
+		for _, hash := range maps.Keys(dataMap) {
+			// Write file to local filesystem
+			var path string
+			for p, h := range downloadMap {
+				if hash == h {
+					path = p
+					break
+				}
+			}
+
+			if path == "" {
+				return console.Error("Failed to download file with hash %s", hash)
+			}
+
+			err = ioutil.WriteFile(path, dataMap[hash], 0644)
+			if err != nil {
+				return console.Error("Failed to write file (%s) after downloading: %s", path, err)
+			}
 		}
 	}
 
@@ -204,6 +206,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	if err != nil {
 		return err
 	}
+
+	console.Info("Synced to commit #%d", toCommit.Index)
 
 	return nil
 }

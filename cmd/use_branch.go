@@ -8,6 +8,7 @@ import (
 	"github.com/joshnies/qc-cli/lib/auth"
 	"github.com/joshnies/qc-cli/lib/commits"
 	"github.com/joshnies/qc-cli/lib/httpw"
+	"github.com/joshnies/qc-cli/lib/projects"
 	"github.com/joshnies/qc-cli/models"
 	"github.com/urfave/cli/v2"
 )
@@ -48,6 +49,15 @@ func UseBranch(c *cli.Context) error {
 	projectConfig, err = config.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
+	}
+
+	// Reset local changes if specified branch points to a different commit than current
+	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
+		// Reset local changes
+		err = projects.ResetChanges(gc, !c.Bool("no-confirm"))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Sync
