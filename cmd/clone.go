@@ -58,7 +58,7 @@ func CloneProject(c *cli.Context) error {
 	}
 
 	// Get default branch
-	apiUrl = api.BuildURLf("projects/%s/branches/default?join_commits=true", project.ID)
+	apiUrl = api.BuildURLf("projects/%s/branches/default?join_commit=true", project.ID)
 	res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
 		return err
@@ -69,6 +69,12 @@ func CloneProject(c *cli.Context) error {
 	err = json.NewDecoder(res.Body).Decode(&branch)
 	if err != nil {
 		return err
+	}
+
+	console.Verbose("Found default branch with commit index %d", branch.Commit.Index)
+
+	if len(maps.Values(branch.Commit.HashMap)) == 0 {
+		return console.Error("No committed files found for branch \"%s\"", branch.Name)
 	}
 
 	console.Info("Cloning project \"%s\" into \"%s\"...", project.Name, clonePath)
@@ -89,6 +95,14 @@ func CloneProject(c *cli.Context) error {
 	console.Verbose("Project config file created")
 
 	// Download all files
+	console.Verbose("Downloading files...")
+
+	if config.I.Verbose {
+		for _, v := range maps.Values(branch.Commit.HashMap) {
+			console.Verbose(" - %s", v)
+		}
+	}
+
 	dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(branch.Commit.HashMap))
 	if err != nil {
 		return err
