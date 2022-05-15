@@ -39,7 +39,8 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	fc, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
+	// TODO: Use user-provided project path if available
+	fc, err := projects.DetectFileChanges(".", currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package projects
 
 import (
+	"bufio"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/TwiN/go-color"
 	"github.com/cespare/xxhash/v2"
@@ -57,7 +60,7 @@ type FileChangeDetectionResult struct {
 // Detect file changes.
 //
 // @param oldHashMap - Hash map of remote commit
-func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult, error) {
+func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileChangeDetectionResult, error) {
 	console.Info("Checking for changes...")
 
 	// Get known file paths in current commit
@@ -68,15 +71,45 @@ func DetectFileChanges(oldHashMap map[string]string) (FileChangeDetectionResult,
 	newHashMap := make(map[string]string)
 	fileInfoMap := make(map[string]os.FileInfo)
 
+	// Read .qcignore file
+	qcignorePath := filepath.Join(projectPath, constants.IgnoreFileName)
+	qcignoreFile, err := os.Open(qcignorePath)
+	if err != nil && !os.IsNotExist(err) {
+		return FileChangeDetectionResult{}, err
+	}
+	defer qcignoreFile.Close()
+
+	// Read .qcignore file
+	ignoredFilePatterns := []string{}
+	scanner := bufio.NewScanner(qcignoreFile)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			ignoredFilePatterns = append(ignoredFilePatterns, line)
+		}
+	}
+
 	// Walk project directory
-	err := filepath.Walk(".", func(path string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(projectPath, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip directories
+		// Skip directories and QC project file (`.qc`)
 		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
+		}
+
+		// Skip hidden files
+		for _, pattern := range ignoredFilePatterns {
+			matched, err := regexp.Match(pattern, []byte(path))
+			if err != nil {
+				return err
+			}
+			if matched {
+				console.Verbose("Ignoring file \"%s\"", path)
+				return nil
+			}
 		}
 
 		// Calculate file hash
@@ -178,7 +211,8 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	}
 
 	// Detect file changes
-	fc, err := DetectFileChanges(commit.HashMap)
+	// TODO: Use user-provided project path if available
+	fc, err := DetectFileChanges(".", commit.HashMap)
 	if err != nil {
 		return err
 	}

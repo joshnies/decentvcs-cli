@@ -58,7 +58,8 @@ func Push(c *cli.Context) error {
 	// Detect local changes
 	console.Info("Detecting changes...")
 	startTime := time.Now()
-	fc, err := projects.DetectFileChanges(currentBranch.Commit.HashMap)
+	// TODO: Use user-provided project path if available
+	fc, err := projects.DetectFileChanges(".", currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

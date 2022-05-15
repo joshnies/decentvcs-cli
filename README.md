@@ -1,14 +1,17 @@
 # Quanta Control CLI
 
+
 ## Requirements
 |Dependency|Version|
 |-|-|
 |go|1.18+|
 
+
 ## Running
 ```sh
 go run main.go
 ```
+
 
 ## Commands
 |Command|Description|
@@ -29,9 +32,22 @@ go run main.go
 |`branch set-default <name>`|Set the default branch for the project|
 |`history [-l=10]`|Print commit history|
 |`status`|Print project config|
-
 ### Common flags
 |Flag|Description|
 |-|-|
 |`-y` or `--no-confirm`|Skip confirmation|
 |`-l` or `--limit`|Limit returned results|
+
+
+## Usage
+
+### Ignoring files
+Create a `.qcignore` file in your project. Each line will be read as a regular expression (regex),
+with all leading and trailing whitespace being ignored. You can also comment out any line with the
+`#` prefix.
+#### Example
+```sh
+# Hey look, a comment!
+file_name
+entire_dir/.*
+```
