@@ -137,6 +137,12 @@ func main() {
 							},
 						},
 					},
+					{
+						Name:    "set-default",
+						Aliases: []string{"sd"},
+						Usage:   "Set the default branch",
+						Action:  cmd.SetDefaultBranch,
+					},
 				},
 			},
 			{
