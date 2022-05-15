@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -40,7 +39,7 @@ func CloneProject(c *cli.Context) error {
 	}
 
 	// Check if already in project directory
-	if _, err := os.Stat(constants.ProjectFileName); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(clonePath, constants.ProjectFileName)); !os.IsNotExist(err) {
 		return console.Error("A project already exists in the current directory")
 	}
 
@@ -75,16 +74,19 @@ func CloneProject(c *cli.Context) error {
 	console.Info("Cloning project \"%s\" into \"%s\"...", project.Name, clonePath)
 
 	// Create project config file
+	console.Verbose("Creating project config file...")
 	projectConfig := models.ProjectConfig{
 		ProjectID:          project.ID,
 		CurrentBranchID:    branch.ID,
 		CurrentCommitIndex: branch.Commit.Index,
 	}
 
-	projectConfig, err = config.SaveProjectConfig(filepath.Join(clonePath, constants.ProjectFileName), projectConfig)
+	projectConfig, err = config.SaveProjectConfig(clonePath, projectConfig)
 	if err != nil {
 		return err
 	}
+
+	console.Verbose("Project config file created")
 
 	// Download all files
 	dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(branch.Commit.HashMap))
