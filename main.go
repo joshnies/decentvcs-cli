@@ -45,8 +45,21 @@ func main() {
 			{
 				Name:      "clone",
 				Usage:     "Clone a project to your local machine",
-				ArgsUsage: "[blob] [path=\".\"]",
+				ArgsUsage: "[blob] [-p | --path] [-b | --branch]",
 				Action:    cmd.CloneProject,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "path",
+						Value:   ".",
+						Aliases: []string{"p"},
+						Usage:   "Local path to directory for cloning project into",
+					},
+					&cli.StringFlag{
+						Name:    "branch",
+						Aliases: []string{"b"},
+						Usage:   "Branch to clone",
+					},
+				},
 			},
 			{
 				Name:    "changes",

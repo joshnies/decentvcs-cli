@@ -29,14 +29,13 @@ func CloneProject(c *cli.Context) error {
 	}
 
 	// Get clone path from second arg
-	clonePath := c.Args().Get(1)
-	if clonePath == "" {
-		clonePath = "."
-	}
-	clonePath, err := filepath.Abs(clonePath)
+	clonePath, err := filepath.Abs(c.String("path"))
 	if err != nil {
-		return console.Error("Invalid project path")
+		return console.Error("Invalid path")
 	}
+
+	// Get branch name
+	branchName := c.String("branch")
 
 	// Check if already in project directory
 	if _, err := os.Stat(filepath.Join(clonePath, constants.ProjectFileName)); !os.IsNotExist(err) {
@@ -57,27 +56,41 @@ func CloneProject(c *cli.Context) error {
 		return err
 	}
 
-	// Get default branch
-	apiUrl = api.BuildURLf("projects/%s/branches/default?join_commit=true", project.ID)
-	res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
-	if err != nil {
-		return err
-	}
-
-	// Parse default branch
 	var branch models.BranchWithCommit
-	err = json.NewDecoder(res.Body).Decode(&branch)
-	if err != nil {
-		return err
-	}
+	if branchName == "" {
+		// Get default branch
+		apiUrl = api.BuildURLf("projects/%s/branches/default?join_commit=true", project.ID)
+		res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
+		if err != nil {
+			return err
+		}
 
-	console.Verbose("Found default branch with commit index %d", branch.Commit.Index)
+		// Parse branch
+		err = json.NewDecoder(res.Body).Decode(&branch)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Get specified branch
+		apiUrl = api.BuildURLf("projects/%s/branches/%s?join_commit=true", project.ID, branchName)
+		res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
+		if err != nil {
+			return err
+		}
+
+		// Parse branch
+		err = json.NewDecoder(res.Body).Decode(&branch)
+		if err != nil {
+			return err
+		}
+	}
 
 	if len(maps.Values(branch.Commit.HashMap)) == 0 {
 		return console.Error("No committed files found for branch \"%s\"", branch.Name)
 	}
 
-	console.Info("Cloning project \"%s\" into \"%s\"...", project.Name, clonePath)
+	console.Info("Cloning project \"%s\" with branch \"%s\" into \"%s\"...", project.Name, branch.Name, clonePath)
+	console.Verbose("Branch commit index: %d", branch.Commit.Index)
 
 	// Create project config file
 	console.Verbose("Creating project config file...")
