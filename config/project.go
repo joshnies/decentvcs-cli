@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/lib/console"
-	"github.com/joshnies/qc-cli/models"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/qc/models"
 )
 
 // Get project config from `.qc` file in current directory.

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/joshnies/qc-cli/lib/auth"
-	"github.com/joshnies/qc-cli/lib/projects"
+	"github.com/joshnies/qc/lib/auth"
+	"github.com/joshnies/qc/lib/projects"
 	"github.com/urfave/cli/v2"
 )
 

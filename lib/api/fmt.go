@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/joshnies/qc-cli/config"
+	"github.com/joshnies/qc/config"
 )
 
 // Build API URL for given path.

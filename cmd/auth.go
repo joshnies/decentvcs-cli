@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc/config"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/lib/console"
 	"github.com/urfave/cli/v2"
 )
 

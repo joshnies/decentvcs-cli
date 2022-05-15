@@ -1,4 +1,4 @@
-module github.com/joshnies/qc-cli
+module github.com/joshnies/qc
 
 go 1.18
 

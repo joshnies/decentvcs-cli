@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/lib/configio"
-	"github.com/joshnies/qc-cli/lib/console"
-	"github.com/joshnies/qc-cli/models"
+	"github.com/joshnies/qc/config"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/lib/configio"
+	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/qc/models"
 )
 
 // Returns true if the user is logged in, false otherwise.

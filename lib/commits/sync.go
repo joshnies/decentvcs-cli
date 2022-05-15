@@ -7,14 +7,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/lib/api"
-	"github.com/joshnies/qc-cli/lib/console"
-	"github.com/joshnies/qc-cli/lib/httpw"
-	"github.com/joshnies/qc-cli/lib/projects"
-	"github.com/joshnies/qc-cli/lib/storj"
-	"github.com/joshnies/qc-cli/models"
+	"github.com/joshnies/qc/config"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/lib/api"
+	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/qc/lib/httpw"
+	"github.com/joshnies/qc/lib/projects"
+	"github.com/joshnies/qc/lib/storj"
+	"github.com/joshnies/qc/models"
 	"golang.org/x/exp/maps"
 )
 

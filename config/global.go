@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/models"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/models"
 )
 
 // Get global Quanta Control config from file.

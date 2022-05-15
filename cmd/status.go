@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/qc-cli/config"
-	"github.com/joshnies/qc-cli/lib/api"
-	"github.com/joshnies/qc-cli/lib/auth"
-	"github.com/joshnies/qc-cli/lib/console"
-	"github.com/joshnies/qc-cli/lib/httpw"
-	"github.com/joshnies/qc-cli/models"
+	"github.com/joshnies/qc/config"
+	"github.com/joshnies/qc/lib/api"
+	"github.com/joshnies/qc/lib/auth"
+	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/qc/lib/httpw"
+	"github.com/joshnies/qc/models"
 	"github.com/urfave/cli/v2"
 )
 

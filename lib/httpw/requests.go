@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/joshnies/qc-cli/constants"
-	"github.com/joshnies/qc-cli/lib/console"
+	"github.com/joshnies/qc/constants"
+	"github.com/joshnies/qc/lib/console"
 )
 
 // Send an HTTP request to the specified URL.

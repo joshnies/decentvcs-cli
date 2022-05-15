@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/joshnies/qc-cli/cmd"
-	"github.com/joshnies/qc-cli/config"
+	"github.com/joshnies/qc/cmd"
+	"github.com/joshnies/qc/config"
 	"github.com/urfave/cli/v2"
 )
 
