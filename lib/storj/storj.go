@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"time"
 
 	"github.com/joshnies/qc/config"
@@ -17,6 +18,7 @@ import (
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/util"
 	"github.com/joshnies/qc/models"
+	"github.com/vbauerster/mpb/v7"
 	"golang.org/x/exp/maps"
 	"storj.io/uplink"
 )
@@ -232,41 +234,51 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 	defer sp.Close()
 
 	bar := util.NewProgressBar(len(maps.Keys(hashMap)), "Uploading objects")
+	var wg sync.WaitGroup
 	for path, hash := range hashMap {
-		// Read file
-		data, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		// Start upload
-		upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, prefix+"/"+hash, nil)
-		if err != nil {
-			return err
-		}
-
-		// Copy file data to upload buffer
-		buf := bytes.NewBuffer(data)
-		_, err = io.Copy(upload, buf)
-		if err != nil {
-			_ = upload.Abort()
-			return console.Error("Failed to upload file: %v", err)
-		}
-
-		// Add path to object metadata
-		upload.SetCustomMetadata(ctx, uplink.CustomMetadata{
-			"path": path,
-		})
-
-		// Commit upload
-		err = upload.Commit()
-		if err != nil {
-			return err
-		}
-
-		bar.Increment()
+		wg.Add(1)
+		go uploadRoutine(ctx, sp, path, prefix+"/"+hash, bar, &wg)
 	}
-	bar.Wait()
+	// bar.Wait()
+	wg.Wait()
+
+	return nil
+}
+
+func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, bar *mpb.Bar, wg *sync.WaitGroup) error {
+	// Read file
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	// Start upload
+	upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, key, nil)
+	if err != nil {
+		return err
+	}
+
+	// Copy file data to upload buffer
+	buf := bytes.NewBuffer(data)
+	_, err = io.Copy(upload, buf)
+	if err != nil {
+		_ = upload.Abort()
+		return console.Error("Failed to upload file: %v", err)
+	}
+
+	// Add path to object metadata
+	upload.SetCustomMetadata(ctx, uplink.CustomMetadata{
+		"path": path,
+	})
+
+	// Commit upload
+	err = upload.Commit()
+	if err != nil {
+		return err
+	}
+
+	bar.Increment()
+	wg.Done()
 
 	return nil
 }
