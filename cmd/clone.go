@@ -45,7 +45,6 @@ func CloneProject(c *cli.Context) error {
 	}
 
 	// Get project
-	// TODO: Implement this API route
 	apiUrl := api.BuildURLf("projects/blob/%s", projectBlob)
 	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
 	if err != nil {
