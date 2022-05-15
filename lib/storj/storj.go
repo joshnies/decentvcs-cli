@@ -215,7 +215,7 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 //
 // Returns any error that occurred.
 func UploadBulk(prefix string, hashMap map[string]string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Get access grant
