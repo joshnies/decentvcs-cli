@@ -35,7 +35,7 @@ go run main.go
 ### Common flags
 |Flag|Description|
 |-|-|
-|`-y` or `--no-confirm`|Skip confirmation|
+|`-y`|Skip confirmation|
 |`-l` or `--limit`|Limit returned results|
 
 

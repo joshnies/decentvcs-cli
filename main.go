@@ -36,10 +36,17 @@ func main() {
 				Action:  cmd.PrintAuthState,
 			},
 			{
-				Name:    "init",
-				Usage:   "Initialize a new project",
-				Aliases: []string{"i"},
-				Action:  cmd.Init,
+				Name:      "init",
+				Usage:     "Initialize a new project",
+				ArgsUsage: "[path]",
+				Aliases:   []string{"i"},
+				Action:    cmd.Init,
+			},
+			{
+				Name:      "clone",
+				Usage:     "Clone a project to your local machine",
+				ArgsUsage: "[blob] [path=\".\"]",
+				Action:    cmd.CloneProject,
 			},
 			{
 				Name:    "changes",
@@ -48,10 +55,11 @@ func main() {
 				Action:  cmd.GetChanges,
 			},
 			{
-				Name:    "push",
-				Usage:   "Push local changes to remote",
-				Aliases: []string{"p"},
-				Action:  cmd.Push,
+				Name:      "push",
+				Usage:     "Push local changes to remote",
+				ArgsUsage: "[message?] [-y]",
+				Aliases:   []string{"p"},
+				Action:    cmd.Push,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -61,10 +69,11 @@ func main() {
 				},
 			},
 			{
-				Name:    "sync",
-				Usage:   "Sync to commit, downloading changes from remote",
-				Aliases: []string{"to", "s"},
-				Action:  cmd.Sync,
+				Name:      "sync",
+				Usage:     "Sync to commit, downloading changes from remote",
+				ArgsUsage: "[commit_index?] [-y]",
+				Aliases:   []string{"to", "s"},
+				Action:    cmd.Sync,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -74,10 +83,11 @@ func main() {
 				},
 			},
 			{
-				Name:    "reset",
-				Usage:   "Reset all local changes",
-				Aliases: []string{"r"},
-				Action:  cmd.Reset,
+				Name:      "reset",
+				Usage:     "Reset all local changes",
+				ArgsUsage: "[-y]",
+				Aliases:   []string{"r"},
+				Action:    cmd.Reset,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -87,9 +97,10 @@ func main() {
 				},
 			},
 			{
-				Name:   "revert",
-				Usage:  "Reset all local changes and sync to last commit",
-				Action: cmd.Revert,
+				Name:      "revert",
+				Usage:     "Reset all local changes and sync to last commit",
+				ArgsUsage: "[-y]",
+				Action:    cmd.Revert,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -108,16 +119,18 @@ func main() {
 				Aliases: []string{"b"},
 				Subcommands: []*cli.Command{
 					{
-						Name:    "new",
-						Aliases: []string{"n"},
-						Usage:   "Create a new branch",
-						Action:  cmd.NewBranch,
+						Name:      "new",
+						Aliases:   []string{"n"},
+						Usage:     "Create a new branch",
+						ArgsUsage: "[name] [-y]",
+						Action:    cmd.NewBranch,
 					},
 					{
-						Name:    "use",
-						Aliases: []string{"u"},
-						Usage:   "Switch to a different branch, syncing to its latest commit",
-						Action:  cmd.UseBranch,
+						Name:      "use",
+						Aliases:   []string{"u"},
+						Usage:     "Switch to a different branch, syncing to its latest commit",
+						ArgsUsage: "[name] [-y]",
+						Action:    cmd.UseBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "no-confirm",
@@ -127,10 +140,11 @@ func main() {
 						},
 					},
 					{
-						Name:    "delete",
-						Aliases: []string{"d"},
-						Usage:   "Delete a branch",
-						Action:  cmd.DeleteBranch,
+						Name:      "delete",
+						Aliases:   []string{"d"},
+						Usage:     "Delete a branch",
+						ArgsUsage: "[name] [-y]",
+						Action:    cmd.DeleteBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "no-confirm",
@@ -140,10 +154,11 @@ func main() {
 						},
 					},
 					{
-						Name:    "set-default",
-						Aliases: []string{"sd"},
-						Usage:   "Set the default branch",
-						Action:  cmd.SetDefaultBranch,
+						Name:      "set-default",
+						Aliases:   []string{"sd"},
+						Usage:     "Set the default branch",
+						ArgsUsage: "[name]",
+						Action:    cmd.SetDefaultBranch,
 					},
 				},
 			},
@@ -153,9 +168,10 @@ func main() {
 				Action: cmd.ListBranches,
 			},
 			{
-				Name:   "history",
-				Usage:  "List commit history",
-				Action: cmd.PrintHistory,
+				Name:      "history",
+				Usage:     "List commit history",
+				ArgsUsage: "[-l | --limit=10]",
+				Action:    cmd.PrintHistory,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "limit",
