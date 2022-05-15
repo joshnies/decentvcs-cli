@@ -161,8 +161,11 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
-			fileInfo := fileInfoMap[fp]
-			fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
+			if fileInfo, ok := fileInfoMap[fp]; ok {
+				fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
+			} else {
+				fmt.Printf(color.InRed("  - %s\n"), fp)
+			}
 		}
 	}
 

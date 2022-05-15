@@ -30,9 +30,10 @@ func main() {
 				Action: cmd.LogOut,
 			},
 			{
-				Name:   "auth",
-				Usage:  "Print current authentication state",
-				Action: cmd.PrintAuthState,
+				Name:    "auth",
+				Aliases: []string{"a"},
+				Usage:   "Print current authentication state",
+				Action:  cmd.PrintAuthState,
 			},
 			{
 				Name:    "init",
@@ -103,7 +104,8 @@ func main() {
 				Action: cmd.PrintStatus,
 			},
 			{
-				Name: "branch",
+				Name:    "branch",
+				Aliases: []string{"b"},
 				Subcommands: []*cli.Command{
 					{
 						Name:    "new",
@@ -151,10 +153,9 @@ func main() {
 				Action: cmd.ListBranches,
 			},
 			{
-				Name:    "history",
-				Aliases: []string{"h"},
-				Usage:   "List commit history",
-				Action:  cmd.PrintHistory,
+				Name:   "history",
+				Usage:  "List commit history",
+				Action: cmd.PrintHistory,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "limit",
