@@ -237,35 +237,27 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 
 	filePaths := maps.Keys(hashMap)
 
-	// p := util.NewProgressBar(len(filePaths), "Uploading objects")
-
 	// Upload objects in parallel, but in chunks
-	// chunks := util.ChunkMap(hashMap, 8)
-	// for _, chunk := range chunks {
-	// 	var wg sync.WaitGroup
-	// 	wg.Add(len(filePaths))
+	chunks := util.ChunkMap(hashMap, 32)
+	for _, chunk := range chunks {
+		var wg sync.WaitGroup
+		wg.Add(len(filePaths))
 
-	// 	for path, hash := range chunk {
-	// 		go uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
-	// 	}
+		p := mpb.New(mpb.WithWidth(60))
 
-	// 	wg.Wait()
-	// }
-	//
-	// p.Wait()
+		for path, hash := range chunk {
+			// TODO: Keep list of upload objects, commit all at once
+			go uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
+		}
 
-	// Upload objects
-	var wg sync.WaitGroup
-	wg.Add(len(filePaths))
-	for path, hash := range hashMap {
-		uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg)
+		wg.Wait()
+		p.Wait()
 	}
-	wg.Wait()
 
 	return nil
 }
 
-func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup) {
+func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup, p *mpb.Progress) {
 	defer wg.Done()
 
 	// Read file
@@ -284,7 +276,6 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 
 	total := fileInfo.Size()
 
-	p := mpb.New(mpb.WithWidth(60))
 	bar := p.New(total,
 		mpb.BarStyle(),
 		mpb.PrependDecorators(
@@ -292,7 +283,6 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 		),
 		mpb.AppendDecorators(
 			decor.Name(filepath.Base(path), decor.WC{W: 20, C: decor.DidentRight}),
-			// decor.EwmaETA(decor.ET_STYLE_GO, 90),
 			decor.Name(" | "),
 			decor.EwmaSpeed(decor.UnitKiB, "% .2f", 60),
 		),
@@ -309,8 +299,6 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 
 	// Copy file data to upload buffer
 	_, err = io.Copy(upload, proxyReader)
-	p.Wait()
-
 	if err != nil {
 		_ = upload.Abort()
 		console.ErrorPrint("Failed to copy object data to Storj upload buffer; object key: \"%s\"", key)
