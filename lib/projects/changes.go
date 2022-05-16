@@ -71,6 +71,10 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 	newHashMap := make(map[string]string)
 	fileInfoMap := make(map[string]os.FileInfo)
 
+	createdFileSizeTotal := int64(0)
+	modifiedFileSizeTotal := int64(0)
+	deletedFileSizeTotal := int64(0)
+
 	// Read .qcignore file
 	qcignorePath := filepath.Join(projectPath, constants.IgnoreFileName)
 	qcignoreFile, err := os.Open(qcignorePath)
@@ -148,25 +152,37 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 		fmt.Println(color.InGreen(color.InBold("Created files:")))
 		for _, fp := range createdFilePaths {
 			fileInfo := fileInfoMap[fp]
-			fmt.Printf(color.InGreen("  + %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
+			fileSize := fileInfo.Size()
+			createdFileSizeTotal += fileSize
+			fmt.Printf(color.InGreen("  + %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
 		}
+
+		fmt.Printf(color.InGreen("  Total: %s\n"), util.FormatBytesSize(createdFileSizeTotal))
 	}
 	if len(modifiedFilePaths) > 0 {
 		console.Info(color.InBlue(color.InBold("Modified files:")))
 		for _, fp := range modifiedFilePaths {
 			fileInfo := fileInfoMap[fp]
-			fmt.Printf(color.InBlue("  * %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
+			fileSize := fileInfo.Size()
+			modifiedFileSizeTotal += fileSize
+			fmt.Printf(color.InBlue("  * %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
 		}
+
+		console.Info(color.InBlue("  Total: %s\n"), util.FormatBytesSize(modifiedFileSizeTotal))
 	}
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
 			if fileInfo, ok := fileInfoMap[fp]; ok {
-				fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileInfo.Size()))
+				fileSize := fileInfo.Size()
+				deletedFileSizeTotal += fileSize
+				fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
 			} else {
 				fmt.Printf(color.InRed("  - %s\n"), fp)
 			}
 		}
+
+		console.Info(color.InRed("  Total: %s\n"), util.FormatBytesSize(deletedFileSizeTotal))
 	}
 
 	// Return result

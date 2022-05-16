@@ -233,29 +233,53 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 	}
 	defer sp.Close()
 
-	bar := util.NewProgressBar(len(maps.Keys(hashMap)), "Uploading objects")
+	filePaths := maps.Keys(hashMap)
+
+	p := util.NewProgressBar(len(filePaths), "Uploading objects")
+
+	// Upload objects in parallel, but in chunks
+	// chunks := util.ChunkMap(hashMap, 8)
+	// for _, chunk := range chunks {
+	// 	var wg sync.WaitGroup
+	// 	wg.Add(len(filePaths))
+
+	// 	for path, hash := range chunk {
+	// 		go uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
+	// 	}
+
+	// 	wg.Wait()
+	// }
+	//
+	// p.Wait()
+
+	// Upload objects
 	var wg sync.WaitGroup
+	wg.Add(len(filePaths))
 	for path, hash := range hashMap {
-		wg.Add(1)
-		go uploadRoutine(ctx, sp, path, prefix+"/"+hash, bar, &wg)
+		uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
 	}
-	// bar.Wait()
 	wg.Wait()
+	p.Wait()
 
 	return nil
 }
 
-func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, bar *mpb.Bar, wg *sync.WaitGroup) error {
+func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup, p *mpb.Bar) {
+	defer wg.Done()
+	defer p.Increment()
+
 	// Read file
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		console.ErrorPrint("Failed to read file at path \"%s\"", path)
+		panic(err)
 	}
 
 	// Start upload
 	upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, key, nil)
 	if err != nil {
-		return err
+		console.ErrorPrint("Failed to start Storj upload for key \"%s\"", key)
+		panic(err)
 	}
 
 	// Copy file data to upload buffer
@@ -263,10 +287,12 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 	_, err = io.Copy(upload, buf)
 	if err != nil {
 		_ = upload.Abort()
-		return console.Error("Failed to upload file: %v", err)
+		console.ErrorPrint("Failed to copy object data to Storj upload buffer; object key: \"%s\"", key)
+		panic(err)
 	}
 
 	// Add path to object metadata
+	// TODO: Is this needed?
 	upload.SetCustomMetadata(ctx, uplink.CustomMetadata{
 		"path": path,
 	})
@@ -274,13 +300,9 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 	// Commit upload
 	err = upload.Commit()
 	if err != nil {
-		return err
+		console.ErrorPrint("Failed to commit Storj upload for file \"%s\", key \"%s\"", path, key)
+		panic(err)
 	}
-
-	bar.Increment()
-	wg.Done()
-
-	return nil
 }
 
 // Upload a single object as bytes to Storj.
