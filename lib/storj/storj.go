@@ -235,29 +235,42 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 	}
 	defer sp.Close()
 
-	filePaths := maps.Keys(hashMap)
+	// filePaths := maps.Keys(hashMap)
 
 	// Upload objects in parallel, but in chunks
-	chunks := util.ChunkMap(hashMap, 32)
+	chunks := util.ChunkMap(hashMap, 8)
 	for _, chunk := range chunks {
 		var wg sync.WaitGroup
-		wg.Add(len(filePaths))
+		wg.Add(len(maps.Keys(chunk)))
 
 		p := mpb.New(mpb.WithWidth(60))
+		uploads := []*uplink.Upload{}
 
+		// Start uploads
+		console.Info("Writing upload buffers for chunk...")
 		for path, hash := range chunk {
-			// TODO: Keep list of upload objects, commit all at once
-			go uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
+			go startUpload(ctx, sp, path, prefix+"/"+hash, &wg, p, &uploads)
 		}
 
 		wg.Wait()
 		p.Wait()
+
+		// Commit uploads
+		uploadCount := len(uploads)
+		wg.Add(uploadCount)
+
+		console.Info("Committing uploads for chunk...")
+		for _, upload := range uploads {
+			go commitUpload(upload, &wg)
+		}
+
+		wg.Wait()
 	}
 
 	return nil
 }
 
-func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup, p *mpb.Progress) {
+func startUpload(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup, p *mpb.Progress, uploads *[]*uplink.Upload) {
 	defer wg.Done()
 
 	// Read file
@@ -276,8 +289,7 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 
 	total := fileInfo.Size()
 
-	bar := p.New(total,
-		mpb.BarStyle(),
+	bar := p.AddBar(total,
 		mpb.PrependDecorators(
 			decor.CountersKibiByte("% .2f / % .2f "),
 		),
@@ -306,19 +318,19 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 	}
 
 	// Add path to object metadata
-	// TODO: Is this needed?
 	upload.SetCustomMetadata(ctx, uplink.CustomMetadata{
 		"path": path,
 	})
+}
 
-	// Commit upload
-	fmt.Println("Committing upload...")
-	err = upload.Commit()
+func commitUpload(upload *uplink.Upload, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	err := upload.Commit()
 	if err != nil {
-		console.ErrorPrint("Failed to commit Storj upload for file \"%s\", key \"%s\"", path, key)
+		console.ErrorPrint("Failed to commit Storj upload")
 		panic(err)
 	}
-	fmt.Println("Done")
 }
 
 // Upload a single object as bytes to Storj.
