@@ -7,7 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/joshnies/qc/lib/util"
 	"github.com/joshnies/qc/models"
 	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v7/decor"
 	"golang.org/x/exp/maps"
 	"storj.io/uplink"
 )
@@ -182,7 +184,7 @@ func DownloadBulk(projectId string, keys []string) (map[string][]byte, error) {
 	// TODO: Download objects in parallel
 	dataMap := map[string][]byte{}
 
-	bar := util.NewProgressBar(len(keys), "Downloading objects")
+	bar := util.NewProgressBar(int64(len(keys)), "Downloading objects")
 	for _, key := range keys {
 		// Download object
 		d, err := sp.DownloadObject(ctx, config.I.Storage.Bucket, projectId+"/"+key, nil)
@@ -235,7 +237,7 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 
 	filePaths := maps.Keys(hashMap)
 
-	p := util.NewProgressBar(len(filePaths), "Uploading objects")
+	// p := util.NewProgressBar(len(filePaths), "Uploading objects")
 
 	// Upload objects in parallel, but in chunks
 	// chunks := util.ChunkMap(hashMap, 8)
@@ -256,24 +258,47 @@ func UploadBulk(prefix string, hashMap map[string]string) error {
 	var wg sync.WaitGroup
 	wg.Add(len(filePaths))
 	for path, hash := range hashMap {
-		uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg, p)
+		uploadRoutine(ctx, sp, path, prefix+"/"+hash, &wg)
 	}
 	wg.Wait()
-	p.Wait()
 
 	return nil
 }
 
-func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup, p *mpb.Bar) {
+func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	defer p.Increment()
 
 	// Read file
-	data, err := ioutil.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
-		console.ErrorPrint("Failed to read file at path \"%s\"", path)
+		console.ErrorPrint("Failed to open file %s: %v", path, err)
 		panic(err)
 	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		console.ErrorPrint("Failed to stat file %s: %v", path, err)
+		panic(err)
+	}
+
+	total := fileInfo.Size()
+
+	p := mpb.New(mpb.WithWidth(60))
+	bar := p.New(total,
+		mpb.BarStyle(),
+		mpb.PrependDecorators(
+			decor.CountersKibiByte("% .2f / % .2f "),
+		),
+		mpb.AppendDecorators(
+			decor.Name(filepath.Base(path), decor.WC{W: 20, C: decor.DidentRight}),
+			// decor.EwmaETA(decor.ET_STYLE_GO, 90),
+			decor.Name(" | "),
+			decor.EwmaSpeed(decor.UnitKiB, "% .2f", 60),
+		),
+	)
+	proxyReader := bar.ProxyReader(file)
+	defer proxyReader.Close()
 
 	// Start upload
 	upload, err := sp.UploadObject(ctx, config.I.Storage.Bucket, key, nil)
@@ -283,8 +308,9 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 	}
 
 	// Copy file data to upload buffer
-	buf := bytes.NewBuffer(data)
-	_, err = io.Copy(upload, buf)
+	_, err = io.Copy(upload, proxyReader)
+	p.Wait()
+
 	if err != nil {
 		_ = upload.Abort()
 		console.ErrorPrint("Failed to copy object data to Storj upload buffer; object key: \"%s\"", key)
@@ -298,11 +324,13 @@ func uploadRoutine(ctx context.Context, sp *uplink.Project, path string, key str
 	})
 
 	// Commit upload
+	fmt.Println("Committing upload...")
 	err = upload.Commit()
 	if err != nil {
 		console.ErrorPrint("Failed to commit Storj upload for file \"%s\", key \"%s\"", path, key)
 		panic(err)
 	}
+	fmt.Println("Done")
 }
 
 // Upload a single object as bytes to Storj.
