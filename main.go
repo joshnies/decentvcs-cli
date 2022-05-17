@@ -19,11 +19,6 @@ func main() {
 		Usage:   "Quanta Control CLI",
 		Version: "0.0.1",
 		Commands: []*cli.Command{
-			// TODO: Delete debug commands
-			{
-				Name:   "debug-delete-bucket",
-				Action: cmd.DebugDeleteBucket,
-			},
 			{
 				Name:   "login",
 				Usage:  "Authenticate with Quanta Control (required to use other commands)",
