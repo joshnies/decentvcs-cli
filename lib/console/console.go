@@ -52,6 +52,16 @@ func ErrorPrint(message string, vars ...any) {
 	fmt.Printf(color.Ize(color.Red, "[ERROR] "+message+"\n"), vars...)
 }
 
+// Log error message to console, but only if `VERBOSE` is enabled.
+func ErrorPrintV(message string, vars ...any) {
+	// Get env var directly to prevent circular import
+	if os.Getenv("VERBOSE") != "1" {
+		return
+	}
+
+	ErrorPrint(message, vars...)
+}
+
 // Log fatal error message to console, exiting the process.
 func Fatal(message string, vars ...any) {
 	ErrorPrint(message, vars...)

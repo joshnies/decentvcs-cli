@@ -12,7 +12,7 @@ import (
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/projects"
-	"github.com/joshnies/qc/lib/storj"
+	"github.com/joshnies/qc/lib/storage"
 	"github.com/joshnies/qc/models"
 	"github.com/urfave/cli/v2"
 )
@@ -133,7 +133,12 @@ func Push(c *cli.Context) error {
 		// TODO: Compress files before uploading
 		console.Verbose("Uploading %d files...", len(filesToUpload))
 
-		err = storj.UploadBulk(projectConfig.ProjectID, uploadHashMap)
+		// err = storj.UploadBulk(projectConfig.ProjectID, uploadHashMap)
+		// if err != nil {
+		// 	return err
+		// }
+
+		err = storage.UploadMany(projectConfig.ProjectID, uploadHashMap)
 		if err != nil {
 			return err
 		}
