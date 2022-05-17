@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -18,6 +19,14 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// Upload many objects to storage.
+//
+// Params:
+//
+// - projectId: Project ID
+//
+// - hashMap: Map of local file paths to file hashes
+//
 func UploadMany(projectId string, hashMap map[string]string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -44,7 +53,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	client := s3.NewFromConfig(awscfg)
 
 	// Chunk uploads
-	chunks := util.ChunkMap(hashMap, 8)
+	chunks := util.ChunkMap(hashMap, 32)
 
 	// For each chunk...
 	for _, chunk := range chunks {
@@ -55,8 +64,8 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 		p := mpb.New(mpb.WithWidth(60))
 
 		// Upload objects in parallel
-		for path, key := range hashMap {
-			go uploadRoutine(ctx, client, path, key, p)
+		for path, hash := range chunk {
+			go uploadRoutine(ctx, client, projectId, path, hash, &wg, p)
 		}
 
 		// Wait for uploads to finish
@@ -67,46 +76,53 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	return nil
 }
 
-func uploadRoutine(ctx context.Context, client *s3.Client, local string, remote string, p *mpb.Progress) {
+func uploadRoutine(ctx context.Context, client *s3.Client, projectId string, path string, hash string, wg *sync.WaitGroup, p *mpb.Progress) {
+	defer wg.Done()
+
 	// Read local file
-	file, err := os.Open(local)
+	file, err := os.Open(path)
 	if err != nil {
-		console.ErrorPrintV("Failed to open file \"%s\": %v", local, err)
+		console.ErrorPrintV("Failed to open file \"%s\": %v", path, err)
 		return
 	}
 
 	// Get local file size
 	fileInfo, err := file.Stat()
 	if err != nil {
-		console.ErrorPrint("Failed to stat file \"%s\": %v", local, err)
+		console.ErrorPrint("Failed to stat file \"%s\": %v", path, err)
 		panic(err)
 	}
 
 	total := fileInfo.Size()
 
 	// Add progress bar
+	barName := filepath.Base(path)
+
+	if len(barName) > 20 {
+		barName = barName[:17] + "..."
+	}
+
 	bar := p.AddBar(total,
 		mpb.PrependDecorators(
-			decor.CountersKibiByte("% .2f / % .2f "),
+			decor.Name(barName, decor.WC{W: 20, C: decor.DidentRight}),
 		),
 		mpb.AppendDecorators(
-			decor.Name(filepath.Base(local), decor.WC{W: 20, C: decor.DidentRight}),
-			decor.Name(" | "),
-			decor.EwmaSpeed(decor.UnitKiB, "% .2f", 60),
+			decor.CountersKibiByte("% .2f / % .2f "),
 		),
 	)
 	proxyReader := bar.ProxyReader(file)
 	defer proxyReader.Close()
 
 	// Upload new object to S3
+	key := fmt.Sprintf("%s/%s", projectId, hash)
 	_, err = client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: &config.I.Storage.Bucket,
-		Key:    &remote,
+		Key:    &key,
 		Body:   proxyReader,
 	})
 
 	if err != nil {
-		console.ErrorPrintV("Failed to upload file \"%s\" with key \"%s\": %+v", local, remote, err)
+		console.ErrorPrintV("Failed to upload file \"%s\" with key \"%s\": %+v", path, hash, err)
 		return
 	}
 }
