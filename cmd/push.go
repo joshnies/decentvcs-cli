@@ -131,19 +131,10 @@ func Push(c *cli.Context) error {
 
 	if len(filesToUpload) > 0 {
 		// TODO: Compress files before uploading
-		console.Verbose("Uploading %d files...", len(filesToUpload))
-
-		// err = storj.UploadBulk(projectConfig.ProjectID, uploadHashMap)
-		// if err != nil {
-		// 	return err
-		// }
-
 		err = storage.UploadMany(projectConfig.ProjectID, uploadHashMap)
 		if err != nil {
 			return err
 		}
-
-		console.Verbose("Successfully uploaded files")
 	}
 
 	console.Success("Commit #%d pushed", commit.Index)
