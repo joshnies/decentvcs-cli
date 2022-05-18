@@ -148,3 +148,18 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		panic(err)
 	}
 }
+
+// Download many objects from storage.
+//
+// Params:
+//
+// - projectId: Project ID
+//
+// - keys: Keys for objects to download
+//
+// Returns map of object keys to data.
+//
+func DownloadMany(projectId string, keys []string) (map[string][]byte, error) {
+	// TODO: Implement
+	return nil, nil
+}

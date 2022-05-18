@@ -13,7 +13,7 @@ import (
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/projects"
-	"github.com/joshnies/qc/lib/storj"
+	"github.com/joshnies/qc/lib/storage"
 	"github.com/joshnies/qc/models"
 	"golang.org/x/exp/maps"
 )
@@ -174,7 +174,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Download new files
 	if len(maps.Keys(downloadMap)) > 0 {
-		dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(downloadMap))
+		dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(downloadMap))
 		if err != nil {
 			return err
 		}
