@@ -113,6 +113,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		downloadMap[key] = hash
 	}
 
+	confirmed := false
+
 	// Warn user about overridden files and prompt to continue
 	// TODO: Implement merge attempt instead for non-binary files
 	if len(overriddenFiles) > 0 && confirm {
@@ -130,6 +132,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 			console.Info("Aborted")
 			return nil
 		}
+
+		confirmed = true
 	}
 
 	// Get keys for deleted files by comparing hash maps
@@ -157,13 +161,15 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	}
 
 	// Prompt user to confirm sync
-	console.Warning("Sync to commit #%d? (y/n)", toCommit.Index)
-	var answer string
-	fmt.Scanln(&answer)
+	if confirm && !confirmed {
+		console.Warning("Sync to commit #%d? (y/n)", toCommit.Index)
+		var answer string
+		fmt.Scanln(&answer)
 
-	if strings.ToLower(answer) != "y" {
-		console.Info("Aborted")
-		return nil
+		if strings.ToLower(answer) != "y" {
+			console.Info("Aborted")
+			return nil
+		}
 	}
 
 	// Download new files
