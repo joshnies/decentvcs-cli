@@ -12,7 +12,7 @@ import (
 	"github.com/joshnies/qc/lib/auth"
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
-	"github.com/joshnies/qc/lib/storj"
+	"github.com/joshnies/qc/lib/storage"
 	"github.com/joshnies/qc/models"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/maps"
@@ -116,7 +116,7 @@ func CloneProject(c *cli.Context) error {
 		}
 	}
 
-	dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(branch.Commit.HashMap))
+	dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(branch.Commit.HashMap))
 	if err != nil {
 		return err
 	}

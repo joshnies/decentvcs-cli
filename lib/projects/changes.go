@@ -20,7 +20,7 @@ import (
 	"github.com/joshnies/qc/lib/api"
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
-	"github.com/joshnies/qc/lib/storj"
+	"github.com/joshnies/qc/lib/storage"
 	"github.com/joshnies/qc/lib/util"
 	"github.com/joshnies/qc/models"
 	"github.com/samber/lo"
@@ -274,7 +274,7 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	}
 
 	// Download remote versions of modified and deleted files
-	dataMap, err := storj.DownloadBulk(projectConfig.ProjectID, maps.Values(overrideHashMap))
+	dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(overrideHashMap))
 	if err != nil {
 		return console.Error("Failed to download files: %s", err)
 	}
