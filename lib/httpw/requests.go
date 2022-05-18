@@ -1,40 +1,51 @@
 package httpw
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"net/http"
-	"strings"
 
 	"github.com/joshnies/qc/constants"
 	"github.com/joshnies/qc/lib/console"
 )
 
+type RequestInput struct {
+	URL         string
+	Body        io.Reader
+	AccessToken string
+	ContentType string
+}
+
 // Send an HTTP request to the specified URL.
 //
 // @param method - HTTP method
 //
-// @param url - URL to send the request to
-//
-// @param body - Request body
-//
-// @param accessToken - Access token
+// @param input - Request input
 //
 // Returns the response object and any error that occurred.
-func SendRequest(method string, url string, body *bytes.Buffer, accessToken string) (*http.Response, error) {
-	// Check if POST request, and if so run custom logic
-	if strings.ToUpper(method) == "POST" {
-		return Post(url, body, accessToken)
-	}
+//
+func SendRequest(method string, input RequestInput) (*http.Response, error) {
+	// Destructure input
+	url := input.URL
+	body := input.Body
+	accessToken := input.AccessToken
+	contentType := input.ContentType
 
 	// Build request
 	httpClient := &http.Client{}
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	// Set headers
+	if contentType != "" {
+		req.Header.Add("Content-Type", "application/json")
+	}
+
+	if accessToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	}
 
 	// Send request
 	res, err := httpClient.Do(req)
@@ -54,67 +65,58 @@ func SendRequest(method string, url string, body *bytes.Buffer, accessToken stri
 //
 // @param url - URL to send the request to
 //
-// @param body - Request body
-//
 // @param accessToken - Access token
 //
 // Returns the response object and any error that occurred.
+//
 func Get(url string, accessToken string) (*http.Response, error) {
-	return SendRequest("GET", url, nil, accessToken)
+	return SendRequest("GET", RequestInput{
+		URL:         url,
+		AccessToken: accessToken,
+	})
 }
 
 // Send a DELETE request to the specified URL.
 //
 // @param url - URL to send the request to
 //
-// @param body - Request body
-//
 // @param accessToken - Access token
 //
 // Returns the response object and any error that occurred.
+//
 func Delete(url string, accessToken string) (*http.Response, error) {
-	return SendRequest("DELETE", url, nil, accessToken)
+	return SendRequest("DELETE", RequestInput{
+		URL:         url,
+		AccessToken: accessToken,
+	})
 }
 
 // Send a POST request to the specified URL.
 //
-// @param method - HTTP method
-//
-// @param url - URL to send the request to
-//
-// @param body - Request body
-//
-// @param accessToken - Access token
+// @param input - Request input
 //
 // Returns the response object and any error that occurred.
-func Post(url string, body *bytes.Buffer, accessToken string) (*http.Response, error) {
-	// Build request
-	httpClient := &http.Client{}
-	req, err := http.NewRequest("POST", url, body)
-	if err != nil {
-		return nil, err
-	}
+//
+func Post(input RequestInput) (*http.Response, error) {
+	return SendRequest("POST", input)
+}
 
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-
-	// Send request
-	res, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Validate response
-	if err = validateResponse(res); err != nil {
-		return nil, err
-	}
-
-	return res, nil
+// Send a PUT request to the specified URL.
+//
+// @param input - Request input
+//
+// Returns the response object and any error that occurred.
+//
+func Put(input RequestInput) (*http.Response, error) {
+	return SendRequest("PUT", input)
 }
 
 // Validate HTTP response.
 //
 // @param res - HTTP response
+//
+// Returns any error that occurred.
+//
 func validateResponse(res *http.Response) error {
 	// Check response status
 	switch res.StatusCode {

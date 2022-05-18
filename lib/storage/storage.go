@@ -1,22 +1,23 @@
 package storage
 
 import (
+	"bytes"
 	"context"
-	"fmt"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/joshnies/qc/config"
-	"github.com/joshnies/qc/constants"
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/joshnies/qc/lib/api"
+	"github.com/joshnies/qc/lib/auth"
 	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/util"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
+	"golang.org/x/exp/maps"
 )
 
 // Upload many objects to storage.
@@ -28,37 +29,43 @@ import (
 // - hashMap: Map of local file paths to file hashes
 //
 func UploadMany(projectId string, hashMap map[string]string) error {
+	gc := auth.Validate()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	startTime := time.Now()
-
-	// Initialize S3 client
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				PartitionID:   "aws",
-				URL:           "https://s3.filebase.com",
-				SigningRegion: "us-east-1",
-			}, nil
-		}
-		// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
-
-	awscfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithEndpointResolverWithOptions(customResolver))
-	if err != nil {
-		console.ErrorPrintV("Failed to load AWS SDK config: %v", err)
-		return console.Error(constants.ErrMsgInternal)
-	}
-
-	client := s3.NewFromConfig(awscfg)
 
 	// Chunk uploads
 	chunks := util.ChunkMap(hashMap, 256)
 
 	// For each chunk...
 	for _, chunk := range chunks {
+		// Get presigned URLs
+		bodyData := map[string][]string{
+			"keys": maps.Values(chunk),
+		}
+		bodyJson, err := json.Marshal(bodyData)
+		if err != nil {
+			return err
+		}
+
+		res, err := httpw.Post(httpw.RequestInput{
+			URL:         api.BuildURLf("projects/%s/presign", projectId),
+			Body:        bytes.NewBuffer(bodyJson),
+			AccessToken: gc.Auth.AccessToken,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Parse response
+		var hashUrlMap map[string]string
+		err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
+		if err != nil {
+			return err
+		}
+
 		// Setup wait group
 		var wg sync.WaitGroup
 		wg.Add(len(chunk))
@@ -67,14 +74,13 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 		p := mpb.New()
 
 		// Upload objects in parallel
-		for path, hash := range chunk {
+		for hash, url := range hashUrlMap {
+			path := util.ReverseLookup(hashMap, hash)
 			go uploadRoutine(ctx, uploadRoutineParams{
-				S3Client:  client,
-				ProjectID: projectId,
-				FilePath:  path,
-				FileHash:  hash,
-				WG:        &wg,
-				Progress:  p,
+				FilePath: path,
+				URL:      url,
+				WG:       &wg,
+				Progress: p,
 			})
 		}
 
@@ -90,12 +96,10 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 }
 
 type uploadRoutineParams struct {
-	S3Client  *s3.Client
-	ProjectID string
-	FilePath  string
-	FileHash  string
-	WG        *sync.WaitGroup
-	Progress  *mpb.Progress
+	FilePath string
+	URL      string
+	WG       *sync.WaitGroup
+	Progress *mpb.Progress
 }
 
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
@@ -135,16 +139,24 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	proxyReader := bar.ProxyReader(file)
 	defer proxyReader.Close()
 
-	// Upload new object to S3
-	key := fmt.Sprintf("%s/%s", params.ProjectID, params.FileHash)
-	_, err = params.S3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: &config.I.Storage.Bucket,
-		Key:    &key,
-		Body:   proxyReader,
-	})
-
+	// Get MIME type
+	var contentType string
+	mtype, err := mimetype.DetectReader(proxyReader)
 	if err != nil {
-		console.ErrorPrintV("Failed to upload file \"%s\" with key \"%s\": %+v", params.FilePath, params.FileHash, err)
+		console.Warning("Failed to detect MIME type for file \"%s\", using default", params.FilePath)
+		contentType = "application/octet-stream"
+	}
+
+	contentType = mtype.String()
+
+	// Upload object using presigned URL
+	_, err = httpw.Put(httpw.RequestInput{
+		URL:         params.URL,
+		Body:        proxyReader,
+		ContentType: contentType,
+	})
+	if err != nil {
+		console.ErrorPrint("Failed to upload file \"%s\": %v", params.FilePath, err)
 		panic(err)
 	}
 }
