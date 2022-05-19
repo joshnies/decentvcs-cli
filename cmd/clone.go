@@ -88,6 +88,12 @@ func CloneProject(c *cli.Context) error {
 		return console.Error("No committed files found for branch \"%s\"", branch.Name)
 	}
 
+	// Create clone directory (resursively)
+	err = os.MkdirAll(clonePath, 0755)
+	if err != nil {
+		return err
+	}
+
 	console.Info("Cloning project \"%s\" with branch \"%s\" into \"%s\"...", project.Name, branch.Name, clonePath)
 	console.Verbose("Branch commit index: %d", branch.Commit.Index)
 
@@ -115,7 +121,7 @@ func CloneProject(c *cli.Context) error {
 		}
 	}
 
-	err = storage.DownloadMany(projectConfig.ProjectID, branch.Commit.HashMap)
+	err = storage.DownloadMany(projectConfig.ProjectID, clonePath, branch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

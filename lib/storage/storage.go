@@ -171,11 +171,13 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 //
 // - projectId: Project ID
 //
+// - projectPath: Local file path to project path. Can be relative or absolute.
+//
 // - hashMap: Map of local file paths to file hashes
 //
 // Returns map of object keys to data.
 //
-func DownloadMany(projectId string, hashMap map[string]string) error {
+func DownloadMany(projectId string, projectPath string, hashMap map[string]string) error {
 	gc := auth.Validate()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -234,6 +236,7 @@ func DownloadMany(projectId string, hashMap map[string]string) error {
 		for hash, url := range hashUrlMap {
 			path := util.ReverseLookup(hashMap, hash)
 			go downloadRoutine(ctx, &downloadRoutineParams{
+				ProjectPath: projectPath,
 				FilePath:    path,
 				URL:         url,
 				WG:          &wg,
@@ -253,6 +256,7 @@ func DownloadMany(projectId string, hashMap map[string]string) error {
 }
 
 type downloadRoutineParams struct {
+	ProjectPath string
 	FilePath    string
 	URL         string
 	WG          *sync.WaitGroup
@@ -272,16 +276,17 @@ func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
 	defer res.Body.Close()
 
 	// Write to local file
-	file, err := os.Create(params.FilePath)
+	path := filepath.Join(params.ProjectPath, params.FilePath)
+	file, err := os.Create(path)
 	if err != nil {
-		console.ErrorPrint("Failed to create file \"%s\": %v", params.FilePath, err)
+		console.ErrorPrint("Failed to create file \"%s\": %v", path, err)
 		panic(err)
 	}
 
 	// Copy response body to local file
 	_, err = io.Copy(file, res.Body)
 	if err != nil {
-		console.ErrorPrint("Failed to write file \"%s\": %v", params.FilePath, err)
+		console.ErrorPrint("Failed to write file \"%s\": %v", path, err)
 		panic(err)
 	}
 }

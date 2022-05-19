@@ -173,7 +173,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Download new files
 	if len(maps.Keys(downloadMap)) > 0 {
-		err := storage.DownloadMany(projectConfig.ProjectID, downloadMap)
+		err := storage.DownloadMany(projectConfig.ProjectID, ".", downloadMap)
 		if err != nil {
 			return err
 		}
