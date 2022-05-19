@@ -275,8 +275,16 @@ func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
 	}
 	defer res.Body.Close()
 
-	// Write to local file
+	// Create local file directory recursively
 	path := filepath.Join(params.ProjectPath, params.FilePath)
+	dirPath := filepath.Dir(path)
+	err = os.MkdirAll(dirPath, 0755)
+	if err != nil {
+		console.ErrorPrint("Failed to create directory \"%s\": %v", dirPath, err)
+		panic(err)
+	}
+
+	// Create file (overwrite)
 	file, err := os.Create(path)
 	if err != nil {
 		console.ErrorPrint("Failed to create file \"%s\": %v", path, err)

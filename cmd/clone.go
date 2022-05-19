@@ -88,7 +88,7 @@ func CloneProject(c *cli.Context) error {
 		return console.Error("No committed files found for branch \"%s\"", branch.Name)
 	}
 
-	// Create clone directory (resursively)
+	// Create clone directory resursively
 	err = os.MkdirAll(clonePath, 0755)
 	if err != nil {
 		return err
