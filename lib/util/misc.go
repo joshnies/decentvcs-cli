@@ -45,21 +45,21 @@ func ChunkSlice(items []string, chunkSize int) (chunks [][]string) {
 }
 
 // Returns a chunked map.
-func ChunkMap(sourceMap map[string]string, chunkSize int) map[int]map[string]string {
+func ChunkMap(sourceMap map[string]string, chunkSize int) []map[string]string {
 	keyChunks := ChunkSlice(maps.Keys(sourceMap), chunkSize)
-	mapChunks := make(map[int]map[string]string)
+	mapChunks := []map[string]string{}
 
 	// Iterate over chunk of keys
-	for i, chunk := range keyChunks { // ["a", "b", "c", "d", "e", "f"]
+	for _, chunk := range keyChunks {
 		newMap := make(map[string]string)
 
 		// For each key in chunk, add to new map
-		for _, key := range chunk { // "a", "b", "c", "d", "e", "f"
+		for _, key := range chunk {
 			newMap[key] = sourceMap[key]
 		}
 
 		// Add new map to map chunks (the result)
-		mapChunks[i] = newMap // {0: {"a": "val", "b": "val", ...}}
+		mapChunks = append(mapChunks, newMap)
 	}
 
 	return mapChunks
