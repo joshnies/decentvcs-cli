@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 
+	"github.com/joshnies/qc/config"
 	"github.com/joshnies/qc/constants"
 	"github.com/joshnies/qc/lib/console"
 )
@@ -131,10 +133,20 @@ func validateResponse(res *http.Response) error {
 		return console.Error("HTTP request timed out")
 	case http.StatusConflict:
 		return console.Error("Resource already exists")
+	case http.StatusBadRequest:
+		return console.Error("Bad request")
 	}
 
 	// Handle all other bad response status codes
 	if res.StatusCode >= 300 {
+		if config.I.Verbose {
+			// Print response
+			resDump, err := httputil.DumpResponse(res, true)
+			if err == nil {
+				console.Verbose("Response:\n%s", resDump)
+			}
+		}
+
 		return console.Error(constants.ErrMsgInternal)
 	}
 
