@@ -84,6 +84,7 @@ func Push(c *cli.Context) error {
 		}
 	}
 
+	// TODO: Create commit after uploads are complete?
 	console.Verbose("Creating commit...")
 
 	// Create commit in database
