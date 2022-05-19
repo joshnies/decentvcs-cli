@@ -30,7 +30,6 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Create branch
-	apiUrl := api.BuildURLf("projects/%s/branches", projectConfig.ProjectID)
 	bodyJson, err := json.Marshal(models.BranchCreateDTO{
 		Name:        branchName,
 		CommitIndex: projectConfig.CurrentCommitIndex,
@@ -39,8 +38,11 @@ func NewBranch(c *cli.Context) error {
 		return err
 	}
 
-	body := bytes.NewBuffer(bodyJson)
-	branchRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)
+	branchRes, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/branches", projectConfig.ProjectID),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
 	if err != nil {
 		return err
 	}

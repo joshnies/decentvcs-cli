@@ -87,7 +87,6 @@ func Push(c *cli.Context) error {
 	console.Verbose("Creating commit...")
 
 	// Create commit in database
-	apiUrl = api.BuildURLf("projects/%s/commits", projectConfig.ProjectID)
 	bodyJson, _ := json.Marshal(map[string]any{
 		"branch_id":      projectConfig.CurrentBranchID,
 		"message":        msg,
@@ -96,8 +95,11 @@ func Push(c *cli.Context) error {
 		"deleted_files":  fc.DeletedFilePaths,
 		"hash_map":       fc.HashMap,
 	})
-	body := bytes.NewBuffer(bodyJson)
-	commitRes, err := httpw.Post(apiUrl, body, gc.Auth.AccessToken)
+	commitRes, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/commits", projectConfig.ProjectID),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
 	if err != nil {
 		return err
 	}

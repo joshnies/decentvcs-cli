@@ -9,7 +9,7 @@ import (
 	"github.com/joshnies/qc/lib/console"
 )
 
-type RequestInput struct {
+type RequestParams struct {
 	URL         string
 	Body        io.Reader
 	AccessToken string
@@ -24,7 +24,7 @@ type RequestInput struct {
 //
 // Returns the response object and any error that occurred.
 //
-func SendRequest(method string, input RequestInput) (*http.Response, error) {
+func SendRequest(method string, input RequestParams) (*http.Response, error) {
 	// Destructure input
 	url := input.URL
 	body := input.Body
@@ -70,7 +70,7 @@ func SendRequest(method string, input RequestInput) (*http.Response, error) {
 // Returns the response object and any error that occurred.
 //
 func Get(url string, accessToken string) (*http.Response, error) {
-	return SendRequest("GET", RequestInput{
+	return SendRequest("GET", RequestParams{
 		URL:         url,
 		AccessToken: accessToken,
 	})
@@ -85,7 +85,7 @@ func Get(url string, accessToken string) (*http.Response, error) {
 // Returns the response object and any error that occurred.
 //
 func Delete(url string, accessToken string) (*http.Response, error) {
-	return SendRequest("DELETE", RequestInput{
+	return SendRequest("DELETE", RequestParams{
 		URL:         url,
 		AccessToken: accessToken,
 	})
@@ -97,7 +97,7 @@ func Delete(url string, accessToken string) (*http.Response, error) {
 //
 // Returns the response object and any error that occurred.
 //
-func Post(input RequestInput) (*http.Response, error) {
+func Post(input RequestParams) (*http.Response, error) {
 	return SendRequest("POST", input)
 }
 
@@ -107,7 +107,7 @@ func Post(input RequestInput) (*http.Response, error) {
 //
 // Returns the response object and any error that occurred.
 //
-func Put(input RequestInput) (*http.Response, error) {
+func Put(input RequestParams) (*http.Response, error) {
 	return SendRequest("PUT", input)
 }
 

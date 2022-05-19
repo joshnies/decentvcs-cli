@@ -44,7 +44,6 @@ func SetDefaultBranch(c *cli.Context) error {
 	}
 
 	// Update project with default branch
-	apiUrl = api.BuildURLf("projects/%s", projectConfig.ProjectID)
 	bodyData := models.Project{
 		DefaultBranchID: branch.ID,
 	}
@@ -53,8 +52,11 @@ func SetDefaultBranch(c *cli.Context) error {
 		console.Verbose("Failed to convert project DTO to JSON: %s", err)
 		return console.Error(constants.ErrMsgInternal)
 	}
-	body := bytes.NewBuffer(bodyJson)
-	_, err = httpw.Post(apiUrl, body, gc.Auth.AccessToken)
+	_, err = httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s", projectConfig.ProjectID),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
 	if err != nil {
 		console.ErrorPrint("Error setting default branch:")
 		return err

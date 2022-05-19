@@ -54,8 +54,11 @@ func Init(c *cli.Context) error {
 
 	// Create project in API
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
-	body := bytes.NewBuffer(bodyJson)
-	res, err := httpw.Post(api.BuildURL("projects"), body, gc.Auth.AccessToken)
+	res, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURL("projects"),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
 	if err != nil {
 		return err
 	}

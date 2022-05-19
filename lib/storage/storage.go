@@ -50,7 +50,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			return err
 		}
 
-		res, err := httpw.Post(httpw.RequestInput{
+		res, err := httpw.Post(httpw.RequestParams{
 			URL:         api.BuildURLf("projects/%s/presign", projectId),
 			Body:        bytes.NewBuffer(bodyJson),
 			AccessToken: gc.Auth.AccessToken,
@@ -150,7 +150,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	contentType = mtype.String()
 
 	// Upload object using presigned URL
-	_, err = httpw.Put(httpw.RequestInput{
+	_, err = httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
 		Body:        proxyReader,
 		ContentType: contentType,
