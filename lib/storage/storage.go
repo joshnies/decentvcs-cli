@@ -37,7 +37,9 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	startTime := time.Now()
 
 	// Chunk uploads
-	chunks := util.ChunkMap(hashMap, 256)
+	// TODO: Use limit-based approach where chunks are uploaded in parallel up to a limit, where they wait in a queue
+	// until the current upload count goes below the limit again.
+	chunks := util.ChunkMap(hashMap, 32)
 
 	// For each chunk...
 	for _, chunk := range chunks {
