@@ -20,16 +20,16 @@ type RequestParams struct {
 //
 // @param method - HTTP method
 //
-// @param input - Request input
+// @param params - Request params
 //
 // Returns the response object and any error that occurred.
 //
-func SendRequest(method string, input RequestParams) (*http.Response, error) {
+func SendRequest(method string, params RequestParams) (*http.Response, error) {
 	// Destructure input
-	url := input.URL
-	body := input.Body
-	accessToken := input.AccessToken
-	contentType := input.ContentType
+	url := params.URL
+	body := params.Body
+	accessToken := params.AccessToken
+	contentType := params.ContentType
 
 	// Build request
 	httpClient := &http.Client{}
@@ -40,6 +40,9 @@ func SendRequest(method string, input RequestParams) (*http.Response, error) {
 
 	// Set headers
 	if contentType != "" {
+		req.Header.Add("Content-Type", contentType)
+	} else if method == "POST" || method == "PUT" {
+		// Add default JSON content type for POST & PUT methods
 		req.Header.Add("Content-Type", "application/json")
 	}
 
@@ -93,22 +96,22 @@ func Delete(url string, accessToken string) (*http.Response, error) {
 
 // Send a POST request to the specified URL.
 //
-// @param input - Request input
+// @param params - Request params
 //
 // Returns the response object and any error that occurred.
 //
-func Post(input RequestParams) (*http.Response, error) {
-	return SendRequest("POST", input)
+func Post(params RequestParams) (*http.Response, error) {
+	return SendRequest("POST", params)
 }
 
 // Send a PUT request to the specified URL.
 //
-// @param input - Request input
+// @param params - Request params
 //
 // Returns the response object and any error that occurred.
 //
-func Put(input RequestParams) (*http.Response, error) {
-	return SendRequest("PUT", input)
+func Put(params RequestParams) (*http.Response, error) {
+	return SendRequest("PUT", params)
 }
 
 // Validate HTTP response.
