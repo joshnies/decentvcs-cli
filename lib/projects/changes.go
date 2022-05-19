@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -274,25 +273,9 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	}
 
 	// Download remote versions of modified and deleted files
-	dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(overrideHashMap))
+	err = storage.DownloadMany(projectConfig.ProjectID, overrideHashMap)
 	if err != nil {
 		return console.Error("Failed to download files: %s", err)
-	}
-
-	// Write files to disk
-	for hash, data := range dataMap {
-		// Get file path from hash (reverse lookup)
-		path := util.ReverseLookup(overrideHashMap, hash)
-
-		if path == "" {
-			return console.Error("Failed to find downloaded file with hash %s", hash)
-		}
-
-		// Write file
-		err = ioutil.WriteFile(path, data, 0644)
-		if err != nil {
-			return console.Error("Failed to write file \"%s\" (hash %s): %s", path, hash, err)
-		}
 	}
 
 	return nil

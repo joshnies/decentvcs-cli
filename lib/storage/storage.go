@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -53,7 +55,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 		}
 
 		res, err := httpw.Post(httpw.RequestParams{
-			URL:         api.BuildURLf("projects/%s/presign", projectId),
+			URL:         api.BuildURLf("projects/%s/presign/put", projectId),
 			Body:        bytes.NewBuffer(bodyJson),
 			AccessToken: gc.Auth.AccessToken,
 		})
@@ -151,7 +153,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 
 	contentType = mtype.String()
 
-	// Upload object using presigned URL
+	// Upload object using presigned PUT URL
 	_, err = httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
 		Body:        proxyReader,
@@ -163,17 +165,123 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 }
 
-// Download many objects from storage.
+// Download many objects from storage to local file system.
 //
 // Params:
 //
 // - projectId: Project ID
 //
-// - keys: Keys for objects to download
+// - hashMap: Map of local file paths to file hashes
 //
 // Returns map of object keys to data.
 //
-func DownloadMany(projectId string, keys []string) (map[string][]byte, error) {
-	// TODO: Implement
-	return nil, nil
+func DownloadMany(projectId string, hashMap map[string]string) error {
+	gc := auth.Validate()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	startTime := time.Now()
+
+	// Chunk downloads
+	// TODO: Use limit-based approach where chunks are downloaded in parallel up to a limit, where they wait in a queue
+	// until the current download count goes below the limit again.
+	chunks := util.ChunkMap(hashMap, 32)
+
+	// For each chunk...
+	for i, chunk := range chunks {
+		// Get presigned URLs
+		bodyData := map[string][]string{
+			"keys": maps.Values(chunk),
+		}
+		bodyJson, err := json.Marshal(bodyData)
+		if err != nil {
+			return err
+		}
+
+		res, err := httpw.Post(httpw.RequestParams{
+			URL:         api.BuildURLf("projects/%s/presign/get", projectId),
+			Body:        bytes.NewBuffer(bodyJson),
+			AccessToken: gc.Auth.AccessToken,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Parse response
+		var hashUrlMap map[string]string
+		err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
+		if err != nil {
+			return err
+		}
+
+		// Setup wait group
+		var wg sync.WaitGroup
+		wg.Add(len(chunk))
+
+		// Setup progress bar
+		p := mpb.New()
+		bar := p.AddBar(int64(len(chunk)),
+			mpb.PrependDecorators(
+				decor.Name(fmt.Sprintf("Downloading chunk %d/%d", i+1, len(chunks)), decor.WC{W: 20, C: decor.DidentRight}),
+			),
+			mpb.AppendDecorators(
+				decor.CountersNoUnit("%d / %d ", decor.WCSyncSpace),
+			),
+		)
+
+		// Download objects in parallel
+		for hash, url := range hashUrlMap {
+			path := util.ReverseLookup(hashMap, hash)
+			go downloadRoutine(ctx, &downloadRoutineParams{
+				FilePath:    path,
+				URL:         url,
+				WG:          &wg,
+				ProgressBar: bar,
+			})
+		}
+
+		// Wait for downloads to finish
+		wg.Wait()
+		p.Wait()
+	}
+
+	endTime := time.Now()
+	console.Info("Downloaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+
+	return nil
+}
+
+type downloadRoutineParams struct {
+	FilePath    string
+	URL         string
+	WG          *sync.WaitGroup
+	ProgressBar *mpb.Bar
+}
+
+func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
+	defer params.WG.Done()
+	defer params.ProgressBar.Increment()
+
+	// Download object using presigned GET URL
+	res, err := httpw.Get(params.URL, "")
+	if err != nil {
+		console.ErrorPrint("Failed to download file \"%s\": %v", params.FilePath, err)
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	// Write to local file
+	file, err := os.Create(params.FilePath)
+	if err != nil {
+		console.ErrorPrint("Failed to create file \"%s\": %v", params.FilePath, err)
+		panic(err)
+	}
+
+	// Copy response body to local file
+	_, err = io.Copy(file, res.Body)
+	if err != nil {
+		console.ErrorPrint("Failed to write file \"%s\": %v", params.FilePath, err)
+		panic(err)
+	}
 }

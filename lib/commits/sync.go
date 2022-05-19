@@ -3,7 +3,6 @@ package commits
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -174,29 +173,9 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Download new files
 	if len(maps.Keys(downloadMap)) > 0 {
-		dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(downloadMap))
+		err := storage.DownloadMany(projectConfig.ProjectID, downloadMap)
 		if err != nil {
 			return err
-		}
-
-		for _, hash := range maps.Keys(dataMap) {
-			// Write file to local filesystem
-			var path string
-			for p, h := range downloadMap {
-				if hash == h {
-					path = p
-					break
-				}
-			}
-
-			if path == "" {
-				return console.Error("Failed to download file with hash %s", hash)
-			}
-
-			err = ioutil.WriteFile(path, dataMap[hash], 0644)
-			if err != nil {
-				return console.Error("Failed to write file (%s) after downloading: %s", path, err)
-			}
 		}
 	}
 

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -116,31 +115,9 @@ func CloneProject(c *cli.Context) error {
 		}
 	}
 
-	dataMap, err := storage.DownloadMany(projectConfig.ProjectID, maps.Values(branch.Commit.HashMap))
+	err = storage.DownloadMany(projectConfig.ProjectID, branch.Commit.HashMap)
 	if err != nil {
 		return err
-	}
-
-	// Iterate over downloaded files and write each to disk
-	for _, hash := range maps.Keys(dataMap) {
-		// Get file path
-		var path string
-		for p, h := range branch.Commit.HashMap {
-			if hash == h {
-				path = p
-				break
-			}
-		}
-
-		if path == "" {
-			return console.Error("Failed to download file with hash %s", hash)
-		}
-
-		// Write file to local filesystem
-		err = ioutil.WriteFile(path, dataMap[hash], 0644)
-		if err != nil {
-			return console.Error("Failed to write file (%s) after downloading: %s", path, err)
-		}
 	}
 
 	return nil
