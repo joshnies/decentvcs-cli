@@ -45,7 +45,7 @@ func main() {
 			{
 				Name:      "clone",
 				Usage:     "Clone a project to your local machine",
-				ArgsUsage: "[blob] [-p | --path] [-b | --branch]",
+				ArgsUsage: "[blob]",
 				Action:    cmd.CloneProject,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
@@ -70,7 +70,7 @@ func main() {
 			{
 				Name:      "push",
 				Usage:     "Push local changes to remote",
-				ArgsUsage: "[message?] [-y]",
+				ArgsUsage: "[message?]",
 				Aliases:   []string{"p"},
 				Action:    cmd.Push,
 				Flags: []cli.Flag{
@@ -84,7 +84,7 @@ func main() {
 			{
 				Name:      "sync",
 				Usage:     "Sync to commit, downloading changes from remote",
-				ArgsUsage: "[commit_index?] [-y]",
+				ArgsUsage: "[commit_index?]",
 				Aliases:   []string{"to", "s"},
 				Action:    cmd.Sync,
 				Flags: []cli.Flag{
@@ -96,11 +96,10 @@ func main() {
 				},
 			},
 			{
-				Name:      "reset",
-				Usage:     "Reset all local changes",
-				ArgsUsage: "[-y]",
-				Aliases:   []string{"r"},
-				Action:    cmd.Reset,
+				Name:    "reset",
+				Usage:   "Reset all local changes",
+				Aliases: []string{"r"},
+				Action:  cmd.Reset,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -110,10 +109,9 @@ func main() {
 				},
 			},
 			{
-				Name:      "revert",
-				Usage:     "Reset all local changes and sync to last commit",
-				ArgsUsage: "[-y]",
-				Action:    cmd.Revert,
+				Name:   "revert",
+				Usage:  "Reset all local changes and sync to last commit",
+				Action: cmd.Revert,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -135,14 +133,14 @@ func main() {
 						Name:      "new",
 						Aliases:   []string{"n"},
 						Usage:     "Create a new branch",
-						ArgsUsage: "[name] [-y]",
+						ArgsUsage: "[name]",
 						Action:    cmd.NewBranch,
 					},
 					{
 						Name:      "use",
 						Aliases:   []string{"u"},
 						Usage:     "Switch to a different branch, syncing to its latest commit",
-						ArgsUsage: "[name] [-y]",
+						ArgsUsage: "[name]",
 						Action:    cmd.UseBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
@@ -156,7 +154,7 @@ func main() {
 						Name:      "delete",
 						Aliases:   []string{"d"},
 						Usage:     "Delete a branch",
-						ArgsUsage: "[name] [-y]",
+						ArgsUsage: "[name]",
 						Action:    cmd.DeleteBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
@@ -181,10 +179,9 @@ func main() {
 				Action: cmd.ListBranches,
 			},
 			{
-				Name:      "history",
-				Usage:     "List commit history",
-				ArgsUsage: "[-l | --limit=10]",
-				Action:    cmd.PrintHistory,
+				Name:   "history",
+				Usage:  "List commit history",
+				Action: cmd.PrintHistory,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "limit",
