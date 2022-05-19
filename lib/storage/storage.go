@@ -125,38 +125,44 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 
 	total := fileInfo.Size()
 
+	var reader io.ReadCloser
+
 	// Add progress bar
-	barName := filepath.Base(params.FilePath)
+	if params.Progress != nil {
+		barName := filepath.Base(params.FilePath)
 
-	if len(barName) > 20 {
-		barName = barName[:17] + "..."
+		if len(barName) > 20 {
+			barName = barName[:17] + "..."
+		}
+
+		bar := params.Progress.AddBar(total,
+			mpb.PrependDecorators(
+				decor.Name(barName, decor.WC{W: 20, C: decor.DidentRight}),
+			),
+			mpb.AppendDecorators(
+				decor.CountersKibiByte("% .2f / % .2f ", decor.WCSyncSpace),
+			),
+		)
+		reader = bar.ProxyReader(file)
+	} else {
+		reader = file
 	}
-
-	bar := params.Progress.AddBar(total,
-		mpb.PrependDecorators(
-			decor.Name(barName, decor.WC{W: 20, C: decor.DidentRight}),
-		),
-		mpb.AppendDecorators(
-			decor.CountersKibiByte("% .2f / % .2f ", decor.WCSyncSpace),
-		),
-	)
-	proxyReader := bar.ProxyReader(file)
-	defer proxyReader.Close()
+	defer reader.Close()
 
 	// Get MIME type
 	var contentType string
-	mtype, err := mimetype.DetectReader(proxyReader)
+	mtype, err := mimetype.DetectReader(reader)
 	if err != nil {
 		console.Warning("Failed to detect MIME type for file \"%s\", using default", params.FilePath)
 		contentType = "application/octet-stream"
+	} else {
+		contentType = mtype.String()
 	}
-
-	contentType = mtype.String()
 
 	// Upload object using presigned PUT URL
 	_, err = httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
-		Body:        proxyReader,
+		Body:        reader,
 		ContentType: contentType,
 	})
 	if err != nil {
