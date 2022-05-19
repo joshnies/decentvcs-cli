@@ -46,6 +46,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	// For each chunk...
 	for _, chunk := range chunks {
 		// Get presigned URLs
+		console.Verbose("Presigning %d objects...", len(chunk))
 		bodyData := map[string][]string{
 			"keys": maps.Values(chunk),
 		}
@@ -70,9 +71,11 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			return err
 		}
 
+		console.Verbose("Presigning successful")
+
 		// Setup wait group
 		var wg sync.WaitGroup
-		wg.Add(len(chunk))
+		wg.Add(len(hashUrlMap))
 
 		// Setup multi-progress bar container
 		p := mpb.New()
@@ -153,8 +156,8 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	var contentType string
 	mtype, err := mimetype.DetectReader(reader)
 	if err != nil {
-		console.Warning("Failed to detect MIME type for file \"%s\", using default", params.FilePath)
 		contentType = "application/octet-stream"
+		console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
 	} else {
 		contentType = mtype.String()
 	}
@@ -162,11 +165,11 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	// Upload object using presigned PUT URL
 	_, err = httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
-		Body:        reader,
+		Body:        file,
 		ContentType: contentType,
 	})
 	if err != nil {
-		console.ErrorPrint("Failed to upload file \"%s\": %v", params.FilePath, err)
+		console.ErrorPrint("Failed to upload file \"%s\"", params.FilePath)
 		panic(err)
 	}
 }
