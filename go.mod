@@ -6,9 +6,11 @@ require (
 	github.com/TwiN/go-color v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/gabriel-vasile/mimetype v1.4.0
+	github.com/gammazero/workerpool v1.1.2
 	github.com/grokify/go-pkce v0.2.0
 	github.com/lucsky/cuid v1.2.1
 	github.com/samber/lo v1.17.0
+	github.com/schollz/progressbar/v3 v3.8.6
 	github.com/urfave/cli/v2 v2.4.8
 	github.com/vbauerster/mpb/v7 v7.4.1
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17
@@ -19,12 +21,10 @@ require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/gammazero/deque v0.1.0 // indirect
-	github.com/gammazero/workerpool v1.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/schollz/progressbar/v3 v3.8.6 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20220519141025-dcacdad47464 // indirect
