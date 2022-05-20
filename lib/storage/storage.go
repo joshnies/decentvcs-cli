@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/gammazero/workerpool"
 	"github.com/joshnies/qc/lib/api"
 	"github.com/joshnies/qc/lib/auth"
 	"github.com/joshnies/qc/lib/console"
@@ -29,7 +30,7 @@ import (
 //
 // - projectId: Project ID
 //
-// - hashMap: Map of local file paths to file hashes
+// - hashMap: Map of local file paths to file hashes (which are used as object keys)
 //
 func UploadMany(projectId string, hashMap map[string]string) error {
 	gc := auth.Validate()
@@ -38,63 +39,53 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	defer cancel()
 
 	startTime := time.Now()
+
+	// Get presigned URLs
+	console.Verbose("Presigning all objects...", len(hashMap))
+	bodyData := map[string][]string{
+		"keys": maps.Values(hashMap),
+	}
+	bodyJson, err := json.Marshal(bodyData)
+	if err != nil {
+		return err
+	}
+
+	res, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/presign/put", projectId),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Parse response
+	var hashUrlMap map[string]string
+	err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
+	if err != nil {
+		return err
+	}
+
+	pool := workerpool.New(32)
 	bar := progressbar.Default(int64(len(hashMap)))
 
-	// Chunk uploads
-	// TODO: Use limit-based approach where chunks are uploaded in parallel up to a limit, where they wait in a queue
-	// until the current upload count goes below the limit again.
-	chunks := util.ChunkMap(hashMap, 32)
-
-	// For each chunk...
-	for _, chunk := range chunks {
-		// Get presigned URLs
-		console.Verbose("Presigning %d objects...", len(chunk))
-		bodyData := map[string][]string{
-			"keys": maps.Values(chunk),
-		}
-		bodyJson, err := json.Marshal(bodyData)
-		if err != nil {
-			return err
-		}
-
-		res, err := httpw.Post(httpw.RequestParams{
-			URL:         api.BuildURLf("projects/%s/presign/put", projectId),
-			Body:        bytes.NewBuffer(bodyJson),
-			AccessToken: gc.Auth.AccessToken,
-		})
-		if err != nil {
-			return err
-		}
-
-		// Parse response
-		var hashUrlMap map[string]string
-		err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
-		if err != nil {
-			return err
-		}
-
-		// Setup wait group
-		var wg sync.WaitGroup
-		wg.Add(len(hashUrlMap))
-
-		// Upload objects in parallel
-		for hash, url := range hashUrlMap {
-			path := util.ReverseLookup(hashMap, hash)
-			go uploadRoutine(ctx, uploadRoutineParams{
+	// Upload objects in parallel
+	for hash, url := range hashUrlMap {
+		path := util.ReverseLookup(hashMap, hash)
+		pool.Submit(func() {
+			uploadRoutine(ctx, uploadRoutineParams{
 				FilePath: path,
 				URL:      url,
-				WG:       &wg,
 				Bar:      bar,
 			})
-		}
-
-		// Wait for uploads to finish
-		wg.Wait()
+		})
 	}
+
+	// Wait for uploads to finish
+	pool.StopWait()
 
 	endTime := time.Now()
 	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
-
 	return nil
 }
 
@@ -106,7 +97,6 @@ type uploadRoutineParams struct {
 }
 
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
-	defer params.WG.Done()
 	defer params.Bar.Add(1)
 
 	// Read local file
