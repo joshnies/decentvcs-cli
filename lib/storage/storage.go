@@ -115,7 +115,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	// Read local file
 	file, err := os.Open(params.FilePath)
 	if err != nil {
-		console.ErrorPrintV("Failed to open file \"%s\": %v", params.FilePath, err)
+		console.ErrorPrint("Failed to open file \"%s\": %v", params.FilePath, err)
 		panic(err)
 	}
 
