@@ -70,7 +70,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	pool := workerpool.New(150)
 	bar := progressbar.Default(int64(len(hashMap)))
 
-	// Upload objects in parallel
+	// Upload objects in parallel (limited to pool size)
 	for hash, url := range hashUrlMap {
 		path := util.ReverseLookup(hashMap, hash)
 		pool.Submit(func() {
