@@ -71,14 +71,11 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			return err
 		}
 
-		console.Verbose("Presigning successful")
+		console.Verbose("Presigning successful", len(hashUrlMap))
 
 		// Setup wait group
 		var wg sync.WaitGroup
 		wg.Add(len(hashUrlMap))
-
-		// Setup multi-progress bar container
-		p := mpb.New()
 
 		// Upload objects in parallel
 		for hash, url := range hashUrlMap {
@@ -87,17 +84,15 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 				FilePath: path,
 				URL:      url,
 				WG:       &wg,
-				Progress: p,
 			})
 		}
 
 		// Wait for uploads to finish
 		wg.Wait()
-		p.Wait()
 	}
 
 	endTime := time.Now()
-	console.Info("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
 
 	return nil
 }
@@ -106,11 +101,12 @@ type uploadRoutineParams struct {
 	FilePath string
 	URL      string
 	WG       *sync.WaitGroup
-	Progress *mpb.Progress
 }
 
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	defer params.WG.Done()
+
+	console.Info("Uploading: %s", params.FilePath)
 
 	// Read local file
 	file, err := os.Open(params.FilePath)
@@ -118,43 +114,11 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		console.ErrorPrint("Failed to open file \"%s\": %v", params.FilePath, err)
 		panic(err)
 	}
-
-	// Get local file size
-	fileInfo, err := file.Stat()
-	if err != nil {
-		console.ErrorPrint("Failed to stat file \"%s\": %v", params.FilePath, err)
-		panic(err)
-	}
-
-	total := fileInfo.Size()
-
-	var reader io.ReadCloser
-
-	// Add progress bar
-	if params.Progress != nil {
-		barName := filepath.Base(params.FilePath)
-
-		if len(barName) > 20 {
-			barName = barName[:17] + "..."
-		}
-
-		bar := params.Progress.AddBar(total,
-			mpb.PrependDecorators(
-				decor.Name(barName, decor.WC{W: 20, C: decor.DidentRight}),
-			),
-			mpb.AppendDecorators(
-				decor.CountersKibiByte("% .2f / % .2f ", decor.WCSyncSpace),
-			),
-		)
-		reader = bar.ProxyReader(file)
-	} else {
-		reader = file
-	}
-	defer reader.Close()
+	defer file.Close()
 
 	// Get MIME type
 	var contentType string
-	mtype, err := mimetype.DetectReader(reader)
+	mtype, err := mimetype.DetectReader(file)
 	if err != nil {
 		contentType = "application/octet-stream"
 		console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
