@@ -66,7 +66,8 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 		return err
 	}
 
-	pool := workerpool.New(32)
+	// TODO: Get pool size from global config
+	pool := workerpool.New(150)
 	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Upload objects in parallel
