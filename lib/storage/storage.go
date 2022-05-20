@@ -249,7 +249,20 @@ func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
 	// Download object using presigned GET URL
 	res, err := httpw.Get(params.URL, "")
 	if err != nil {
-		console.ErrorPrint("Failed to download file \"%s\": %v", params.FilePath, err)
+		console.ErrorPrint("Failed to download file \"%s\"", params.FilePath)
+
+		// Print response dump
+		if res != nil {
+			dump, err := httputil.DumpResponse(res, true)
+			if err != nil {
+				console.ErrorPrint("(failed to dump response); %v", err)
+			} else {
+				console.ErrorPrint("Response:\n%s", string(dump))
+			}
+		} else {
+			console.ErrorPrint("(no response)")
+		}
+
 		panic(err)
 	}
 	defer res.Body.Close()
@@ -269,6 +282,7 @@ func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
 		console.ErrorPrint("Failed to create file \"%s\": %v", path, err)
 		panic(err)
 	}
+	defer file.Close()
 
 	// Copy response body to local file
 	_, err = io.Copy(file, res.Body)
