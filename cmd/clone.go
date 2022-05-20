@@ -113,14 +113,6 @@ func CloneProject(c *cli.Context) error {
 	console.Verbose("Project config file created")
 
 	// Download all files
-	console.Verbose("Downloading files...")
-
-	if config.I.Verbose {
-		for _, v := range maps.Values(branch.Commit.HashMap) {
-			console.Verbose(" - %s", v)
-		}
-	}
-
 	err = storage.DownloadMany(projectConfig.ProjectID, clonePath, branch.Commit.HashMap)
 	if err != nil {
 		return err
