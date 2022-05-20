@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"time"
@@ -115,26 +114,13 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 
 	// Upload object using presigned PUT URL
-	res, err := httpw.Put(httpw.RequestParams{
+	_, err = httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
 		Body:        file,
 		ContentType: contentType,
 	})
 	if err != nil {
 		console.ErrorPrint("Failed to upload file \"%s\"", params.FilePath)
-
-		// Print response dump
-		if res != nil {
-			dump, err := httputil.DumpResponse(res, true)
-			if err != nil {
-				console.ErrorPrint("(failed to dump response); %v", err)
-			} else {
-				console.ErrorPrint("Response:\n%s", string(dump))
-			}
-		} else {
-			console.ErrorPrint("(no response)")
-		}
-
 		panic(err)
 	}
 }
@@ -224,19 +210,6 @@ func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
 	res, err := httpw.Get(params.URL, "")
 	if err != nil {
 		console.ErrorPrint("Failed to download file \"%s\"", params.FilePath)
-
-		// Print response dump
-		if res != nil {
-			dump, err := httputil.DumpResponse(res, true)
-			if err != nil {
-				console.ErrorPrint("(failed to dump response); %v", err)
-			} else {
-				console.ErrorPrint("Response:\n%s", string(dump))
-			}
-		} else {
-			console.ErrorPrint("(no response)")
-		}
-
 		panic(err)
 	}
 	defer res.Body.Close()

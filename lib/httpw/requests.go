@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/joshnies/qc/config"
 	"github.com/joshnies/qc/constants"
 	"github.com/joshnies/qc/lib/console"
 )
 
 type RequestParams struct {
-	URL         string
-	Body        io.Reader
-	AccessToken string
-	ContentType string
+	URL           string
+	Body          io.Reader
+	AccessToken   string
+	ContentType   string
+	ContentLength int64
 }
 
 // Send an HTTP request to the specified URL.
@@ -55,11 +55,43 @@ func SendRequest(method string, params RequestParams) (*http.Response, error) {
 	// Send request
 	res, err := httpClient.Do(req)
 	if err != nil {
+		// Dump request
+		dump, err := httputil.DumpRequestOut(req, false)
+		if err != nil {
+			console.ErrorPrintV("Failed to dump request: %s", err)
+		}
+		console.Verbose("Request:\n%s\n", string(dump))
+
+		// Dump response
+		if res != nil {
+			dump, err = httputil.DumpResponse(res, true)
+			if err != nil {
+				console.ErrorPrintV("Failed to dump response: %s", err)
+			}
+			console.Verbose("Response:\n%s\n", string(dump))
+		}
+
 		return res, err
 	}
 
 	// Validate response
 	if err = validateResponse(res); err != nil {
+		// Dump request
+		dump, err := httputil.DumpRequestOut(req, false)
+		if err != nil {
+			console.ErrorPrintV("Failed to dump request: %s", err)
+		}
+		console.Verbose("Request:\n%s\n", string(dump))
+
+		// Dump response
+		if res != nil {
+			dump, err = httputil.DumpResponse(res, true)
+			if err != nil {
+				console.ErrorPrintV("Failed to dump response: %s", err)
+			}
+			console.Verbose("Response:\n%s\n", string(dump))
+		}
+
 		return res, err
 	}
 
@@ -139,14 +171,6 @@ func validateResponse(res *http.Response) error {
 
 	// Handle all other bad response status codes
 	if res.StatusCode >= 300 {
-		if config.I.Verbose {
-			// Print response
-			resDump, err := httputil.DumpResponse(res, true)
-			if err == nil {
-				console.Verbose("Response:\n%s", resDump)
-			}
-		}
-
 		return console.Error(constants.ErrMsgInternal)
 	}
 
