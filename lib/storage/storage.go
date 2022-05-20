@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http/httputil"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -20,8 +18,6 @@ import (
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/util"
 	"github.com/schollz/progressbar/v3"
-	"github.com/vbauerster/mpb/v7"
-	"github.com/vbauerster/mpb/v7/decor"
 	"golang.org/x/exp/maps"
 )
 
@@ -42,7 +38,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	startTime := time.Now()
 
 	// Get presigned URLs
-	console.Verbose("Presigning all objects...", len(hashMap))
+	console.Verbose("Presigning all objects...")
 	bodyData := map[string][]string{
 		"keys": maps.Values(hashMap),
 	}
@@ -94,7 +90,6 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 type uploadRoutineParams struct {
 	FilePath string
 	URL      string
-	WG       *sync.WaitGroup
 	Bar      *progressbar.ProgressBar
 }
 
@@ -164,73 +159,54 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 
 	startTime := time.Now()
 
-	// Chunk downloads
-	// TODO: Use limit-based approach where chunks are downloaded in parallel up to a limit, where they wait in a queue
-	// until the current download count goes below the limit again.
-	chunks := util.ChunkMap(hashMap, 32)
+	// Get presigned URLs
+	console.Verbose("Presigning all objects...")
+	bodyData := map[string][]string{
+		"keys": maps.Values(hashMap),
+	}
+	bodyJson, err := json.Marshal(bodyData)
+	if err != nil {
+		return err
+	}
 
-	// For each chunk...
-	for i, chunk := range chunks {
-		// Get presigned URLs
-		bodyData := map[string][]string{
-			"keys": maps.Values(chunk),
-		}
-		bodyJson, err := json.Marshal(bodyData)
-		if err != nil {
-			return err
-		}
+	res, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/presign/get", projectId),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: gc.Auth.AccessToken,
+	})
+	if err != nil {
+		return err
+	}
 
-		res, err := httpw.Post(httpw.RequestParams{
-			URL:         api.BuildURLf("projects/%s/presign/get", projectId),
-			Body:        bytes.NewBuffer(bodyJson),
-			AccessToken: gc.Auth.AccessToken,
-		})
-		if err != nil {
-			return err
-		}
+	// Parse response
+	var hashUrlMap map[string]string
+	err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
+	if err != nil {
+		return err
+	}
 
-		// Parse response
-		var hashUrlMap map[string]string
-		err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
-		if err != nil {
-			return err
-		}
+	// TODO: Get pool size from global config
+	pool := workerpool.New(128)
+	bar := progressbar.Default(int64(len(hashMap)))
 
-		// Setup wait group
-		var wg sync.WaitGroup
-		wg.Add(len(chunk))
-
-		// Setup progress bar
-		p := mpb.New()
-		bar := p.AddBar(int64(len(chunk)),
-			mpb.PrependDecorators(
-				decor.Name(fmt.Sprintf("Downloading chunk %d/%d", i+1, len(chunks)), decor.WC{W: 20, C: decor.DidentRight}),
-			),
-			mpb.AppendDecorators(
-				decor.CountersNoUnit("%d / %d ", decor.WCSyncSpace),
-			),
-		)
-
-		// Download objects in parallel
-		for hash, url := range hashUrlMap {
-			path := util.ReverseLookup(hashMap, hash)
-			go downloadRoutine(ctx, &downloadRoutineParams{
+	// Download objects in parallel (limited to pool size)
+	for hash, url := range hashUrlMap {
+		path := util.ReverseLookup(hashMap, hash)
+		pool.Submit(func() {
+			downloadRoutine(ctx, &downloadRoutineParams{
 				ProjectPath: projectPath,
 				FilePath:    path,
 				URL:         url,
-				WG:          &wg,
-				ProgressBar: bar,
+				Bar:         bar,
 			})
-		}
-
-		// Wait for downloads to finish
-		wg.Wait()
-		p.Wait()
+		})
 	}
+
+	// Wait for downloads to finish
+	pool.StopWait()
 
 	endTime := time.Now()
 	console.Info("Downloaded %d files in %s", len(hashMap), endTime.Sub(startTime))
-
 	return nil
 }
 
@@ -238,13 +214,11 @@ type downloadRoutineParams struct {
 	ProjectPath string
 	FilePath    string
 	URL         string
-	WG          *sync.WaitGroup
-	ProgressBar *mpb.Bar
+	Bar         *progressbar.ProgressBar
 }
 
 func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
-	defer params.WG.Done()
-	defer params.ProgressBar.Increment()
+	defer params.Bar.Add(1)
 
 	// Download object using presigned GET URL
 	res, err := httpw.Get(params.URL, "")
