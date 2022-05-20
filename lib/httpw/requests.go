@@ -55,12 +55,12 @@ func SendRequest(method string, params RequestParams) (*http.Response, error) {
 	// Send request
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return res, err
 	}
 
 	// Validate response
 	if err = validateResponse(res); err != nil {
-		return nil, err
+		return res, err
 	}
 
 	return res, nil

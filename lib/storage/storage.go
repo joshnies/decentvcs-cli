@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -108,13 +109,6 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 	defer file.Close()
 
-	// Get file size
-	// stat, err := file.Stat()
-	// if err != nil {
-	// 	console.ErrorPrint("Failed to get file stats for \"%s\": %v", params.FilePath, err)
-	// 	panic(err)
-	// }
-
 	// Get MIME type
 	var contentType string
 	mtype, err := mimetype.DetectReader(file)
@@ -126,13 +120,26 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 
 	// Upload object using presigned PUT URL
-	_, err = httpw.Put(httpw.RequestParams{
+	res, err := httpw.Put(httpw.RequestParams{
 		URL:         params.URL,
 		Body:        file,
 		ContentType: contentType,
 	})
 	if err != nil {
 		console.ErrorPrint("Failed to upload file \"%s\"", params.FilePath)
+
+		// Print response dump
+		if res != nil {
+			dump, err := httputil.DumpResponse(res, true)
+			if err != nil {
+				console.ErrorPrint("(failed to dump response); %v", err)
+			} else {
+				console.ErrorPrint("Response:\n%s", string(dump))
+			}
+		} else {
+			console.ErrorPrint("(no response)")
+		}
+
 		panic(err)
 	}
 }
