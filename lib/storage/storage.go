@@ -17,6 +17,7 @@ import (
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/util"
+	"github.com/schollz/progressbar/v3"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
 	"golang.org/x/exp/maps"
@@ -37,6 +38,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	defer cancel()
 
 	startTime := time.Now()
+	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Chunk uploads
 	// TODO: Use limit-based approach where chunks are uploaded in parallel up to a limit, where they wait in a queue
@@ -71,8 +73,6 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			return err
 		}
 
-		console.Verbose("Presigning successful", len(hashUrlMap))
-
 		// Setup wait group
 		var wg sync.WaitGroup
 		wg.Add(len(hashUrlMap))
@@ -84,6 +84,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 				FilePath: path,
 				URL:      url,
 				WG:       &wg,
+				Bar:      bar,
 			})
 		}
 
@@ -101,12 +102,12 @@ type uploadRoutineParams struct {
 	FilePath string
 	URL      string
 	WG       *sync.WaitGroup
+	Bar      *progressbar.ProgressBar
 }
 
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	defer params.WG.Done()
-
-	console.Info("Uploading: %s", params.FilePath)
+	defer params.Bar.Add(1)
 
 	// Read local file
 	file, err := os.Open(params.FilePath)
@@ -115,6 +116,13 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		panic(err)
 	}
 	defer file.Close()
+
+	// Get file size
+	// stat, err := file.Stat()
+	// if err != nil {
+	// 	console.ErrorPrint("Failed to get file stats for \"%s\": %v", params.FilePath, err)
+	// 	panic(err)
+	// }
 
 	// Get MIME type
 	var contentType string
