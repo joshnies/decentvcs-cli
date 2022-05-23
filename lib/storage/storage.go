@@ -11,11 +11,13 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gammazero/workerpool"
+	"github.com/joshnies/qc/config"
 	"github.com/joshnies/qc/lib/api"
 	"github.com/joshnies/qc/lib/auth"
 	"github.com/joshnies/qc/lib/console"
 	"github.com/joshnies/qc/lib/httpw"
 	"github.com/joshnies/qc/lib/util"
+	"github.com/joshnies/qc/models"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/exp/maps"
 )
@@ -36,60 +38,35 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 
 	startTime := time.Now()
 
-	// Get presigned URLs
-	console.Verbose("Presigning all objects...")
-	bodyData := map[string][]string{
-		"keys": maps.Values(hashMap),
-	}
-	bodyJson, err := json.Marshal(bodyData)
-	if err != nil {
-		return err
-	}
-
-	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/presign/put", projectId),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: gc.Auth.AccessToken,
-	})
-	if err != nil {
-		return err
-	}
-
-	// Parse response
-	var hashUrlMap map[string]string
-	err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
-	if err != nil {
-		return err
-	}
-
 	// TODO: Get pool size from global config
-	// pool := workerpool.New(128)
+	pool := workerpool.New(128)
 	bar := progressbar.Default(int64(len(hashMap)))
 
-	// // Upload objects in parallel (limited to pool size)
-	// for hash, url := range hashUrlMap {
-	// 	path := util.ReverseLookup(hashMap, hash)
-	// 	pool.Submit(func() {
-	// 		uploadRoutine(ctx, uploadRoutineParams{
-	// 			FilePath: path,
-	// 			URL:      url,
-	// 			Bar:      bar,
-	// 		})
-	// 	})
-	// }
-
-	// // Wait for uploads to finish
-	// pool.StopWait()
-
-	// Upload objects sequentially
-	for hash, url := range hashUrlMap {
-		path := util.ReverseLookup(hashMap, hash)
-		uploadRoutine(ctx, uploadRoutineParams{
-			FilePath: path,
-			URL:      url,
-			Bar:      bar,
+	// Upload objects in parallel (limited to pool size)
+	for path, hash := range hashMap {
+		pool.Submit(func() {
+			uploadRoutine(ctx, uploadRoutineParams{
+				ProjectID: projectId,
+				FilePath:  path,
+				Hash:      hash,
+				Bar:       bar,
+				GC:        &gc,
+			})
 		})
 	}
+
+	// Wait for uploads to finish
+	pool.StopWait()
+
+	// Upload objects sequentially
+	// for hash, url := range hashUrlMap {
+	// 	path := util.ReverseLookup(hashMap, hash)
+	// 	uploadRoutine(ctx, uploadRoutineParams{
+	// 		FilePath: path,
+	// 		URL:      url,
+	// 		Bar:      bar,
+	// 	})
+	// }
 
 	endTime := time.Now()
 	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
@@ -97,21 +74,36 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 }
 
 type uploadRoutineParams struct {
-	FilePath string
-	URL      string
-	Bar      *progressbar.ProgressBar
+	ProjectID string
+	FilePath  string
+	Hash      string
+	Bar       *progressbar.ProgressBar
+	GC        *models.GlobalConfig
 }
 
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	defer params.Bar.Add(1)
 
-	// Read local file
+	// Open local file
 	file, err := os.Open(params.FilePath)
 	if err != nil {
-		console.ErrorPrint("Failed to open file \"%s\": %v", params.FilePath, err)
-		panic(err)
+		panic(console.Error("Failed to open file \"%s\": %v", params.FilePath, err))
 	}
 	defer file.Close()
+
+	// Get file size
+	info, err := file.Stat()
+	if err != nil {
+		panic(console.Error("Failed to get file info for file \"%s\": %v", params.FilePath, err))
+	}
+	fileSize := info.Size()
+
+	// Read file into byte array
+	fileBytes := make([]byte, fileSize)
+	_, err = file.Read(fileBytes)
+	if err != nil {
+		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+	}
 
 	// Get MIME type
 	var contentType string
@@ -123,15 +115,101 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		contentType = mtype.String()
 	}
 
-	// Upload object using presigned PUT URL
-	_, err = httpw.Put(httpw.RequestParams{
-		URL:         params.URL,
-		Body:        file,
+	bodyData := models.PresignOneRequestBody{
+		Key:         params.Hash,
+		Multipart:   true,
+		Size:        fileSize,
 		ContentType: contentType,
+	}
+	bodyJson, err := json.Marshal(bodyData)
+	if err != nil {
+		console.ErrorPrintV("Error marshalling presign request body: %v", err)
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+	}
+
+	res, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/presign/put", params.ProjectID),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: params.GC.Auth.AccessToken,
 	})
 	if err != nil {
-		console.ErrorPrint("Failed to upload file \"%s\"", params.FilePath)
-		panic(err)
+		console.ErrorPrintV("Error presigning file: %v", params.FilePath, err)
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+	}
+
+	// Parse response
+	var presignRes models.PresignOneResponse
+	err = json.NewDecoder(res.Body).Decode(&presignRes)
+	if err != nil {
+		console.ErrorPrintV("Error parsing presign response: %v", err)
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+	}
+
+	if presignRes.UploadID == "" {
+		console.ErrorPrintV("Presigned upload returned with no upload ID")
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+	}
+
+	// Upload object using presigned PUT URLs
+	parts := []models.MultipartUploadPart{}
+	var start, current int64
+	remaining := fileSize
+	for i, url := range presignRes.URLs {
+		// Get file part as byte array
+		if remaining < config.I.Storage.PartSize {
+			current = remaining
+		} else {
+			current = config.I.Storage.PartSize
+		}
+		partBytes := fileBytes[start : start+current]
+
+		res, err = httpw.Put(httpw.RequestParams{
+			URL:  url,
+			Body: bytes.NewReader(partBytes),
+		})
+		if err != nil {
+			console.ErrorPrintV("Error uploading part %d: %v", i, err)
+			panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		}
+
+		// Parse response
+		var resJson map[string]interface{}
+		err = json.NewDecoder(res.Body).Decode(&resJson)
+		if err != nil {
+			console.ErrorPrintV("Error parsing presign response: %v", err)
+			panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		}
+
+		parts = append(parts, models.MultipartUploadPart{
+			PartNumber: int32(i + 1),
+			ETag:       resJson["etag"].(string),
+		})
+
+		// Update loop variables
+		partBytesLen := int64(len(partBytes))
+		start += partBytesLen
+		remaining -= partBytesLen
+	}
+
+	// Complete multipart upload
+	complBodyData := models.CompleteMultipartUploadRequestBody{
+		UploadId: presignRes.UploadID,
+		Key:      params.Hash,
+		Parts:    parts,
+	}
+	complBodyJson, err := json.Marshal(complBodyData)
+	if err != nil {
+		console.ErrorPrintV("Error marshalling complete multipart upload request body: %v", err)
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+	}
+	_, err = httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/multipart/complete", params.ProjectID),
+		Body:        bytes.NewBuffer(complBodyJson),
+		AccessToken: params.GC.Auth.AccessToken,
+	})
+	if err != nil {
+		console.ErrorPrintV("Error completing multipart upload: %v", err)
+		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
 	}
 }
 

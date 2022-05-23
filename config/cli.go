@@ -10,6 +10,8 @@ type APIConfig struct {
 type StorageConfig struct {
 	// Bucket name.
 	Bucket string
+	// Multipart upload part size.
+	PartSize int64
 }
 
 type CLIConfig struct {
@@ -36,7 +38,8 @@ func InitConfig() CLIConfig {
 			Host: "http://localhost:8080/v1",
 		},
 		Storage: StorageConfig{
-			Bucket: "qc-dev",
+			Bucket:   "qc-dev",
+			PartSize: 5 * 1024 * 1024, // 5MB
 		},
 	}
 
