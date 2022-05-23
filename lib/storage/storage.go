@@ -128,7 +128,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 
 	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/presign/put", params.ProjectID),
+		URL:         api.BuildURLf("projects/%s/storage/presign/put", params.ProjectID),
 		Body:        bytes.NewBuffer(bodyJson),
 		AccessToken: params.GC.Auth.AccessToken,
 	})
@@ -203,7 +203,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
 	}
 	_, err = httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/multipart/complete", params.ProjectID),
+		URL:         api.BuildURLf("projects/%s/storage/multipart/complete", params.ProjectID),
 		Body:        bytes.NewBuffer(complBodyJson),
 		AccessToken: params.GC.Auth.AccessToken,
 	})
