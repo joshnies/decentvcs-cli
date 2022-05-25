@@ -123,8 +123,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 	bodyJson, err := json.Marshal(bodyData)
 	if err != nil {
-		console.ErrorPrintV("Error marshalling presign request body: %v", err)
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
 	}
 
 	res, err := httpw.Post(httpw.RequestParams{
@@ -133,25 +132,19 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		AccessToken: params.GC.Auth.AccessToken,
 	})
 	if err != nil {
-		console.ErrorPrintV("Error presigning file: %v", params.FilePath, err)
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
 	}
 
 	// Parse response
 	var presignRes models.PresignOneResponse
 	err = json.NewDecoder(res.Body).Decode(&presignRes)
 	if err != nil {
-		console.ErrorPrintV("Error parsing presign response: %v", err)
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
 	}
 
 	if presignRes.UploadID == "" {
-		console.ErrorPrintV("Presigned upload returned with no upload ID")
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Presigned upload returned with no upload ID for file \"%s\"", params.FilePath))
 	}
-
-	console.Verbose("Max part size: %d", config.I.Storage.PartSize)
-	console.Verbose("# of parts: %d", len(presignRes.URLs))
 
 	// Upload object using presigned PUT URLs
 	parts := []models.MultipartUploadPart{}
@@ -166,23 +159,19 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		}
 		partBytes := fileBytes[start : start+current]
 
-		console.Verbose("Part bytes [%d:%d]: %v", start, start+current, partBytes)
-
 		res, err = httpw.Put(httpw.RequestParams{
 			URL:  url,
 			Body: bytes.NewReader(partBytes),
 		})
 		if err != nil {
-			console.ErrorPrintV("Error uploading part %d: %v", i, err)
-			panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+			panic(console.Error("Error uploading part %d of file \"%s\": %v", i, params.FilePath, err))
 		}
 
 		// Parse response
 		var resJson map[string]interface{}
 		err = json.NewDecoder(res.Body).Decode(&resJson)
 		if err != nil {
-			console.ErrorPrintV("Error parsing presign response: %v", err)
-			panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+			panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
 		}
 
 		parts = append(parts, models.MultipartUploadPart{
@@ -204,8 +193,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 	complBodyJson, err := json.Marshal(complBodyData)
 	if err != nil {
-		console.ErrorPrintV("Error marshalling complete multipart upload request body: %v", err)
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Error marshalling \"complete multipart upload\" request body for file \"%s\": %v", params.FilePath, err))
 	}
 	_, err = httpw.Post(httpw.RequestParams{
 		URL:         api.BuildURLf("projects/%s/storage/multipart/complete", params.ProjectID),
@@ -213,8 +201,7 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		AccessToken: params.GC.Auth.AccessToken,
 	})
 	if err != nil {
-		console.ErrorPrintV("Error completing multipart upload: %v", err)
-		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
+		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
 	}
 }
 
