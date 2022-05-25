@@ -37,36 +37,19 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	defer cancel()
 
 	startTime := time.Now()
-
-	// TODO: Get pool size from global config
-	pool := workerpool.New(128)
 	bar := progressbar.Default(int64(len(hashMap)))
 
-	// Upload objects in parallel (limited to pool size)
+	// Upload objects
+	// TODO: Use workerpool (was removed due to reliability issues)
 	for path, hash := range hashMap {
-		pool.Submit(func() {
-			uploadRoutine(ctx, uploadRoutineParams{
-				ProjectID: projectId,
-				FilePath:  path,
-				Hash:      hash,
-				Bar:       bar,
-				GC:        &gc,
-			})
+		uploadRoutine(ctx, uploadRoutineParams{
+			ProjectID: projectId,
+			FilePath:  path,
+			Hash:      hash,
+			Bar:       bar,
+			GC:        &gc,
 		})
 	}
-
-	// Wait for uploads to finish
-	pool.StopWait()
-
-	// Upload objects sequentially
-	// for hash, url := range hashUrlMap {
-	// 	path := util.ReverseLookup(hashMap, hash)
-	// 	uploadRoutine(ctx, uploadRoutineParams{
-	// 		FilePath: path,
-	// 		URL:      url,
-	// 		Bar:      bar,
-	// 	})
-	// }
 
 	endTime := time.Now()
 	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
@@ -82,7 +65,6 @@ type uploadRoutineParams struct {
 }
 
 // Upload object to storage. Can be multipart or in full.
-// Intended to be ran as a goroutine.
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	defer params.Bar.Add(1)
 
