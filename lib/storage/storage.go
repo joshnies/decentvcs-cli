@@ -81,6 +81,8 @@ type uploadRoutineParams struct {
 	GC        *models.GlobalConfig
 }
 
+// Upload object to storage. Can be multipart or in full.
+// Intended to be ran as a goroutine.
 func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	defer params.Bar.Add(1)
 
@@ -98,9 +100,20 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 	fileSize := info.Size()
 
+	if fileSize < 5*1024*1024 {
+		console.Verbose("[%s] Uploading in full...", params.Hash)
+		uploadRoutineSingle(ctx, params, file, fileSize)
+	} else {
+		console.Verbose("[%s] Uploading in chunks...", params.Hash)
+		uploadRoutineMultipart(ctx, params, file, fileSize)
+	}
+}
+
+// Upload object in full to storage.
+func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, file *os.File, fileSize int64) {
 	// Read file into byte array
 	fileBytes := make([]byte, fileSize)
-	_, err = file.Read(fileBytes)
+	_, err := file.Read(fileBytes)
 	if err != nil {
 		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
 	}
@@ -115,6 +128,77 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		contentType = mtype.String()
 	}
 
+	// Presign object
+	bodyData := models.PresignOneRequestBody{
+		Key:         params.Hash,
+		Multipart:   false,
+		Size:        fileSize,
+		ContentType: contentType,
+	}
+	bodyJson, err := json.Marshal(bodyData)
+	if err != nil {
+		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
+	}
+
+	res, err := httpw.Post(httpw.RequestParams{
+		URL:         api.BuildURLf("projects/%s/storage/presign/put", params.ProjectID),
+		Body:        bytes.NewBuffer(bodyJson),
+		AccessToken: params.GC.Auth.AccessToken,
+	})
+	if err != nil {
+		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
+	}
+
+	// Parse response
+	var presignRes models.PresignOneResponse
+	err = json.NewDecoder(res.Body).Decode(&presignRes)
+	if err != nil {
+		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
+	}
+
+	if presignRes.UploadID != "" {
+		panic(console.Error("Presigned upload returned with an upload ID for non-multipart upload of file \"%s\"", params.FilePath))
+	}
+
+	if len(presignRes.URLs) != 1 {
+		panic(console.Error("Presigned upload returned with %d URLs for non-multipart upload of file \"%s\"", len(presignRes.URLs), params.FilePath))
+	}
+
+	// Upload using presigned URL
+	url := presignRes.URLs[0]
+	console.Verbose("[%s] Uploading...", params.Hash)
+	_, err = httpw.Put(httpw.RequestParams{
+		URL:  url,
+		Body: bytes.NewBuffer(fileBytes),
+	})
+	if err != nil {
+		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
+	}
+
+	console.Verbose("[%s] Uploaded", params.Hash)
+}
+
+// Upload a file in chunks to storage.
+func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, file *os.File, fileSize int64) {
+	// Read file into byte array
+	fileBytes := make([]byte, fileSize)
+	_, err := file.Read(fileBytes)
+	if err != nil {
+		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+	}
+
+	// Get MIME type
+	var contentType string
+	mtype, err := mimetype.DetectReader(file)
+	if err != nil {
+		contentType = "application/octet-stream"
+		console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
+	} else {
+		contentType = mtype.String()
+	}
+
+	// Presign object
+	console.Verbose("[%s] Presigning...", params.Hash)
 	bodyData := models.PresignOneRequestBody{
 		Key:         params.Hash,
 		Multipart:   true,
@@ -143,7 +227,11 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 
 	if presignRes.UploadID == "" {
-		panic(console.Error("Presigned upload returned with no upload ID for file \"%s\"", params.FilePath))
+		panic(console.Error("Presigned multipart upload returned with no upload ID for file \"%s\"", params.FilePath))
+	}
+
+	if len(presignRes.URLs) <= 1 {
+		panic(console.Error("Presigned multipart upload returned with %d URLs for file \"%s\"", len(presignRes.URLs), params.FilePath))
 	}
 
 	// Upload object using presigned PUT URLs
@@ -151,6 +239,8 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	var start, current int64
 	remaining := fileSize
 	for i, url := range presignRes.URLs {
+		console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, i+1, len(presignRes.URLs))
+
 		// Get file part as byte array
 		if remaining < config.I.Storage.PartSize {
 			current = remaining
@@ -182,9 +272,12 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		partBytesLen := int64(len(partBytes))
 		start += partBytesLen
 		remaining -= partBytesLen
+
+		console.Verbose("[%s] (Part %d/%d) Uploaded", params.Hash, i+1, len(presignRes.URLs))
 	}
 
 	// Complete multipart upload
+	console.Verbose("[%s] Completing...", params.Hash)
 	complBodyData := models.CompleteMultipartUploadRequestBody{
 		UploadId: presignRes.UploadID,
 		Key:      params.Hash,
@@ -202,6 +295,8 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	if err != nil {
 		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
 	}
+
+	console.Verbose("[%s] Complete", params.Hash)
 }
 
 // Download many objects from storage to local file system.
