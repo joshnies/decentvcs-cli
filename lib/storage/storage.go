@@ -100,20 +100,9 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 	fileSize := info.Size()
 
-	if fileSize < 5*1024*1024 {
-		console.Verbose("[%s] Uploading in full...", params.Hash)
-		uploadRoutineSingle(ctx, params, file, fileSize)
-	} else {
-		console.Verbose("[%s] Uploading in chunks...", params.Hash)
-		uploadRoutineMultipart(ctx, params, file, fileSize)
-	}
-}
-
-// Upload object in full to storage.
-func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, file *os.File, fileSize int64) {
 	// Read file into byte array
 	fileBytes := make([]byte, fileSize)
-	_, err := file.Read(fileBytes)
+	_, err = file.Read(fileBytes)
 	if err != nil {
 		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
 	}
@@ -128,6 +117,17 @@ func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, file *
 		contentType = mtype.String()
 	}
 
+	if fileSize < 5*1024*1024 {
+		console.Verbose("[%s] Uploading in full...", params.Hash)
+		uploadRoutineSingle(ctx, params, contentType, fileSize, fileBytes)
+	} else {
+		console.Verbose("[%s] Uploading in chunks...", params.Hash)
+		uploadRoutineMultipart(ctx, params, contentType, fileSize, fileBytes)
+	}
+}
+
+// Upload object in full to storage.
+func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, contentType string, fileSize int64, fileBytes []byte) {
 	// Presign object
 	bodyData := models.PresignOneRequestBody{
 		Key:         params.Hash,
@@ -179,24 +179,7 @@ func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, file *
 }
 
 // Upload a file in chunks to storage.
-func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, file *os.File, fileSize int64) {
-	// Read file into byte array
-	fileBytes := make([]byte, fileSize)
-	_, err := file.Read(fileBytes)
-	if err != nil {
-		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
-	}
-
-	// Get MIME type
-	var contentType string
-	mtype, err := mimetype.DetectReader(file)
-	if err != nil {
-		contentType = "application/octet-stream"
-		console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
-	} else {
-		contentType = mtype.String()
-	}
-
+func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, contentType string, fileSize int64, fileBytes []byte) {
 	// Presign object
 	console.Verbose("[%s] Presigning...", params.Hash)
 	bodyData := models.PresignOneRequestBody{
