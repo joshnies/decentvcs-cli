@@ -167,16 +167,15 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 			panic(console.Error("Error uploading part %d of file \"%s\": %v", i, params.FilePath, err))
 		}
 
-		// Parse response
-		var resJson map[string]interface{}
-		err = json.NewDecoder(res.Body).Decode(&resJson)
-		if err != nil {
-			panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
+		// Validate response headers
+		etag := res.Header.Get("ETag")
+		if etag == "" {
+			panic(console.Error("No ETag header returned for part %d of file \"%s\"", i, params.FilePath))
 		}
 
 		parts = append(parts, models.MultipartUploadPart{
 			PartNumber: int32(i + 1),
-			ETag:       resJson["etag"].(string),
+			ETag:       etag,
 		})
 
 		// Update loop variables
