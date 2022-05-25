@@ -150,6 +150,9 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 		panic(console.Error("Failed to upload file \"%s\"", params.FilePath))
 	}
 
+	console.Verbose("Max part size: %d", config.I.Storage.PartSize)
+	console.Verbose("# of parts: %d", len(presignRes.URLs))
+
 	// Upload object using presigned PUT URLs
 	parts := []models.MultipartUploadPart{}
 	var start, current int64
@@ -162,6 +165,8 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 			current = config.I.Storage.PartSize
 		}
 		partBytes := fileBytes[start : start+current]
+
+		console.Verbose("Part bytes [%d:%d]: %v", start, start+current, partBytes)
 
 		res, err = httpw.Put(httpw.RequestParams{
 			URL:  url,
