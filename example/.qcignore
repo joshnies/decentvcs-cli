@@ -1,2 +1,2 @@
 # I'm ignored!
-subdir/.*
+subdir_ignored/.*

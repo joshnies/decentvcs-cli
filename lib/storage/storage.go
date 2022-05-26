@@ -39,17 +39,22 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	startTime := time.Now()
 	bar := progressbar.Default(int64(len(hashMap)))
 
-	// Upload objects
-	// TODO: Use workerpool (was removed due to reliability issues)
+	// Upload objects in parallel
+	pool := workerpool.New(config.I.Storage.UploadPoolSize)
 	for path, hash := range hashMap {
-		uploadRoutine(ctx, uploadRoutineParams{
+		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
+		params := uploadRoutineParams{
 			ProjectID: projectId,
 			FilePath:  path,
 			Hash:      hash,
 			Bar:       bar,
 			GC:        &gc,
+		}
+		pool.Submit(func() {
+			uploadRoutine(ctx, params)
 		})
 	}
+	pool.StopWait()
 
 	endTime := time.Now()
 	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))

@@ -12,6 +12,10 @@ type StorageConfig struct {
 	Bucket string
 	// Multipart upload part size.
 	PartSize int64
+	// Workerpool size for parallel file uploads.
+	UploadPoolSize int
+	// Workerpool size for parallel file downloads.
+	DownloadPoolSize int
 }
 
 type CLIConfig struct {
@@ -38,8 +42,10 @@ func InitConfig() CLIConfig {
 			Host: "http://localhost:8080/v1",
 		},
 		Storage: StorageConfig{
-			Bucket:   "qc-dev",
-			PartSize: 5 * 1024 * 1024, // 5MB
+			Bucket:           "qc-dev",
+			PartSize:         5 * 1024 * 1024, // 5MB
+			UploadPoolSize:   128,
+			DownloadPoolSize: 128,
 		},
 	}
 
