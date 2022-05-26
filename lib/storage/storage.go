@@ -315,20 +315,19 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 		return err
 	}
 
-	// TODO: Get pool size from global config
-	pool := workerpool.New(128)
-	bar := progressbar.Default(int64(len(hashMap)))
-
 	// Download objects in parallel (limited to pool size)
+	pool := workerpool.New(config.I.Storage.DownloadPoolSize)
+	bar := progressbar.Default(int64(len(hashMap)))
 	for hash, url := range hashUrlMap {
 		path := util.ReverseLookup(hashMap, hash)
+		params := downloadRoutineParams{
+			ProjectPath: projectPath,
+			FilePath:    path,
+			URL:         url,
+			Bar:         bar,
+		}
 		pool.Submit(func() {
-			downloadRoutine(ctx, &downloadRoutineParams{
-				ProjectPath: projectPath,
-				FilePath:    path,
-				URL:         url,
-				Bar:         bar,
-			})
+			downloadRoutine(ctx, params)
 		})
 	}
 
@@ -347,7 +346,7 @@ type downloadRoutineParams struct {
 	Bar         *progressbar.ProgressBar
 }
 
-func downloadRoutine(ctx context.Context, params *downloadRoutineParams) {
+func downloadRoutine(ctx context.Context, params downloadRoutineParams) {
 	defer params.Bar.Add(1)
 
 	// Download object using presigned GET URL
