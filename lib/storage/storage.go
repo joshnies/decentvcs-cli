@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -206,48 +207,40 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 		panic(console.Error("Presigned multipart upload returned with %d URLs for file \"%s\"", len(presignRes.URLs), params.FilePath))
 	}
 
-	// Upload object using presigned PUT URLs
-	parts := []models.MultipartUploadPart{}
-	var start, current int64
+	// Split file into chunks
+	chunks := [][]byte{}
+	var start int64
 	remaining := fileSize
-	for i, url := range presignRes.URLs {
-		console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, i+1, len(presignRes.URLs))
-
-		// Get file part as byte array
-		if remaining < config.I.Storage.PartSize {
-			current = remaining
-		} else {
-			current = config.I.Storage.PartSize
-		}
-		partBytes := fileBytes[start : start+current]
-
-		res, err = httpw.Put(httpw.RequestParams{
-			URL:         url,
-			Body:        bytes.NewReader(partBytes),
-			ContentType: contentType,
-		})
-		if err != nil {
-			panic(console.Error("Error uploading part %d of file \"%s\": %v", i, params.FilePath, err))
-		}
-
-		// Validate response headers
-		etag := res.Header.Get("etag")
-		if etag == "" {
-			panic(console.Error("No \"etag\" header returned for part %d of file \"%s\"", i, params.FilePath))
-		}
-
-		parts = append(parts, models.MultipartUploadPart{
-			PartNumber: int32(i + 1),
-			ETag:       etag,
-		})
-
-		// Update loop variables
-		partBytesLen := int64(len(partBytes))
-		start += partBytesLen
-		remaining -= partBytesLen
-
-		console.Verbose("[%s] (Part %d/%d) Uploaded", params.Hash, i+1, len(presignRes.URLs))
+	for remaining > 0 {
+		chunkSize := int64(math.Min(float64(remaining), float64(config.I.Storage.PartSize)))
+		chunks = append(chunks, fileBytes[start:start+chunkSize])
+		start += chunkSize
+		remaining -= chunkSize
 	}
+
+	// Upload parts in parallel (limited to pool size)
+	ch := make(chan models.MultipartUploadPart)
+	parts := []models.MultipartUploadPart{}
+	pool := workerpool.New(config.I.Storage.UploadPoolSize)
+	totalParts := len(chunks)
+	for i, url := range presignRes.URLs {
+		params := uploadPartRoutineParams{
+			ProjectID:   params.ProjectID,
+			URL:         url,
+			Hash:        params.Hash,
+			ContentType: contentType,
+			PartNumber:  i + 1,
+			PartData:    chunks[i],
+			TotalParts:  totalParts,
+		}
+		pool.Submit(func() {
+			uploadPartRoutine(ctx, ch, params)
+		})
+		parts = append(parts, <-ch)
+	}
+
+	// Wait for part uploads to finish
+	pool.StopWait()
 
 	// Complete multipart upload
 	console.Verbose("[%s] Completing...", params.Hash)
@@ -270,6 +263,43 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 	}
 
 	console.Verbose("[%s] Complete", params.Hash)
+}
+
+type uploadPartRoutineParams struct {
+	ProjectID   string
+	URL         string
+	Hash        string
+	ContentType string
+	PartNumber  int
+	PartData    []byte
+	TotalParts  int
+}
+
+func uploadPartRoutine(ctx context.Context, ch chan models.MultipartUploadPart, params uploadPartRoutineParams) {
+	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
+
+	// Upload part
+	res, err := httpw.Put(httpw.RequestParams{
+		URL:         params.URL,
+		Body:        bytes.NewReader(params.PartData),
+		ContentType: params.ContentType,
+	})
+	if err != nil {
+		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
+	}
+
+	// Validate response headers
+	etag := res.Header.Get("etag")
+	if etag == "" {
+		panic(console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber))
+	}
+	console.Verbose("[%s] (Part %d/%d) Uploaded", params.Hash, params.PartNumber, params.TotalParts)
+
+	// Send part to channel
+	ch <- models.MultipartUploadPart{
+		PartNumber: int32(params.PartNumber),
+		ETag:       etag,
+	}
 }
 
 // Download many objects from storage to local file system.
