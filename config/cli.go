@@ -45,7 +45,7 @@ func InitConfig() CLIConfig {
 			Bucket:           "qc-dev",
 			PartSize:         5 * 1024 * 1024, // 5MB
 			UploadPoolSize:   128,
-			DownloadPoolSize: 128,
+			DownloadPoolSize: 32,
 		},
 	}
 

@@ -110,8 +110,8 @@ func upload(ctx context.Context, params uploadParams) {
 
 	contentType := "application/octet-stream"
 
-	if fileSize < 5*1024*1024 {
-		// Upload in one go (file is < 5MB)
+	if fileSize < config.I.Storage.PartSize {
+		// Upload in one go
 		console.Verbose("[%s] Uploading in full...", params.Hash)
 		uploadSingle(ctx, params, contentType, fileSize, fileBytes)
 	} else {
@@ -361,6 +361,9 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 	for hash, url := range hashUrlMap {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
 		path := util.ReverseLookup(hashMap, hash)
+		if path == "" {
+			return console.Error("Unknown file hash \"%s\"", hash)
+		}
 		params := downloadParams{
 			ProjectPath: projectPath,
 			FilePath:    path,
