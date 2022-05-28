@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/TwiN/go-color v1.1.0
 	github.com/cespare/xxhash/v2 v2.1.2
-	github.com/gabriel-vasile/mimetype v1.4.0
 	github.com/gammazero/workerpool v1.1.2
 	github.com/grokify/go-pkce v0.2.0
 	github.com/lucsky/cuid v1.2.1
@@ -26,7 +25,6 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20220519141025-dcacdad47464 // indirect
 	golang.org/x/term v0.0.0-20220411215600-e5f449aeb171 // indirect
 )
