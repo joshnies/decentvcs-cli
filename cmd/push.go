@@ -86,6 +86,7 @@ func Push(c *cli.Context) error {
 
 	// TODO: Create commit after uploads are complete?
 	console.Verbose("Creating commit...")
+	startTime = time.Now()
 
 	// Create commit in database
 	bodyJson, _ := json.Marshal(map[string]any{
@@ -140,6 +141,7 @@ func Push(c *cli.Context) error {
 		}
 	}
 
-	console.Success("Commit #%d pushed", commit.Index)
+	timeElapsed = time.Since(startTime).Truncate(time.Microsecond)
+	console.Success("Commit #%d pushed in %s", commit.Index, timeElapsed)
 	return nil
 }
