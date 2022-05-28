@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gammazero/workerpool"
@@ -226,29 +227,25 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	}
 
 	// Upload parts in parallel (limited to pool size)
-	ch := make(chan models.MultipartUploadPart)
+	// TODO: Parallelize this
 	parts := []models.MultipartUploadPart{}
-	pool := workerpool.New(config.I.Storage.UploadPoolSize)
 	totalParts := len(chunks)
 	for i, url := range presignRes.URLs {
-		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
-		params := uploadPartParams{
+		partNum := i + 1
+		p, err := uploadPart(ctx, uploadPartParams{
 			ProjectID:   params.ProjectID,
 			URL:         url,
 			Hash:        params.Hash,
 			ContentType: contentType,
-			PartNumber:  i + 1,
+			PartNumber:  partNum,
 			PartData:    chunks[i],
 			TotalParts:  totalParts,
-		}
-		pool.Submit(func() {
-			uploadPart(ctx, ch, params)
 		})
-		parts = append(parts, <-ch)
+		if err != nil {
+			panic(console.Error("Error uploading part %d of file \"%s\": %v", partNum, params.FilePath, err))
+		}
+		parts = append(parts, p)
 	}
-
-	// Wait for part uploads to finish
-	pool.StopWait()
 
 	// Complete multipart upload
 	console.Verbose("[%s] Completing...", params.Hash)
@@ -285,7 +282,7 @@ type uploadPartParams struct {
 
 // Upload part to storage for a multipart upload.
 // Must be called as a goroutine.
-func uploadPart(ctx context.Context, ch chan models.MultipartUploadPart, params uploadPartParams) {
+func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartUploadPart, error) {
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
 	// Upload part
@@ -295,21 +292,21 @@ func uploadPart(ctx context.Context, ch chan models.MultipartUploadPart, params 
 		ContentType: params.ContentType,
 	})
 	if err != nil {
-		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
+		return models.MultipartUploadPart{}, console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err)
 	}
 
 	// Validate response headers
 	etag := res.Header.Get("etag")
 	if etag == "" {
-		panic(console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber))
+		return models.MultipartUploadPart{}, console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber)
 	}
-	console.Verbose("[%s] (Part %d/%d) Uploaded", params.Hash, params.PartNumber, params.TotalParts)
+	console.Verbose("[%s] (Part %d/%d) Uploaded; ETag: %s", params.Hash, params.PartNumber, params.TotalParts, etag)
 
 	// Send part to channel
-	ch <- models.MultipartUploadPart{
+	return models.MultipartUploadPart{
 		PartNumber: int32(params.PartNumber),
-		ETag:       etag,
-	}
+		ETag:       strings.ReplaceAll(etag, "\"", ""),
+	}, nil
 }
 
 // Download many objects from storage to local file system.

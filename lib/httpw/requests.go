@@ -95,19 +95,19 @@ func SendRequest(method string, params RequestParams) (*http.Response, error) {
 		return res, err
 	}
 
-	// Print request
-	dump, err := httputil.DumpRequestOut(req, false)
-	if err != nil {
-		console.ErrorPrintV("Failed to dump request: %s", err)
-	}
-	console.Verbose("Request:\n%s\n", string(dump))
+	// // Print request
+	// dump, err := httputil.DumpRequestOut(req, false)
+	// if err != nil {
+	// 	console.ErrorPrintV("Failed to dump request: %s", err)
+	// }
+	// console.Verbose("Request:\n%s\n", string(dump))
 
-	// Print response
-	dump, err = httputil.DumpResponse(res, true)
-	if err != nil {
-		console.ErrorPrintV("Failed to dump response: %s", err)
-	}
-	console.Verbose("Response:\n%s\n", string(dump))
+	// // Print response
+	// dump, err = httputil.DumpResponse(res, true)
+	// if err != nil {
+	// 	console.ErrorPrintV("Failed to dump response: %s", err)
+	// }
+	// console.Verbose("Response:\n%s\n", string(dump))
 
 	return res, nil
 }
