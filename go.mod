@@ -11,13 +11,10 @@ require (
 	github.com/samber/lo v1.17.0
 	github.com/schollz/progressbar/v3 v3.8.6
 	github.com/urfave/cli/v2 v2.4.8
-	github.com/vbauerster/mpb/v7 v7.4.1
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17
 )
 
 require (
-	github.com/VividCortex/ewma v1.2.0 // indirect
-	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/gammazero/deque v0.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
