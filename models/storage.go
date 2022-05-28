@@ -15,7 +15,7 @@ type PresignObjectData struct {
 
 // Request body for `PresignMany` route.
 type PresignManyRequestBody struct {
-	Data map[string]PresignObjectData `json:"data"`
+	Keys []string `json:"keys"`
 }
 
 // Request body for `PresignOne` route.

@@ -294,8 +294,8 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 
 	// Get presigned URLs
 	console.Verbose("Presigning all objects...")
-	bodyData := map[string][]string{
-		"keys": maps.Values(hashMap),
+	bodyData := models.PresignManyRequestBody{
+		Keys: maps.Values(hashMap),
 	}
 	bodyJson, err := json.Marshal(bodyData)
 	if err != nil {
