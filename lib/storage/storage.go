@@ -303,7 +303,7 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 	}
 
 	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/presign/many/get", projectId),
+		URL:         api.BuildURLf("projects/%s/storage/presign/many", projectId),
 		Body:        bytes.NewBuffer(bodyJson),
 		AccessToken: gc.Auth.AccessToken,
 	})
