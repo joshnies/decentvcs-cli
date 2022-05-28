@@ -220,17 +220,18 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 		partBytes := fileBytes[start : start+current]
 
 		res, err = httpw.Put(httpw.RequestParams{
-			URL:  url,
-			Body: bytes.NewReader(partBytes),
+			URL:         url,
+			Body:        bytes.NewReader(partBytes),
+			ContentType: "application/octet-stream",
 		})
 		if err != nil {
 			panic(console.Error("Error uploading part %d of file \"%s\": %v", i, params.FilePath, err))
 		}
 
 		// Validate response headers
-		etag := res.Header.Get("ETag")
+		etag := res.Header.Get("etag")
 		if etag == "" {
-			panic(console.Error("No ETag header returned for part %d of file \"%s\"", i, params.FilePath))
+			panic(console.Error("No \"etag\" header returned for part %d of file \"%s\"", i, params.FilePath))
 		}
 
 		parts = append(parts, models.MultipartUploadPart{
