@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gabriel-vasile/mimetype"
 	"github.com/gammazero/workerpool"
 	"github.com/joshnies/qc/config"
 	"github.com/joshnies/qc/lib/api"
@@ -95,14 +94,16 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 	}
 
 	// Get MIME type
-	var contentType string
-	mtype, err := mimetype.DetectReader(file)
-	if err != nil {
-		contentType = "application/octet-stream"
-		console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
-	} else {
-		contentType = mtype.String()
-	}
+	// var contentType string
+	// mtype, err := mimetype.DetectReader(file)
+	// if err != nil {
+	// 	contentType = "application/octet-stream"
+	// 	console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
+	// } else {
+	// 	contentType = mtype.String()
+	// }
+
+	contentType := "application/octet-stream"
 
 	if fileSize < 5*1024*1024 {
 		console.Verbose("[%s] Uploading in full...", params.Hash)
@@ -155,8 +156,9 @@ func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, conten
 	url := presignRes.URLs[0]
 	console.Verbose("[%s] Uploading...", params.Hash)
 	_, err = httpw.Put(httpw.RequestParams{
-		URL:  url,
-		Body: bytes.NewBuffer(fileBytes),
+		URL:         url,
+		Body:        bytes.NewBuffer(fileBytes),
+		ContentType: contentType,
 	})
 	if err != nil {
 		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
@@ -222,7 +224,7 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 		res, err = httpw.Put(httpw.RequestParams{
 			URL:         url,
 			Body:        bytes.NewReader(partBytes),
-			ContentType: "application/octet-stream",
+			ContentType: contentType,
 		})
 		if err != nil {
 			panic(console.Error("Error uploading part %d of file \"%s\": %v", i, params.FilePath, err))
