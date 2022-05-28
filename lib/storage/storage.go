@@ -43,7 +43,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	pool := workerpool.New(config.I.Storage.UploadPoolSize)
 	for path, hash := range hashMap {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
-		params := uploadRoutineParams{
+		params := uploadParams{
 			ProjectID: projectId,
 			FilePath:  path,
 			Hash:      hash,
@@ -51,7 +51,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			GC:        &gc,
 		}
 		pool.Submit(func() {
-			uploadRoutine(ctx, params)
+			upload(ctx, params)
 		})
 	}
 	pool.StopWait()
@@ -61,7 +61,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	return nil
 }
 
-type uploadRoutineParams struct {
+type uploadParams struct {
 	ProjectID string
 	FilePath  string
 	Hash      string
@@ -70,7 +70,8 @@ type uploadRoutineParams struct {
 }
 
 // Upload object to storage. Can be multipart or in full.
-func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
+// Intended to be called as a goroutine.
+func upload(ctx context.Context, params uploadParams) {
 	defer params.Bar.Add(1)
 
 	// Open local file
@@ -108,15 +109,16 @@ func uploadRoutine(ctx context.Context, params uploadRoutineParams) {
 
 	if fileSize < 5*1024*1024 {
 		console.Verbose("[%s] Uploading in full...", params.Hash)
-		uploadRoutineSingle(ctx, params, contentType, fileSize, fileBytes)
+		uploadSingle(ctx, params, contentType, fileSize, fileBytes)
 	} else {
 		console.Verbose("[%s] Uploading in chunks...", params.Hash)
-		uploadRoutineMultipart(ctx, params, contentType, fileSize, fileBytes)
+		uploadMultipart(ctx, params, contentType, fileSize, fileBytes)
 	}
 }
 
 // Upload object in full to storage.
-func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, contentType string, fileSize int64, fileBytes []byte) {
+// Intended to be called as a goroutine.
+func uploadSingle(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
 	// Presign object
 	bodyData := models.PresignOneRequestBody{
 		Key:         params.Hash,
@@ -169,7 +171,8 @@ func uploadRoutineSingle(ctx context.Context, params uploadRoutineParams, conten
 }
 
 // Upload a file in chunks to storage.
-func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, contentType string, fileSize int64, fileBytes []byte) {
+// Intended to be called as a goroutine.
+func uploadMultipart(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
 	// Presign object
 	console.Verbose("[%s] Presigning...", params.Hash)
 	bodyData := models.PresignOneRequestBody{
@@ -224,7 +227,8 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 	pool := workerpool.New(config.I.Storage.UploadPoolSize)
 	totalParts := len(chunks)
 	for i, url := range presignRes.URLs {
-		params := uploadPartRoutineParams{
+		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
+		params := uploadPartParams{
 			ProjectID:   params.ProjectID,
 			URL:         url,
 			Hash:        params.Hash,
@@ -234,7 +238,7 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 			TotalParts:  totalParts,
 		}
 		pool.Submit(func() {
-			uploadPartRoutine(ctx, ch, params)
+			uploadPart(ctx, ch, params)
 		})
 		parts = append(parts, <-ch)
 	}
@@ -265,7 +269,7 @@ func uploadRoutineMultipart(ctx context.Context, params uploadRoutineParams, con
 	console.Verbose("[%s] Complete", params.Hash)
 }
 
-type uploadPartRoutineParams struct {
+type uploadPartParams struct {
 	ProjectID   string
 	URL         string
 	Hash        string
@@ -275,7 +279,9 @@ type uploadPartRoutineParams struct {
 	TotalParts  int
 }
 
-func uploadPartRoutine(ctx context.Context, ch chan models.MultipartUploadPart, params uploadPartRoutineParams) {
+// Upload part to storage for a multipart upload.
+// Must be called as a goroutine.
+func uploadPart(ctx context.Context, ch chan models.MultipartUploadPart, params uploadPartParams) {
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
 	// Upload part
@@ -352,15 +358,16 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 	pool := workerpool.New(config.I.Storage.DownloadPoolSize)
 	bar := progressbar.Default(int64(len(hashMap)))
 	for hash, url := range hashUrlMap {
+		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
 		path := util.ReverseLookup(hashMap, hash)
-		params := downloadRoutineParams{
+		params := downloadParams{
 			ProjectPath: projectPath,
 			FilePath:    path,
 			URL:         url,
 			Bar:         bar,
 		}
 		pool.Submit(func() {
-			downloadRoutine(ctx, params)
+			download(ctx, params)
 		})
 	}
 
@@ -372,14 +379,16 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 	return nil
 }
 
-type downloadRoutineParams struct {
+type downloadParams struct {
 	ProjectPath string
 	FilePath    string
 	URL         string
 	Bar         *progressbar.ProgressBar
 }
 
-func downloadRoutine(ctx context.Context, params downloadRoutineParams) {
+// Download object from storage to local file system.
+// Intended to be called as a goroutine.
+func download(ctx context.Context, params downloadParams) {
 	defer params.Bar.Add(1)
 
 	// Download object using presigned GET URL
