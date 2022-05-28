@@ -54,6 +54,8 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			upload(ctx, params)
 		})
 	}
+
+	// Wait for uploads to finish
 	pool.StopWait()
 
 	endTime := time.Now()
@@ -108,9 +110,11 @@ func upload(ctx context.Context, params uploadParams) {
 	contentType := "application/octet-stream"
 
 	if fileSize < 5*1024*1024 {
+		// Upload in one go (file is < 5MB)
 		console.Verbose("[%s] Uploading in full...", params.Hash)
 		uploadSingle(ctx, params, contentType, fileSize, fileBytes)
 	} else {
+		// Upload as multipart
 		console.Verbose("[%s] Uploading in chunks...", params.Hash)
 		uploadMultipart(ctx, params, contentType, fileSize, fileBytes)
 	}
