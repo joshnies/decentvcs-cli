@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,9 +17,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/lib/util"
 	"github.com/joshnies/quanta/models"
@@ -215,15 +214,21 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	}
 
 	// Get current commit
-	apiUrl := api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
-	commitRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return console.Error("Failed to get commit: %s", err)
 	}
 
 	// Parse commit
 	var commit models.Commit
-	err = json.NewDecoder(commitRes.Body).Decode(&commit)
+	err = json.NewDecoder(res.Body).Decode(&commit)
 	if err != nil {
 		return console.Error("Failed to parse commit: %s", err)
 	}
