@@ -374,7 +374,7 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("projects/%s/storage/presign/many", projectId)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.API.Host, projectId)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
