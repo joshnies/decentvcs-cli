@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/joshnies/quanta-cli/config"
+	"github.com/joshnies/quanta/config"
 )
 
 // Build API URL for given path.

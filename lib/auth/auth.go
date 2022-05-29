@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joshnies/quanta-cli/config"
-	"github.com/joshnies/quanta-cli/constants"
-	"github.com/joshnies/quanta-cli/lib/configio"
-	"github.com/joshnies/quanta-cli/lib/console"
-	"github.com/joshnies/quanta-cli/models"
+	"github.com/joshnies/quanta/config"
+	"github.com/joshnies/quanta/constants"
+	"github.com/joshnies/quanta/lib/configio"
+	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/models"
 )
 
 // Returns true if the user is logged in, false otherwise.

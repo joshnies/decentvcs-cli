@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/joshnies/quanta-cli/constants"
-	"github.com/joshnies/quanta-cli/lib/console"
-	"github.com/joshnies/quanta-cli/models"
+	"github.com/joshnies/quanta/constants"
+	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
 

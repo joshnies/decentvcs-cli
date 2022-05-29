@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/joshnies/quanta-cli/constants"
-	"github.com/joshnies/quanta-cli/lib/console"
-	"github.com/joshnies/quanta-cli/models"
+	"github.com/joshnies/quanta/constants"
+	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/models"
 )
 
 // Save global config to file.

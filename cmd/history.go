@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/quanta-cli/config"
-	"github.com/joshnies/quanta-cli/lib/api"
-	"github.com/joshnies/quanta-cli/lib/auth"
-	"github.com/joshnies/quanta-cli/lib/httpw"
-	"github.com/joshnies/quanta-cli/models"
+	"github.com/joshnies/quanta/config"
+	"github.com/joshnies/quanta/lib/api"
+	"github.com/joshnies/quanta/lib/auth"
+	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
 

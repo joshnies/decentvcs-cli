@@ -6,14 +6,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joshnies/quanta-cli/config"
-	"github.com/joshnies/quanta-cli/constants"
-	"github.com/joshnies/quanta-cli/lib/api"
-	"github.com/joshnies/quanta-cli/lib/console"
-	"github.com/joshnies/quanta-cli/lib/httpw"
-	"github.com/joshnies/quanta-cli/lib/projects"
-	"github.com/joshnies/quanta-cli/lib/storage"
-	"github.com/joshnies/quanta-cli/models"
+	"github.com/joshnies/quanta/config"
+	"github.com/joshnies/quanta/constants"
+	"github.com/joshnies/quanta/lib/api"
+	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/projects"
+	"github.com/joshnies/quanta/lib/storage"
+	"github.com/joshnies/quanta/models"
 	"golang.org/x/exp/maps"
 )
 

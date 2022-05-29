@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/joshnies/quanta-cli/lib/auth"
-	"github.com/joshnies/quanta-cli/lib/projects"
+	"github.com/joshnies/quanta/lib/auth"
+	"github.com/joshnies/quanta/lib/projects"
 	"github.com/urfave/cli/v2"
 )
 
