@@ -15,18 +15,18 @@ func main() {
 
 	// Initialize CLI app
 	app := &cli.App{
-		Name:    "qc",
-		Usage:   "Quanta Control CLI",
+		Name:    "quanta",
+		Usage:   "Quanta CLI",
 		Version: "0.0.1",
 		Commands: []*cli.Command{
 			{
 				Name:   "login",
-				Usage:  "Authenticate with Quanta Control (required to use other commands)",
+				Usage:  "Authenticate with Quanta (required to use other commands)",
 				Action: cmd.LogIn,
 			},
 			{
 				Name:   "logout",
-				Usage:  "Log out of Quanta Control",
+				Usage:  "Log out of Quanta",
 				Action: cmd.LogOut,
 			},
 			{

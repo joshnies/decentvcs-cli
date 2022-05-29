@@ -43,7 +43,7 @@ go run main.go
 ## Usage
 
 ### Ignoring files
-Create a `.qcignore` file in your project. Each line will be read as a regular expression (regex),
+Create a `.quantaignore` file in your project. Each line will be read as a regular expression (regex),
 with all leading and trailing whitespace being ignored. You can also comment out any line with the
 `#` prefix.
 #### Example
