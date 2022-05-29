@@ -3,12 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
@@ -31,15 +31,25 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	// Get specified branch
-	apiUrl := api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, branchName)
-	branchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, branchName)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var branch models.BranchWithCommit
-	err = json.NewDecoder(branchRes.Body).Decode(&branch)
+	err = json.NewDecoder(res.Body).Decode(&branch)
 	if err != nil {
 		return err
 	}
@@ -57,12 +67,20 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	// Soft-delete branch
-	apiUrl = api.BuildURLf("projects/%s/branches/%s", projectConfig.ProjectID, branchName)
-	_, err = httpw.Delete(apiUrl, gc.Auth.AccessToken)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.API.Host, projectConfig.ProjectID, branchName)
+	req, err = http.NewRequest("DELETE", reqUrl, nil)
 	if err != nil {
 		return err
 	}
-
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	res.Body.Close()
 	console.Success("Branch deleted")
 	return nil
 }
