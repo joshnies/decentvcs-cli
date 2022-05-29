@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/models"
@@ -36,16 +36,30 @@ func Push(c *cli.Context) error {
 	}
 
 	// Get current branch w/ current commit
-	apiUrl := api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, projectConfig.CurrentBranchID)
-	currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	// currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer currentBranchRes.Body.Close()
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
-	defer currentBranchRes.Body.Close()
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var currentBranch models.BranchWithCommit
-	err = json.NewDecoder(currentBranchRes.Body).Decode(&currentBranch)
+	err = json.NewDecoder(res.Body).Decode(&currentBranch)
 	if err != nil {
 		return err
 	}
@@ -97,19 +111,25 @@ func Push(c *cli.Context) error {
 		"deleted_files":  fc.DeletedFilePaths,
 		"hash_map":       fc.HashMap,
 	})
-	commitRes, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/commits", projectConfig.ProjectID),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: gc.Auth.AccessToken,
-	})
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.API.Host, projectConfig.ProjectID)
+	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
 	}
-	defer commitRes.Body.Close()
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Content-Type", "application/json")
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse commit
 	var commit models.Commit
-	err = json.NewDecoder(commitRes.Body).Decode(&commit)
+	err = json.NewDecoder(res.Body).Decode(&commit)
 	if err != nil {
 		return err
 	}
