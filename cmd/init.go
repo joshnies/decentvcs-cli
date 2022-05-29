@@ -3,17 +3,18 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
@@ -54,13 +55,19 @@ func Init(c *cli.Context) error {
 	name := filepath.Base(absPath)
 
 	// Create project in API
+	httpClient := http.Client{}
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
-	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURL("projects"),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: gc.Auth.AccessToken,
-	})
+	reqUrl := fmt.Sprintf("%s/projects", config.I.API.Host)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
 		return err
 	}
 	defer res.Body.Close()
