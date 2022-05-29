@@ -1,6 +1,10 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+	"strconv"
+)
 
 type APIConfig struct {
 	// API hostname.
@@ -34,6 +38,26 @@ var I CLIConfig
 
 // Initialize the CLI config.
 func InitConfig() CLIConfig {
+	uploadPoolSizeStr := os.Getenv("UPLOAD_POOL_SIZE")
+	if uploadPoolSizeStr == "" {
+		uploadPoolSizeStr = "128"
+	}
+
+	uploadPoolSize, err := strconv.Atoi(uploadPoolSizeStr)
+	if err != nil {
+		log.Fatal("Invalid UPLOAD_POOL_SIZE")
+	}
+
+	downloadPoolSizeStr := os.Getenv("DOWNLOAD_POOL_SIZE")
+	if downloadPoolSizeStr == "" {
+		downloadPoolSizeStr = "128"
+	}
+
+	downloadPoolSize, err := strconv.Atoi(downloadPoolSizeStr)
+	if err != nil {
+		log.Fatal("Invalid DOWNLOAD_POOL_SIZE")
+	}
+
 	I = CLIConfig{
 		// TODO: Implement sandbox mode.
 		Sandbox: os.Getenv("SANDBOX") == "1",
@@ -44,8 +68,8 @@ func InitConfig() CLIConfig {
 		Storage: StorageConfig{
 			Bucket:           "qc-dev",
 			PartSize:         5 * 1024 * 1024, // 5MB
-			UploadPoolSize:   128,             // TODO: Add as env var
-			DownloadPoolSize: 128,             // TODO: Add as env var
+			UploadPoolSize:   uploadPoolSize,
+			DownloadPoolSize: downloadPoolSize,
 		},
 	}
 
