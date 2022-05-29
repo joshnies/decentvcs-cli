@@ -3,14 +3,14 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
@@ -26,10 +26,21 @@ func ListBranches(c *cli.Context) error {
 	}
 
 	// Get all branches in project
-	res, err := httpw.Get(api.BuildURLf("projects/%s/branches?join_commit=true", projectConfig.ProjectID), gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("projects/%s/branches?join_commit=true", projectConfig.ProjectID)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse branches
 	var branches []models.BranchWithCommit
