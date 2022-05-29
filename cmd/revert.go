@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
 
 	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/commits"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
@@ -29,15 +30,25 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Get current commit by index
-	apiUrl := api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
-	commitRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse commit
 	var currentCommit models.Commit
-	err = json.NewDecoder(commitRes.Body).Decode(&currentCommit)
+	err = json.NewDecoder(res.Body).Decode(&currentCommit)
 	if err != nil {
 		return console.Error("Failed to parse commit: %s", err)
 	}
