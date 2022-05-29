@@ -2,15 +2,16 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
@@ -42,11 +43,21 @@ func CloneProject(c *cli.Context) error {
 	}
 
 	// Get project
-	apiUrl := api.BuildURLf("projects/blob/%s", projectBlob)
-	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/blob/%s", config.I.API.Host, projectBlob)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse project
 	var project models.Project
@@ -58,11 +69,20 @@ func CloneProject(c *cli.Context) error {
 	var branch models.BranchWithCommit
 	if branchName == "" {
 		// Get default branch
-		apiUrl = api.BuildURLf("projects/%s/branches/default?join_commit=true", project.ID)
-		res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/default?join_commit=true", config.I.API.Host, project.ID)
+		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err
 		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		res, err = httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			return err
+		}
+		defer res.Body.Close()
 
 		// Parse branch
 		err = json.NewDecoder(res.Body).Decode(&branch)
@@ -71,11 +91,20 @@ func CloneProject(c *cli.Context) error {
 		}
 	} else {
 		// Get specified branch
-		apiUrl = api.BuildURLf("projects/%s/branches/%s?join_commit=true", project.ID, branchName)
-		res, err = httpw.Get(apiUrl, gc.Auth.AccessToken)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, project.ID, branchName)
+		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err
 		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		res, err = httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			return err
+		}
+		defer res.Body.Close()
 
 		// Parse branch
 		err = json.NewDecoder(res.Body).Decode(&branch)
