@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/qc/config"
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/quanta-cli/config"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/console"
 	"github.com/urfave/cli/v2"
 )
 
@@ -21,7 +21,7 @@ func PrintAuthState(c *cli.Context) error {
 
 	// Check if authenticated
 	if gc.Auth.AccessToken == "" {
-		return console.Error("Not logged in yet. Use `qc login` to log in.")
+		return console.Error(constants.ErrMsgNotAuthenticated)
 	}
 
 	// Print auth data

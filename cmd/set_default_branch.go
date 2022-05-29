@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/joshnies/qc/config"
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/api"
-	"github.com/joshnies/qc/lib/auth"
-	"github.com/joshnies/qc/lib/console"
-	"github.com/joshnies/qc/lib/httpw"
-	"github.com/joshnies/qc/models"
+	"github.com/joshnies/quanta-cli/config"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/api"
+	"github.com/joshnies/quanta-cli/lib/auth"
+	"github.com/joshnies/quanta-cli/lib/console"
+	"github.com/joshnies/quanta-cli/lib/httpw"
+	"github.com/joshnies/quanta-cli/models"
 	"github.com/urfave/cli/v2"
 )
 

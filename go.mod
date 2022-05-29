@@ -1,4 +1,4 @@
-module github.com/joshnies/qc
+module github.com/joshnies/quanta-cli
 
 go 1.18
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/console"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/console"
 )
 
 type RequestParams struct {

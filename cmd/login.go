@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/grokify/go-pkce"
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/auth"
-	"github.com/joshnies/qc/lib/configio"
-	"github.com/joshnies/qc/lib/console"
-	"github.com/joshnies/qc/lib/system"
-	"github.com/joshnies/qc/models"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/auth"
+	"github.com/joshnies/quanta-cli/lib/configio"
+	"github.com/joshnies/quanta-cli/lib/console"
+	"github.com/joshnies/quanta-cli/lib/system"
+	"github.com/joshnies/quanta-cli/models"
 	"github.com/lucsky/cuid"
 	"github.com/urfave/cli/v2"
 )

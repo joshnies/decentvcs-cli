@@ -1,7 +1,7 @@
 package models
 
-// NOTE: This file was copied from qc-api
-// TODO: Use shared model files with qc-api
+// NOTE: This file was copied from quanta-api
+// TODO: Use shared model files with quanta-api
 
 type PresignObjectData struct {
 	// If true, the object will be uploaded as multiple parts.

@@ -8,12 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/joshnies/qc/config"
-	"github.com/joshnies/qc/lib/api"
-	"github.com/joshnies/qc/lib/auth"
-	"github.com/joshnies/qc/lib/console"
-	"github.com/joshnies/qc/lib/httpw"
-	"github.com/joshnies/qc/models"
+	"github.com/joshnies/quanta-cli/config"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/api"
+	"github.com/joshnies/quanta-cli/lib/auth"
+	"github.com/joshnies/quanta-cli/lib/console"
+	"github.com/joshnies/quanta-cli/lib/httpw"
+	"github.com/joshnies/quanta-cli/models"
 	"github.com/urfave/cli/v2"
 )
 
@@ -35,7 +36,7 @@ func Init(c *cli.Context) error {
 	}
 
 	// Make sure path is not already a project
-	if _, err := os.Stat(absPath + "/" + ".qc"); err == nil {
+	if _, err := os.Stat(absPath + "/" + constants.ProjectFileName); err == nil {
 		return console.Error("Project already initialized at %s", absPath)
 	}
 
@@ -81,7 +82,7 @@ func Init(c *cli.Context) error {
 	console.Verbose("Current branch ID: %s", currentBranch.ID)
 	console.Verbose("Current commit index: %d", currentBranch.Commit.Index)
 
-	// Create QC project file
+	// Create project file
 	projectFileData := models.ProjectConfig{
 		ProjectID:          project.ID,
 		CurrentBranchID:    currentBranch.ID,

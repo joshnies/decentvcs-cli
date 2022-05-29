@@ -6,16 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/console"
-	"github.com/joshnies/qc/models"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/console"
+	"github.com/joshnies/quanta-cli/models"
 )
 
-// Get project config from `.qc` file in current directory.
+// Get project config from file in current directory.
 func GetProjectConfig() (models.ProjectConfig, error) {
-	// Open `.qc` file
+	// Open file
 	// TODO: Find project config file within parent directories?
-	jsonFile, err := os.Open(".qc")
+	jsonFile, err := os.Open(constants.ProjectFileName)
 	if err != nil {
 		return models.ProjectConfig{}, console.Error(constants.ErrMsgNoProject)
 	}

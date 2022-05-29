@@ -14,14 +14,14 @@ import (
 
 	"github.com/TwiN/go-color"
 	"github.com/cespare/xxhash/v2"
-	"github.com/joshnies/qc/config"
-	"github.com/joshnies/qc/constants"
-	"github.com/joshnies/qc/lib/api"
-	"github.com/joshnies/qc/lib/console"
-	"github.com/joshnies/qc/lib/httpw"
-	"github.com/joshnies/qc/lib/storage"
-	"github.com/joshnies/qc/lib/util"
-	"github.com/joshnies/qc/models"
+	"github.com/joshnies/quanta-cli/config"
+	"github.com/joshnies/quanta-cli/constants"
+	"github.com/joshnies/quanta-cli/lib/api"
+	"github.com/joshnies/quanta-cli/lib/console"
+	"github.com/joshnies/quanta-cli/lib/httpw"
+	"github.com/joshnies/quanta-cli/lib/storage"
+	"github.com/joshnies/quanta-cli/lib/util"
+	"github.com/joshnies/quanta-cli/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 )
@@ -74,17 +74,17 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 	modifiedFileSizeTotal := int64(0)
 	deletedFileSizeTotal := int64(0)
 
-	// Read .qcignore file
-	qcignorePath := filepath.Join(projectPath, constants.IgnoreFileName)
-	qcignoreFile, err := os.Open(qcignorePath)
+	// Read ignore file
+	ignoreFilePath := filepath.Join(projectPath, constants.IgnoreFileName)
+	ignoreFile, err := os.Open(ignoreFilePath)
 	if err != nil && !os.IsNotExist(err) {
 		return FileChangeDetectionResult{}, err
 	}
-	defer qcignoreFile.Close()
+	defer ignoreFile.Close()
 
-	// Read .qcignore file
+	// Read ignore file
 	ignoredFilePatterns := []string{}
-	scanner := bufio.NewScanner(qcignoreFile)
+	scanner := bufio.NewScanner(ignoreFile)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" && !strings.HasPrefix(line, "#") {
@@ -98,7 +98,7 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 			return err
 		}
 
-		// Skip directories and QC project file (`.qc`)
+		// Skip directories and Quanta project file
 		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
 		}
