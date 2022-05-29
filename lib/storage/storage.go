@@ -263,8 +263,8 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		panic(console.Error("Presigned multipart upload returned with no upload ID for file \"%s\"", params.FilePath))
 	}
 
-	if len(presignRes.URLs) <= 1 {
-		panic(console.Error("Presigned multipart upload returned with %d URLs for file \"%s\"", len(presignRes.URLs), params.FilePath))
+	if len(presignRes.URLs) == 0 {
+		panic(console.Error("No URLs returned while presigning multipart upload for file \"%s\"", params.FilePath))
 	}
 
 	// Split file into chunks
