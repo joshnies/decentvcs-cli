@@ -502,6 +502,14 @@ func download(ctx context.Context, params downloadParams) {
 		panic(console.Error("Failed to read downloaded file \"%s\": %v", path, err))
 	}
 
+	// Check for slow-down response
+	// Filebase sends a "slow down" XML error response when sending requests too rapidly from a single IP
+	// NOTE: Storage providers other than Filebase are not currently handled
+	if len(dData) == len([]byte(constants.SlowDownFileContents)) && string(dData) == constants.SlowDownFileContents {
+		// TODO: Retry file later on until successful, up to a limit
+		panic(console.Error("Received slow-down error from storage provider for file \"%s\". This shouldn't happen, please contact support!", params.FilePath))
+	}
+
 	// Check if zstd compressed
 	if header := hex.EncodeToString(dData[:4]); header == constants.ZstdHeader {
 		console.Verbose("Decompressing file \"%s\"...", path)

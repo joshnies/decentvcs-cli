@@ -48,7 +48,7 @@ func InitConfig() CLIConfig {
 
 	downloadPoolSizeStr := os.Getenv("DOWNLOAD_POOL_SIZE")
 	if downloadPoolSizeStr == "" {
-		downloadPoolSizeStr = "128"
+		downloadPoolSizeStr = "32"
 	}
 
 	downloadPoolSize, err := strconv.Atoi(downloadPoolSizeStr)
