@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/joshnies/quanta/constants"
 	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 )
 
 type RequestParams struct {
@@ -75,7 +75,7 @@ func SendRequest(method string, params RequestParams) (*http.Response, error) {
 	}
 
 	// Validate response
-	if err = validateResponse(res); err != nil {
+	if err = httpvalidation.ValidateResponse(res); err != nil {
 		// Dump request
 		dump, err := httputil.DumpRequestOut(req, false)
 		if err != nil {
@@ -160,33 +160,4 @@ func Post(params RequestParams) (*http.Response, error) {
 //
 func Put(params RequestParams) (*http.Response, error) {
 	return SendRequest("PUT", params)
-}
-
-// Validate HTTP response.
-//
-// @param res - HTTP response
-//
-// Returns any error that occurred.
-//
-func validateResponse(res *http.Response) error {
-	// Check response status
-	switch res.StatusCode {
-	case http.StatusUnauthorized:
-		return console.Error("Unauthorized")
-	case http.StatusNotFound:
-		return console.Error("Resource not found")
-	case http.StatusRequestTimeout:
-		return console.Error("HTTP request timed out")
-	case http.StatusConflict:
-		return console.Error("Resource already exists")
-	case http.StatusBadRequest:
-		return console.Error("Bad request")
-	}
-
-	// Handle all other bad response status codes
-	if res.StatusCode >= 300 {
-		return console.Error(constants.ErrMsgInternal)
-	}
-
-	return nil
 }

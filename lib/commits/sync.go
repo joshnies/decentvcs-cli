@@ -3,6 +3,7 @@ package commits
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/joshnies/quanta/constants"
 	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/httpw"
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
@@ -20,10 +22,19 @@ import (
 // Sync to a specific commit.
 func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int, confirm bool) error {
 	console.Verbose("Getting current commit...")
+	httpClient := &http.Client{}
 
 	// Get current commit
-	commitRes, err := httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, projectConfig.CurrentCommitIndex), gc.Auth.AccessToken)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex), nil)
 	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	commitRes, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(commitRes); err != nil {
 		return err
 	}
 	defer commitRes.Body.Close()
