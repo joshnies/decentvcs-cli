@@ -3,13 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
@@ -31,11 +31,21 @@ func PrintHistory(c *cli.Context) error {
 	}
 
 	// Get commits up to limit
-	apiUrl := api.BuildURLf("projects/%s/commits?limit=%d", projectConfig.ProjectID, limit)
-	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/commits?limit=%d", config.I.API.Host, projectConfig.ProjectID, limit)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var commits []models.CommitWithBranch
