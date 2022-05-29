@@ -3,8 +3,10 @@ package storage
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/gammazero/workerpool"
 	"github.com/joshnies/quanta/config"
+	"github.com/joshnies/quanta/constants"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
 	"github.com/joshnies/quanta/lib/httpvalidation"
@@ -119,7 +122,7 @@ func upload(ctx context.Context, params uploadParams) {
 		// MULTIPART
 		//
 		// Compress file
-		tempFile, err := os.CreateTemp(filepath.Dir(params.FilePath), filepath.Base(params.FilePath)+".temp-")
+		tempFile, err := os.CreateTemp(filepath.Dir(params.FilePath), filepath.Base(params.FilePath)+".tmp-")
 		if err != nil {
 			panic(console.Error("Failed to open temp file for compression: %v", err))
 		}
@@ -480,16 +483,56 @@ func download(ctx context.Context, params downloadParams) {
 		panic(console.Error("Failed to create directory \"%s\": %v", dirPath, err))
 	}
 
-	// Create file (overwrite)
-	file, err := os.Create(path)
+	// Create file for downloaded data, which may be compressed
+	dFile, err := os.Create(path)
 	if err != nil {
 		panic(console.Error("Failed to create file \"%s\": %v", path, err))
 	}
-	defer file.Close()
+	defer dFile.Close()
 
-	// Decompress file into local file
-	err = Decompress(res.Body, file)
+	// Write downloaded file
+	_, err = io.Copy(dFile, res.Body)
 	if err != nil {
-		panic(console.Error("Failed to decompress and write file \"%s\": %v", path, err))
+		panic(console.Error("Failed to write downloaded file \"%s\": %v", path, err))
+	}
+
+	// Read downloaded file
+	dData, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(console.Error("Failed to read downloaded file \"%s\": %v", path, err))
+	}
+
+	// Check if zstd compressed
+	if header := hex.EncodeToString(dData[:4]); header == constants.ZstdHeader {
+		console.Verbose("Decompressing file \"%s\"...", path)
+		// File is compressed via zstd, decompress it
+		//
+		// Rename compressed file to .zst extension
+		compFilePath := path + ".zst"
+		err = os.Rename(path, compFilePath)
+		if err != nil {
+			panic(console.Error("Failed to rename compressed file \"%s\" to \"%s\": %v", path, compFilePath, err))
+		}
+
+		// Create file for decompressed data
+		dcFile, err := os.Create(path)
+		if err != nil {
+			panic(console.Error("Failed to create file \"%s\" for decompression: %v", path, err))
+		}
+		defer dcFile.Close()
+
+		// Decompress file into local file
+		err = Decompress(bytes.NewBuffer(dData), dcFile)
+		if err != nil {
+			panic(console.Error("Failed to decompress file \"%s\": %v", path, err))
+		}
+
+		// Delete compressed file
+		err = os.Remove(compFilePath)
+		if err != nil {
+			panic(console.Error("Failed to delete compressed file \"%s\": %v", path, err))
+		}
+
+		console.Verbose("File \"%s\" decompressed successfully", path)
 	}
 }

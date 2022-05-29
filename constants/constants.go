@@ -17,3 +17,6 @@ const ErrMsgNoProject = "No project found in current directory. You can use `qua
 
 // Formatting
 const TimeFormat = "2006-01-02 @ 03:04:05pm"
+
+// zstd
+const ZstdHeader = "28b52ffd"
