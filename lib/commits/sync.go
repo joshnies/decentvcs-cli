@@ -12,7 +12,6 @@ import (
 	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/console"
 	"github.com/joshnies/quanta/lib/httpvalidation"
-	"github.com/joshnies/quanta/lib/httpw"
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/models"
@@ -53,8 +52,16 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		console.Verbose("Getting current branch with latest commit...")
 
 		// Get current branch with latest commit
-		res, err := httpw.Get(api.BuildURLf("projects/%s/branches/%s?join_commit=true", projectConfig.ProjectID, projectConfig.CurrentBranchID), gc.Auth.AccessToken)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID), nil)
 		if err != nil {
+			return err
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
 			return err
 		}
 		defer res.Body.Close()
@@ -76,14 +83,22 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 
 		// Get user-specified commit
-		commitRes, err = httpw.Get(api.BuildURLf("projects/%s/commits/index/%d", projectConfig.ProjectID, commitIndex), gc.Auth.AccessToken)
+		req, err = http.NewRequest("GET", api.BuildURLf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, commitIndex), nil)
 		if err != nil {
 			return err
 		}
-		defer commitRes.Body.Close()
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			return err
+		}
+		defer res.Body.Close()
 
 		// Parse commit
-		err = json.NewDecoder(commitRes.Body).Decode(&toCommit)
+		err = json.NewDecoder(res.Body).Decode(&toCommit)
 		if err != nil {
 			return console.Error(constants.ErrMsgInternal)
 		}
