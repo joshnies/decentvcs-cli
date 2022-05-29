@@ -1,10 +1,8 @@
 package httpvalidation
 
 import (
+	"fmt"
 	"net/http"
-
-	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/console"
 )
 
 // Validate HTTP response.
@@ -17,20 +15,20 @@ func ValidateResponse(res *http.Response) error {
 	// Check response status
 	switch res.StatusCode {
 	case http.StatusUnauthorized:
-		return console.Error("Unauthorized")
+		return fmt.Errorf("unauthorized")
 	case http.StatusNotFound:
-		return console.Error("Resource not found")
+		return fmt.Errorf("resource not found")
 	case http.StatusRequestTimeout:
-		return console.Error("HTTP request timed out")
+		return fmt.Errorf("request timed out")
 	case http.StatusConflict:
-		return console.Error("Resource already exists")
+		return fmt.Errorf("resource already exists")
 	case http.StatusBadRequest:
-		return console.Error("Bad request")
+		return fmt.Errorf("bad request")
 	}
 
 	// Handle all other bad response status codes
 	if res.StatusCode >= 300 {
-		return console.Error(constants.ErrMsgInternal)
+		return fmt.Errorf("received http status: %s", res.Status)
 	}
 
 	return nil

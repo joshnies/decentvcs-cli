@@ -18,6 +18,7 @@ import (
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
 	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/lib/util"
 	"github.com/joshnies/quanta/models"
@@ -225,6 +226,10 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	if err != nil {
 		return console.Error("Failed to get commit: %s", err)
 	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return console.Error("Failed to get commit: %s", err)
+	}
+	defer res.Body.Close()
 
 	// Parse commit
 	var commit models.Commit

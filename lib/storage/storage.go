@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +15,9 @@ import (
 
 	"github.com/gammazero/workerpool"
 	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/util"
 	"github.com/joshnies/quanta/models"
 	"github.com/schollz/progressbar/v3"
@@ -136,14 +137,22 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
 	}
 
-	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/storage/presign/put", params.ProjectID),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: params.GC.Auth.AccessToken,
-	})
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.API.Host, params.ProjectID)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
+	res, err := httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
 	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var presignRes models.PresignOneResponse
@@ -161,17 +170,21 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	// Upload using presigned URL
-	url := presignRes.URLs[0]
 	console.Verbose("[%s] Uploading...", params.Hash)
-	_, err = httpw.Put(httpw.RequestParams{
-		URL:         url,
-		Body:        bytes.NewBuffer(fileBytes),
-		ContentType: contentType,
-	})
+	url := presignRes.URLs[0]
+	req, err = http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Content-Type", contentType)
+	res, err = httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
 	}
-
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
+	}
+	res.Body.Close()
 	console.Verbose("[%s] Uploaded", params.Hash)
 }
 
@@ -191,14 +204,22 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
 	}
 
-	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/storage/presign/put", params.ProjectID),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: params.GC.Auth.AccessToken,
-	})
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.API.Host, params.ProjectID)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
+	res, err := httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
 	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var presignRes models.PresignOneResponse
@@ -258,15 +279,22 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	if err != nil {
 		panic(console.Error("Error marshalling \"complete multipart upload\" request body for file \"%s\": %v", params.FilePath, err))
 	}
-	_, err = httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/storage/multipart/complete", params.ProjectID),
-		Body:        bytes.NewBuffer(complBodyJson),
-		AccessToken: params.GC.Auth.AccessToken,
-	})
+
+	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.API.Host, params.ProjectID)
+	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
+	res, err = httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
 	}
-
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
+	}
+	res.Body.Close()
 	console.Verbose("[%s] Complete", params.Hash)
 }
 
@@ -286,14 +314,20 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
 	// Upload part
-	res, err := httpw.Put(httpw.RequestParams{
-		URL:         params.URL,
-		Body:        bytes.NewReader(params.PartData),
-		ContentType: params.ContentType,
-	})
+	httpClient := http.Client{}
+	req, err := http.NewRequest("PUT", params.URL, bytes.NewReader(params.PartData))
+	if err != nil {
+		return models.MultipartUploadPart{}, err
+	}
+	req.Header.Add("Content-Type", params.ContentType)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return models.MultipartUploadPart{}, console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err)
 	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return models.MultipartUploadPart{}, console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err)
+	}
+	defer res.Body.Close()
 
 	// Validate response headers
 	etag := res.Header.Get("etag")
@@ -339,14 +373,22 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 		return err
 	}
 
-	res, err := httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s/storage/presign/many", projectId),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: gc.Auth.AccessToken,
-	})
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("projects/%s/storage/presign/many", projectId)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
 	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse response
 	var hashUrlMap map[string]string
@@ -396,7 +438,7 @@ func download(ctx context.Context, params downloadParams) {
 	defer params.Bar.Add(1)
 
 	// Download object using presigned GET URL
-	res, err := httpw.Get(params.URL, "")
+	res, err := http.Get(params.URL)
 	if err != nil {
 		console.ErrorPrint("Failed to download file \"%s\"", params.FilePath)
 		panic(err)
