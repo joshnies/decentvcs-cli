@@ -27,7 +27,7 @@ func ListBranches(c *cli.Context) error {
 
 	// Get all branches in project
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("projects/%s/branches?join_commit=true", projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches?join_commit=true", config.I.API.Host, projectConfig.ProjectID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
