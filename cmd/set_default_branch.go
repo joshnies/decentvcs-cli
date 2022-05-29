@@ -3,13 +3,14 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"net/http"
 
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/lib/httpw"
+	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/models"
 	"github.com/urfave/cli/v2"
 )
@@ -28,12 +29,21 @@ func SetDefaultBranch(c *cli.Context) error {
 	branchName := c.Args().Get(0)
 
 	// Get branch
-	apiUrl := api.BuildURLf("projects/%s/branches/%s", projectConfig.ProjectID, branchName)
-	res, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.API.Host, projectConfig.ProjectID, branchName)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
-		console.ErrorPrint("Error getting branch:")
 		return err
 	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	res, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
 
 	// Parse branch
 	branch := models.Branch{}
@@ -52,16 +62,21 @@ func SetDefaultBranch(c *cli.Context) error {
 		console.Verbose("Failed to convert project DTO to JSON: %s", err)
 		return console.Error(constants.ErrMsgInternal)
 	}
-	_, err = httpw.Post(httpw.RequestParams{
-		URL:         api.BuildURLf("projects/%s", projectConfig.ProjectID),
-		Body:        bytes.NewBuffer(bodyJson),
-		AccessToken: gc.Auth.AccessToken,
-	})
+	reqUrl = fmt.Sprintf("%s/projects/%s", config.I.API.Host, projectConfig.ProjectID)
+	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
-		console.ErrorPrint("Error setting default branch:")
 		return err
 	}
-
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Content-Type", "application/json")
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	res.Body.Close()
 	console.Info("Default branch set to \"%s\"", branchName)
 	return nil
 }
