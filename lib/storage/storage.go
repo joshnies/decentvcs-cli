@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"os"
@@ -85,19 +84,22 @@ func upload(ctx context.Context, params uploadParams) {
 	}
 	defer file.Close()
 
-	// Get file size
-	info, err := file.Stat()
+	// Compress file
+	tempFile, _ := os.Open(params.FilePath + ".temp")
+	console.Verbose("[%s] Compressing...", params.Hash)
+	err = Compress(file, tempFile)
 	if err != nil {
-		panic(console.Error("Failed to get file info for file \"%s\": %v", params.FilePath, err))
+		panic(console.Error("Failed to compress file \"%s\": %v", params.FilePath, err))
 	}
-	fileSize := info.Size()
+	defer tempFile.Close()
 
-	// Read file into byte array
-	fileBytes := make([]byte, fileSize)
-	_, err = file.Read(fileBytes)
+	// Read compressed file into byte array
+	fileBytes := []byte{}
+	_, err = tempFile.Read(fileBytes)
 	if err != nil {
-		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+		panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
 	}
+	fileSize := int64(len(fileBytes))
 
 	// Get MIME type
 	// var contentType string
@@ -440,8 +442,7 @@ func download(ctx context.Context, params downloadParams) {
 	// Download object using presigned GET URL
 	res, err := http.Get(params.URL)
 	if err != nil {
-		console.ErrorPrint("Failed to download file \"%s\"", params.FilePath)
-		panic(err)
+		panic(console.Error("Failed to download file \"%s\"", params.FilePath))
 	}
 	defer res.Body.Close()
 
@@ -450,22 +451,19 @@ func download(ctx context.Context, params downloadParams) {
 	dirPath := filepath.Dir(path)
 	err = os.MkdirAll(dirPath, 0755)
 	if err != nil {
-		console.ErrorPrint("Failed to create directory \"%s\": %v", dirPath, err)
-		panic(err)
+		panic(console.Error("Failed to create directory \"%s\": %v", dirPath, err))
 	}
 
 	// Create file (overwrite)
 	file, err := os.Create(path)
 	if err != nil {
-		console.ErrorPrint("Failed to create file \"%s\": %v", path, err)
-		panic(err)
+		panic(console.Error("Failed to create file \"%s\": %v", path, err))
 	}
 	defer file.Close()
 
-	// Copy response body to local file
-	_, err = io.Copy(file, res.Body)
+	// Decompress file into local file
+	err = Decompress(res.Body, file)
 	if err != nil {
-		console.ErrorPrint("Failed to write file \"%s\": %v", path, err)
-		panic(err)
+		panic(console.Error("Failed to decompress and write file \"%s\": %v", path, err))
 	}
 }

@@ -7,6 +7,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/gammazero/workerpool v1.1.2
 	github.com/grokify/go-pkce v0.2.0
+	github.com/klauspost/compress v1.15.5
 	github.com/lucsky/cuid v1.2.1
 	github.com/samber/lo v1.17.0
 	github.com/schollz/progressbar/v3 v3.8.6
