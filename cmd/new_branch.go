@@ -40,7 +40,7 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("projects/%s/branches", projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches", config.I.API.Host, projectConfig.ProjectID)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
