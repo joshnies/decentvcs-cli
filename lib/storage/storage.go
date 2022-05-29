@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -84,24 +85,14 @@ func upload(ctx context.Context, params uploadParams) {
 	}
 	defer file.Close()
 
-	// Compress file
-	tempFile, _ := os.Open(params.FilePath + ".temp")
-	console.Verbose("[%s] Compressing...", params.Hash)
-	err = Compress(file, tempFile)
+	// Get file size
+	fileInfo, err := file.Stat()
 	if err != nil {
-		panic(console.Error("Failed to compress file \"%s\": %v", params.FilePath, err))
+		panic(console.Error("Failed to get file info for file \"%s\": %v", params.FilePath, err))
 	}
-	defer tempFile.Close()
+	fileSize := fileInfo.Size()
 
-	// Read compressed file into byte array
-	fileBytes := []byte{}
-	_, err = tempFile.Read(fileBytes)
-	if err != nil {
-		panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
-	}
-	fileSize := int64(len(fileBytes))
-
-	// Get MIME type
+	// Get MIME content type
 	// var contentType string
 	// mtype, err := mimetype.DetectReader(file)
 	// if err != nil {
@@ -110,15 +101,50 @@ func upload(ctx context.Context, params uploadParams) {
 	// } else {
 	// 	contentType = mtype.String()
 	// }
-
 	contentType := "application/octet-stream"
 
 	if fileSize < config.I.Storage.PartSize {
-		// Upload in one go
+		// NON-MULTIPART
+		//
+		// Read file into byte array
+		fileBytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+		}
+
+		// Upload file
 		console.Verbose("[%s] Uploading in full...", params.Hash)
 		uploadSingle(ctx, params, contentType, fileSize, fileBytes)
 	} else {
-		// Upload as multipart
+		// MULTIPART
+		//
+		// Compress file
+		tempFile, err := os.CreateTemp(filepath.Dir(params.FilePath), filepath.Base(params.FilePath)+".temp-")
+		if err != nil {
+			panic(console.Error("Failed to open temp file for compression: %v", err))
+		}
+		tempFilePath := tempFile.Name()
+		console.Verbose("[%s] Compressing; temp file: \"%s\"...", params.Hash, tempFilePath)
+		err = Compress(file, tempFile)
+		if err != nil {
+			panic(console.Error("Failed to compress file \"%s\": %v", params.FilePath, err))
+		}
+		defer tempFile.Close()
+
+		// Read compressed file into byte array
+		fileBytes, err := ioutil.ReadFile(tempFilePath)
+		if err != nil {
+			panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
+		}
+		fileSize = int64(len(fileBytes))
+
+		// Delete compressed file
+		err = os.Remove(tempFilePath)
+		if err != nil {
+			panic(console.Error("Failed to delete compressed file \"%s\": %v", tempFilePath, err))
+		}
+
+		// Upload multipart file
 		console.Verbose("[%s] Uploading in chunks...", params.Hash)
 		uploadMultipart(ctx, params, contentType, fileSize, fileBytes)
 	}
