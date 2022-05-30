@@ -9,7 +9,6 @@ import (
 
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/api"
 	"github.com/joshnies/quanta/lib/console"
 	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/projects"
@@ -83,7 +82,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 
 		// Get user-specified commit
-		req, err = http.NewRequest("GET", api.BuildURLf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, commitIndex), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, commitIndex), nil)
 		if err != nil {
 			return err
 		}
