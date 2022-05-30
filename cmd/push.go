@@ -38,11 +38,6 @@ func Push(c *cli.Context) error {
 	// Get current branch w/ current commit
 	httpClient := http.Client{}
 	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
-	// currentBranchRes, err := httpw.Get(apiUrl, gc.Auth.AccessToken)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer currentBranchRes.Body.Close()
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err

@@ -179,6 +179,23 @@ func main() {
 				Action: cmd.ListBranches,
 			},
 			{
+				Name:  "merge",
+				Usage: "Merge a branch into the current branch",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "no-confirm",
+						Aliases: []string{"y"},
+						Usage:   "Skip confirmation",
+					},
+					&cli.BoolFlag{
+						Name:    "push",
+						Aliases: []string{"p"},
+						Usage:   "Push changes after merging",
+					},
+				},
+				Action: cmd.Merge,
+			},
+			{
 				Name:   "history",
 				Usage:  "List commit history",
 				Action: cmd.PrintHistory,
