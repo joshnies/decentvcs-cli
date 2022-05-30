@@ -58,12 +58,13 @@ type FileChangeDetectionResult struct {
 
 // Detect file changes.
 //
-// @param oldHashMap - Hash map of remote commit
-func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileChangeDetectionResult, error) {
+// @param currentHashMap - Hash map of current commit fetched from remote
+//
+func DetectFileChanges(projectPath string, currentHashMap map[string]string) (FileChangeDetectionResult, error) {
 	console.Info("Checking for changes...")
 
 	// Get known file paths in current commit
-	remainingPaths := maps.Keys(oldHashMap)
+	remainingPaths := maps.Keys(currentHashMap)
 
 	createdFilePaths := []string{}
 	modifiedFilePaths := []string{}
@@ -125,7 +126,7 @@ func DetectFileChanges(projectPath string, oldHashMap map[string]string) (FileCh
 		fileInfoMap[path] = info
 
 		// Detect changes
-		if oldHash, ok := oldHashMap[path]; ok {
+		if oldHash, ok := currentHashMap[path]; ok {
 			if oldHash != newHash {
 				// File was modified
 				modifiedFilePaths = append(modifiedFilePaths, path)

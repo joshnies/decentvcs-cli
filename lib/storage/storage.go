@@ -380,13 +380,13 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 //
 // - projectId: Project ID
 //
-// - projectPath: Local file path to project path. Can be relative or absolute.
+// - dest: Local path where downloaded files are written to. Can be relative or absolute.
 //
 // - hashMap: Map of local file paths to file hashes
 //
 // Returns map of object keys to data.
 //
-func DownloadMany(projectId string, projectPath string, hashMap map[string]string) error {
+func DownloadMany(projectId string, dest string, hashMap map[string]string) error {
 	gc := auth.Validate()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -438,7 +438,7 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 			return console.Error("Unknown file hash \"%s\"", hash)
 		}
 		params := downloadParams{
-			ProjectPath: projectPath,
+			Destination: dest,
 			FilePath:    path,
 			URL:         url,
 			Bar:         bar,
@@ -457,7 +457,7 @@ func DownloadMany(projectId string, projectPath string, hashMap map[string]strin
 }
 
 type downloadParams struct {
-	ProjectPath string
+	Destination string
 	FilePath    string
 	URL         string
 	Bar         *progressbar.ProgressBar
@@ -476,7 +476,7 @@ func download(ctx context.Context, params downloadParams) {
 	defer res.Body.Close()
 
 	// Create local file directory recursively
-	path := filepath.Join(params.ProjectPath, params.FilePath)
+	path := filepath.Join(params.Destination, params.FilePath)
 	dirPath := filepath.Dir(path)
 	err = os.MkdirAll(dirPath, 0755)
 	if err != nil {

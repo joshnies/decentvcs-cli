@@ -64,3 +64,16 @@ func ChunkMap(sourceMap map[string]string, chunkSize int) []map[string]string {
 
 	return mapChunks
 }
+
+// Merge n maps into one.
+func MergeMaps[K comparable, V any](m ...map[K]V) map[K]V {
+	result := make(map[K]V)
+
+	for _, mi := range m {
+		for k, v := range mi {
+			result[k] = v
+		}
+	}
+
+	return result
+}
