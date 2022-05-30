@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/joshnies/quanta/constants"
 )
 
 type APIConfig struct {
@@ -79,7 +81,7 @@ func InitConfig() CLIConfig {
 	}
 
 	I = CLIConfig{
-		Verbose:            os.Getenv("V") == "1",
+		Verbose:            os.Getenv(constants.VerboseEnvVar) == "1",
 		MaxFileSizeForDiff: maxFileSizeForDiff,
 		API: APIConfig{
 			Host: "http://localhost:8080/v1",

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/TwiN/go-color"
+	"github.com/joshnies/quanta/constants"
 )
 
 type LogLevel int64
@@ -17,10 +18,10 @@ const (
 )
 
 // Log verbose message to console.
-// `VERBOSE` environment variable must be set to `1` for message to be printed.
+// Verbose mode must be enabled for message to be printed.
 func Verbose(message string, vars ...any) {
 	// Get env var directly to prevent circular import
-	if os.Getenv("VERBOSE") != "1" {
+	if os.Getenv(constants.VerboseEnvVar) != "1" {
 		return
 	}
 
@@ -52,10 +53,10 @@ func ErrorPrint(message string, vars ...any) {
 	fmt.Printf(color.Ize(color.Red, "[ERROR] "+message+"\n"), vars...)
 }
 
-// Log error message to console, but only if `VERBOSE` is enabled.
+// Log error message to console, but only if verbose mode is enabled.
 func ErrorPrintV(message string, vars ...any) {
 	// Get env var directly to prevent circular import
-	if os.Getenv("VERBOSE") != "1" {
+	if os.Getenv(constants.VerboseEnvVar) != "1" {
 		return
 	}
 

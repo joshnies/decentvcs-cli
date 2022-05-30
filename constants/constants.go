@@ -1,5 +1,8 @@
 package constants
 
+// Config
+const VerboseEnvVar = "V"
+
 // File system
 const ProjectFileName = ".quanta"
 const IgnoreFileName = ".quantaignore"
