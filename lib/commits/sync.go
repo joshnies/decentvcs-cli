@@ -3,8 +3,10 @@ package commits
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joshnies/quanta/config"
@@ -14,7 +16,10 @@ import (
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/models"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/xyproto/binary"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // Sync to a specific commit.
@@ -114,7 +119,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	console.Verbose("\nCurrent commit hash map:\n%v\n", currentCommit.HashMap)
 
 	downloadMap := make(map[string]string)
-	overriddenFiles := []string{}
+	filesToOverride := []string{}
+	filesToPatch := []string{}
 	for key, hash := range toCommit.HashMap {
 		if curHash, ok := currentCommit.HashMap[key]; ok {
 			// File exists in both commits
@@ -130,22 +136,31 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		//
 		// Add to override list if it exists in local changes
 		if _, err := os.Stat(key); err == nil {
-			overriddenFiles = append(overriddenFiles, key)
+			isBinary, err := binary.File(key)
+			if err != nil {
+				return err
+			}
+
+			if isBinary {
+				filesToOverride = append(filesToOverride, key)
+			} else {
+				filesToPatch = append(filesToPatch, key)
+			}
 		}
 
 		// Add new file to download map
 		downloadMap[key] = hash
 	}
 
+	console.Verbose("\nFiles to patch: %v", filesToPatch)
 	confirmed := false
 
-	// Warn user about overridden files and prompt to continue
-	// TODO: Implement merge attempt instead for non-binary files
-	if len(overriddenFiles) > 0 && confirm {
-		console.Warning("The following files will be overridden by remote changes:")
+	// Warn user about local file overrides and prompt to continue
+	if len(filesToOverride) > 0 && confirm {
+		console.Warning("The following files are not mergeable and will be overridden by remote changes:")
 
-		for _, key := range overriddenFiles {
-			console.Warning("\t%s", key)
+		for _, key := range filesToOverride {
+			console.Warning("  %s", key)
 		}
 
 		console.Warning("Continue? (y/n)")
@@ -196,9 +211,52 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 	}
 
-	// Download new files
+	// Download new files to temp directory so we can patch existing files
+	tempDirPath, err := os.MkdirTemp("", "quanta-sync-")
+	if err != nil {
+		return err
+	}
+
 	if len(maps.Keys(downloadMap)) > 0 {
-		err := storage.DownloadMany(projectConfig.ProjectID, ".", downloadMap)
+		err := storage.DownloadMany(projectConfig.ProjectID, tempDirPath, downloadMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	dmp := diffmatchpatch.New()
+	for localPath := range downloadMap {
+		dlPath := filepath.Join(tempDirPath, localPath)
+		if slices.Contains(filesToPatch, localPath) {
+			// Patch file
+			//
+			// Get file contents of existing file
+			oldFileBytes, err := ioutil.ReadFile(localPath)
+			if err != nil {
+				return err
+			}
+			oldFileStr := string(oldFileBytes)
+
+			// Get file contents of new (downloaded) file
+			newFileBytes, err := ioutil.ReadFile(dlPath)
+			if err != nil {
+				return err
+			}
+			newFileStr := string(newFileBytes)
+
+			// Create patches
+			patches := dmp.PatchMake(oldFileStr, newFileStr)
+			patchedFileStr, _ := dmp.PatchApply(patches, oldFileStr)
+
+			// Write patched file
+			err = ioutil.WriteFile(localPath, []byte(patchedFileStr), 0644)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Move file to project directory
+		err := os.Rename(dlPath, localPath)
 		if err != nil {
 			return err
 		}
