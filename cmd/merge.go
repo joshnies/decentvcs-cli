@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/quanta/config"
@@ -32,6 +33,9 @@ func Merge(c *cli.Context) error {
 	if branchName == "" {
 		return console.Error("Please specify name of branch to merge")
 	}
+
+	confirm := !c.Bool("no-confirm")
+	push := c.Bool("push")
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
@@ -138,13 +142,21 @@ func Merge(c *cli.Context) error {
 		return err
 	}
 
+	dmp := diffmatchpatch.New()
+
 	// Print changes to be merged.
 	// For binary files, only show file name and size (compressed).
 	// For text-based files, show file name and diff.
-	diffMap := make(map[string][]diffmatchpatch.Diff)
+	if len(createdHashMap) > 0 {
+		fmt.Println(color.InGreen(color.InBold("Created files:")))
+		for path := range createdHashMap {
+			console.Verbose("  * %s", path)
+		}
+	}
+
+	patchMap := make(map[string][]diffmatchpatch.Patch)
 	if len(modifiedHashMap) > 0 {
-		console.Info(color.InBlue(color.InBold("Modified files:")))
-		dmp := diffmatchpatch.New()
+		fmt.Println(color.InBlue(color.InBold("Modified files:")))
 		for localPath := range modifiedHashMap {
 			dlPath := filepath.Join(tempDirPath, localPath)
 			isBinary, err := binary.File(dlPath)
@@ -206,20 +218,79 @@ func Merge(c *cli.Context) error {
 				fmt.Println(dmp.DiffPrettyText(diffs))
 				fmt.Println()
 
-				diffMap[localPath] = diffs
+				// Create patches
+				patchMap[localPath] = dmp.PatchMake(localFileStr, dlFileStr)
 			}
 		}
 	}
 
-	// TODO: Prompt user to confirm merge
+	// Prompt user to confirm merge
+	if confirm {
+		console.Warning("Merge \"%s\" into \"%s\" (current)? (y/n)", branchToMerge.Name, currentBranch.Name)
+		var answer string
+		fmt.Scanln(&answer)
 
-	// TODO: Move created files to project dir
+		if strings.ToLower(answer) != "y" {
+			console.Info("Finishing up...")
 
-	// TODO: Merge modified files
+			// Delete temp dir
+			console.Verbose("Deleting temp files from %s", tempDirPath)
+			err = os.RemoveAll(tempDirPath)
+			if err != nil {
+				return err
+			}
 
-	// TODO: Delete temp dir
+			console.Info("Aborted")
+			return nil
+		}
+	}
 
-	// TODO: Push if `push` flag provided (after user confirmation)
+	// Move created files to project dir
+	console.Verbose("Moving created files to project directory...")
+	for path := range createdHashMap {
+		dlPath := filepath.Join(tempDirPath, path)
+		err = os.Rename(dlPath, path)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Merge modified files
+	console.Verbose("Merging modified files...")
+	for localPath, patches := range patchMap {
+		console.Verbose("  [Applying] %s", localPath)
+
+		// Read local file
+		localFileBytes, err := ioutil.ReadFile(localPath)
+		if err != nil {
+			return err
+		}
+		localFileStr := string(localFileBytes)
+
+		// Patch file contents in-memory
+		patchedFileStr, _ := dmp.PatchApply(patches, localFileStr)
+
+		// Write patched file
+		err = ioutil.WriteFile(localPath, []byte(patchedFileStr), 0644)
+		if err != nil {
+			return err
+		}
+
+		console.Verbose("  [Success] %s", localPath)
+	}
+
+	// Delete temp dir
+	console.Verbose("Deleting temp files from %s", tempDirPath)
+	err = os.RemoveAll(tempDirPath)
+	if err != nil {
+		return err
+	}
+
+	// Push if `push` flag provided (after user confirmation)
+	// (This will also push local changes)
+	if push {
+		return Push(c)
+	}
 
 	return nil
 }
