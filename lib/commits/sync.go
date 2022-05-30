@@ -186,7 +186,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Prompt user to confirm sync
 	if confirm && !confirmed {
-		console.Warning("Sync to commit #%d? (y/n)", toCommit.Index)
+		console.Warning("Sync to commit #%d (\"%s\")? (y/n)", toCommit.Index, toCommit.Message)
 		var answer string
 		fmt.Scanln(&answer)
 
