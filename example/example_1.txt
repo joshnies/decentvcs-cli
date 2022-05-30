@@ -1,7 +1,1 @@
-Exampled 1
-
-UPDATED!
-
-Updated again!
-
-AND A THIRD TIME!!!
+Example 1
