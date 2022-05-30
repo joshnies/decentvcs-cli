@@ -134,6 +134,14 @@ func Merge(c *cli.Context) error {
 	// For binary files, only show file name and size (compressed).
 	// For text-based files, show file name and diff.
 
+	// TODO: Prompt user to confirm merge
+
+	// TODO: Move created files to project dir
+
+	// TODO: Merge modified files
+
+	// TODO: Delete temp dir
+
 	// TODO: Push if `push` flag provided (after user confirmation)
 
 	return nil
