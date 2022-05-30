@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -21,10 +23,10 @@ type StorageConfig struct {
 }
 
 type CLIConfig struct {
-	// Whether or not to run in sandbox mode.
-	Sandbox bool
 	// Whether or not to print verbose output.
 	Verbose bool
+	// Max file size for diffing.
+	MaxFileSizeForDiff int64
 	// API configuration.
 	API APIConfig
 	// Storage configuration.
@@ -36,6 +38,26 @@ var I CLIConfig
 
 // Initialize the CLI config.
 func InitConfig() CLIConfig {
+	maxFileSizeForDiffStr := os.Getenv("MAX_FILE_SIZE_FOR_DIFF")
+	if maxFileSizeForDiffStr == "" {
+		maxFileSizeForDiffStr = fmt.Sprint(1 * 1024 * 1024) // 1MB
+	}
+
+	maxFileSizeForDiff, err := strconv.ParseInt(maxFileSizeForDiffStr, 10, 64)
+	if err != nil {
+		log.Fatal("Invalid MAX_FILE_SIZE_FOR_DIFF")
+	}
+
+	partSizeStr := os.Getenv("PART_SIZE")
+	if partSizeStr == "" {
+		partSizeStr = fmt.Sprint(5 * 1024 * 1024) // 5MB
+	}
+
+	partSize, err := strconv.ParseInt(partSizeStr, 10, 64)
+	if err != nil {
+		log.Fatal("Invalid PART_SIZE")
+	}
+
 	uploadPoolSizeStr := os.Getenv("UPLOAD_POOL_SIZE")
 	if uploadPoolSizeStr == "" {
 		uploadPoolSizeStr = "128"
@@ -57,17 +79,28 @@ func InitConfig() CLIConfig {
 	}
 
 	I = CLIConfig{
-		// TODO: Implement sandbox mode.
-		Sandbox: os.Getenv("SANDBOX") == "1",
-		Verbose: os.Getenv("VERBOSE") == "1",
+		Verbose:            os.Getenv("V") == "1",
+		MaxFileSizeForDiff: maxFileSizeForDiff,
 		API: APIConfig{
 			Host: "http://localhost:8080/v1",
 		},
 		Storage: StorageConfig{
-			PartSize:         5 * 1024 * 1024, // 5MB
+			PartSize:         partSize,
 			UploadPoolSize:   uploadPoolSize,
 			DownloadPoolSize: downloadPoolSize,
 		},
+	}
+
+	if I.Verbose {
+		// Print config as JSON
+		cfgJson, err := json.MarshalIndent(I, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Config:")
+		fmt.Println(string(cfgJson))
+		fmt.Println()
 	}
 
 	return I
