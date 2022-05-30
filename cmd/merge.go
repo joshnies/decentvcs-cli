@@ -3,9 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/TwiN/go-color"
 	"github.com/joshnies/quanta/config"
 	"github.com/joshnies/quanta/lib/auth"
 	"github.com/joshnies/quanta/lib/console"
@@ -14,7 +17,9 @@ import (
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/lib/util"
 	"github.com/joshnies/quanta/models"
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/urfave/cli/v2"
+	"github.com/xyproto/binary"
 )
 
 // Merge the specified branch into the current branch.
@@ -104,8 +109,9 @@ func Merge(c *cli.Context) error {
 	// Get difference between local hash map and the hash map of the branch to merge
 	modifiedHashMap := make(map[string]string)
 	for path, hash := range fc.HashMap {
-		if hash != branchToMerge.Commit.HashMap[path] {
-			modifiedHashMap[path] = hash
+		newHash := branchToMerge.Commit.HashMap[path]
+		if hash != newHash {
+			modifiedHashMap[path] = newHash
 		}
 	}
 
@@ -124,15 +130,86 @@ func Merge(c *cli.Context) error {
 	}
 
 	// Download created and modified files from storage
-	console.Verbose("Downloading created & modified files to %s", tempDirPath)
+	// NOTE: Downloaded files are already decompressed
+	console.Info("Downloading created & modified files...")
+	console.Verbose("Temp directory: %s", tempDirPath)
 	err = storage.DownloadMany(projectConfig.ProjectID, tempDirPath, combinedHashMap)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Print changes to be merged.
+	// Print changes to be merged.
 	// For binary files, only show file name and size (compressed).
 	// For text-based files, show file name and diff.
+	diffMap := make(map[string][]diffmatchpatch.Diff)
+	if len(modifiedHashMap) > 0 {
+		console.Info(color.InBlue(color.InBold("Modified files:")))
+		dmp := diffmatchpatch.New()
+		for localPath := range modifiedHashMap {
+			dlPath := filepath.Join(tempDirPath, localPath)
+			isBinary, err := binary.File(dlPath)
+			if err != nil {
+				return err
+			}
+
+			localInfo, err := os.Stat(localPath)
+			if err != nil {
+				return err
+			}
+
+			localSize := localInfo.Size()
+
+			dlInfo, err := os.Stat(dlPath)
+			if err != nil {
+				return err
+			}
+
+			dlSize := dlInfo.Size()
+			dlSizeFormatted := util.FormatBytesSize(dlSize)
+
+			if isBinary {
+				// Print file name and size
+				fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
+			} else {
+				// Print file name and diff
+				//
+				// Ensure local file and downloaded file are not too big to read into memory
+				if dlSize > config.I.MaxFileSizeForDiff {
+					console.Warning("Merging version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
+					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
+					continue
+				}
+
+				if localSize > config.I.MaxFileSizeForDiff {
+					console.Warning("Local version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
+					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
+					continue
+				}
+
+				// Read local file
+				localFileBytes, err := ioutil.ReadFile(localPath)
+				if err != nil {
+					return err
+				}
+				localFileStr := string(localFileBytes)
+
+				// Read downloaded (merging) file
+				dlFileBytes, err := ioutil.ReadFile(dlPath)
+				if err != nil {
+					return err
+				}
+				dlFileStr := string(dlFileBytes)
+
+				// Create and print diff
+				diffs := dmp.DiffMain(localFileStr, dlFileStr, true)
+				fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
+				fmt.Println(dmp.DiffPrettyText(diffs))
+				fmt.Println()
+
+				diffMap[localPath] = diffs
+			}
+		}
+	}
 
 	// TODO: Prompt user to confirm merge
 
