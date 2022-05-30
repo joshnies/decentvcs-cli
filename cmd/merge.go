@@ -147,6 +147,7 @@ func Merge(c *cli.Context) error {
 	// Print changes to be merged.
 	// For binary files, only show file name and size (compressed).
 	// For text-based files, show file name and diff.
+	console.Info("Detecting changes...")
 	if len(createdHashMap) > 0 {
 		fmt.Println(color.InGreen(color.InBold("Created files:")))
 		for path := range createdHashMap {
@@ -231,7 +232,7 @@ func Merge(c *cli.Context) error {
 		fmt.Scanln(&answer)
 
 		if strings.ToLower(answer) != "y" {
-			console.Info("Finishing up...")
+			console.Info("Aborting...")
 
 			// Delete temp dir
 			console.Verbose("Deleting temp files from %s", tempDirPath)
@@ -240,7 +241,6 @@ func Merge(c *cli.Context) error {
 				return err
 			}
 
-			console.Info("Aborted")
 			return nil
 		}
 	}
@@ -289,7 +289,8 @@ func Merge(c *cli.Context) error {
 	// Push if `push` flag provided (after user confirmation)
 	// (This will also push local changes)
 	if push {
-		return Push(c)
+		message := fmt.Sprintf("Merged %s into %s", branchToMerge.Name, currentBranch.Name)
+		return Push(c, WithNoConfirm(), WithMessage(message))
 	}
 
 	return nil

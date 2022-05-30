@@ -72,7 +72,9 @@ func main() {
 				Usage:     "Push local changes to remote",
 				ArgsUsage: "[message?]",
 				Aliases:   []string{"p"},
-				Action:    cmd.Push,
+				Action: func(c *cli.Context) error {
+					return cmd.Push(c)
+				},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",

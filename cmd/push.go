@@ -17,17 +17,40 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+type PushOptions struct {
+	Message string
+	Confirm bool
+}
+
+func WithMessage(message string) func(*PushOptions) {
+	return func(o *PushOptions) {
+		o.Message = message
+	}
+}
+
+func WithNoConfirm() func(*PushOptions) {
+	return func(o *PushOptions) {
+		o.Confirm = false
+	}
+}
+
 // Push local changes to remote
-func Push(c *cli.Context) error {
+func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	gc := auth.Validate()
 
-	// Extract args
-	msg := c.Args().Get(0)
-	if msg == "" {
-		msg = "No message"
+	// Build options
+	o := &PushOptions{
+		Message: c.String("message"),
+		Confirm: !c.Bool("no-confirm"),
 	}
 
-	confirm := !c.Bool("no-confirm")
+	if o.Message == "" {
+		o.Message = "No message"
+	}
+
+	for _, opt := range opts {
+		opt(o)
+	}
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := config.GetProjectConfig()
@@ -83,7 +106,7 @@ func Push(c *cli.Context) error {
 	}
 
 	// Prompt user for confirmation
-	if confirm {
+	if o.Confirm {
 		console.Warning("Push these changes to \"%s\" branch? (y/n)", currentBranch.Name)
 		var answer string
 		fmt.Scanln(&answer)
@@ -100,7 +123,7 @@ func Push(c *cli.Context) error {
 	// Create commit in database
 	bodyJson, _ := json.Marshal(map[string]any{
 		"branch_id":      projectConfig.CurrentBranchID,
-		"message":        msg,
+		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": fc.ModifiedFilePaths,
 		"deleted_files":  fc.DeletedFilePaths,
