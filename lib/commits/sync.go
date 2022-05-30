@@ -3,10 +3,8 @@ package commits
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/joshnies/quanta/config"
@@ -16,10 +14,7 @@ import (
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
 	"github.com/joshnies/quanta/models"
-	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/xyproto/binary"
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // Sync to a specific commit.
@@ -120,7 +115,6 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	downloadMap := make(map[string]string)
 	filesToOverride := []string{}
-	filesToPatch := []string{}
 	for key, hash := range toCommit.HashMap {
 		if curHash, ok := currentCommit.HashMap[key]; ok {
 			// File exists in both commits
@@ -136,23 +130,13 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		//
 		// Add to override list if it exists in local changes
 		if _, err := os.Stat(key); err == nil {
-			isBinary, err := binary.File(key)
-			if err != nil {
-				return err
-			}
-
-			if isBinary {
-				filesToOverride = append(filesToOverride, key)
-			} else {
-				filesToPatch = append(filesToPatch, key)
-			}
+			filesToOverride = append(filesToOverride, key)
 		}
 
 		// Add new file to download map
 		downloadMap[key] = hash
 	}
 
-	console.Verbose("\nFiles to patch: %v", filesToPatch)
 	confirmed := false
 
 	// Warn user about local file overrides and prompt to continue
@@ -211,52 +195,8 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 	}
 
-	// Download new files to temp directory so we can patch existing files
-	tempDirPath, err := os.MkdirTemp("", "quanta-sync-")
-	if err != nil {
-		return err
-	}
-
 	if len(maps.Keys(downloadMap)) > 0 {
-		err := storage.DownloadMany(projectConfig.ProjectID, tempDirPath, downloadMap)
-		if err != nil {
-			return err
-		}
-	}
-
-	dmp := diffmatchpatch.New()
-	for localPath := range downloadMap {
-		dlPath := filepath.Join(tempDirPath, localPath)
-		if slices.Contains(filesToPatch, localPath) {
-			// Patch file
-			//
-			// Get file contents of existing file
-			oldFileBytes, err := ioutil.ReadFile(localPath)
-			if err != nil {
-				return err
-			}
-			oldFileStr := string(oldFileBytes)
-
-			// Get file contents of new (downloaded) file
-			newFileBytes, err := ioutil.ReadFile(dlPath)
-			if err != nil {
-				return err
-			}
-			newFileStr := string(newFileBytes)
-
-			// Create patches
-			patches := dmp.PatchMake(oldFileStr, newFileStr)
-			patchedFileStr, _ := dmp.PatchApply(patches, oldFileStr)
-
-			// Write patched file
-			err = ioutil.WriteFile(localPath, []byte(patchedFileStr), 0644)
-			if err != nil {
-				return err
-			}
-		}
-
-		// Move file to project directory
-		err := os.Rename(dlPath, localPath)
+		err := storage.DownloadMany(projectConfig.ProjectID, ".", downloadMap)
 		if err != nil {
 			return err
 		}

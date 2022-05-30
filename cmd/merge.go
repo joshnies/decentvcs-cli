@@ -16,6 +16,7 @@ import (
 	"github.com/joshnies/quanta/lib/httpvalidation"
 	"github.com/joshnies/quanta/lib/projects"
 	"github.com/joshnies/quanta/lib/storage"
+	"github.com/joshnies/quanta/lib/system"
 	"github.com/joshnies/quanta/lib/util"
 	"github.com/joshnies/quanta/models"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -127,11 +128,8 @@ func Merge(c *cli.Context) error {
 		return nil
 	}
 
-	// Create temp dir for storing downloaded files
-	tempDirPath, err := os.MkdirTemp("", "quanta-merge-")
-	if err != nil {
-		return err
-	}
+	// Get temp dir for storing downloaded files
+	tempDirPath := system.GetTempDir()
 
 	// Download created and modified files from storage
 	// NOTE: Downloaded files are already decompressed
