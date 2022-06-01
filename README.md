@@ -1,5 +1,5 @@
-# DecentVCS CLI
-
+# Decent CLI
+Official CLI for the Decent platform.
 
 ## Requirements
 |Dependency|Version|
