@@ -1,4 +1,4 @@
-module github.com/joshnies/quanta
+module github.com/joshnies/decent
 
 go 1.18
 

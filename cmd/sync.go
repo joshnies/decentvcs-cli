@@ -3,10 +3,10 @@ package cmd
 import (
 	"strconv"
 
-	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/auth"
-	"github.com/joshnies/quanta/lib/commits"
-	"github.com/joshnies/quanta/lib/console"
+	"github.com/joshnies/decent/config"
+	"github.com/joshnies/decent/lib/auth"
+	"github.com/joshnies/decent/lib/commits"
+	"github.com/joshnies/decent/lib/console"
 	"github.com/urfave/cli/v2"
 )
 

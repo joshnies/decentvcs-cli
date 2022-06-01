@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/lib/console"
-	"github.com/joshnies/quanta/models"
+	"github.com/joshnies/decent/constants"
+	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/decent/models"
 )
 
 // Get project config from file in current directory.

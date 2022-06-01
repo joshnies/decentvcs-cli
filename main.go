@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/joshnies/quanta/cmd"
-	"github.com/joshnies/quanta/config"
+	"github.com/joshnies/decent/cmd"
+	"github.com/joshnies/decent/config"
 	"github.com/urfave/cli/v2"
 )
 

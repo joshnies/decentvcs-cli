@@ -1,4 +1,4 @@
-# Quanta CLI
+# DecentVCS CLI
 
 
 ## Requirements
@@ -16,8 +16,8 @@ go run main.go
 ## Commands
 |Command|Description|
 |-|-|
-|`login`|Authenticate with Quanta (required to use other commands)|
-|`logout`|Log out of Quanta|
+|`login`|Log in (required to use other commands)|
+|`logout`|Log out|
 |`auth`|Print current authentication state|
 |`init [path?]`|Initialize a new project at the specified path|
 |`clone [-p | --path?] [-b | --branch?] [blob]`|Clone a project|
@@ -43,7 +43,7 @@ go run main.go
 ## Usage
 
 ### Ignoring files
-Create a `.quantaignore` file in your project. Each line will be read as a regular expression (regex),
+Create a `.decentignore` file in your project. Each line will be read as a regular expression (regex),
 with all leading and trailing whitespace being ignored. You can also comment out any line with the
 `#` prefix.
 #### Example

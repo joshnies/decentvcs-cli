@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/joshnies/quanta/constants"
-	"github.com/joshnies/quanta/models"
+	"github.com/joshnies/decent/constants"
+	"github.com/joshnies/decent/models"
 )
 
 // Get global Quanta Control config from file.

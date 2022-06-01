@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/joshnies/quanta/constants"
+	"github.com/joshnies/decent/constants"
 )
 
 type APIConfig struct {

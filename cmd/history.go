@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/quanta/config"
-	"github.com/joshnies/quanta/lib/auth"
-	"github.com/joshnies/quanta/lib/httpvalidation"
-	"github.com/joshnies/quanta/models"
+	"github.com/joshnies/decent/config"
+	"github.com/joshnies/decent/lib/auth"
+	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
 
