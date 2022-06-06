@@ -3,9 +3,6 @@ package constants
 // Config
 const VerboseEnvVar = "V"
 
-// File system
-const GlobalConfigFileName = "~/.decent/config.json"
-
 // Error messages
 const ErrMsgInternal = "An internal error occurred. If the issue persists, please contact us."
 const ErrMsgAuthFailed = "Authentication failed"

@@ -3,24 +3,26 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 
-	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/models"
 )
 
 // Get global Quanta Control config from file.
 func GetGlobalConfig() (models.GlobalConfig, error) {
-	userHomeDir, err := os.UserHomeDir()
+	// Create directories if they don't exist
+	err := os.MkdirAll(filepath.Dir(I.GlobalConfigFilePath), 0755)
 	if err != nil {
 		return models.GlobalConfig{}, err
 	}
 
-	gcPath := userHomeDir + "/" + constants.GlobalConfigFileName
-	gcFile, err := os.Open(gcPath)
+	// Open file
+	gcFile, err := os.Open(I.GlobalConfigFilePath)
 	if err != nil {
 		return models.GlobalConfig{}, err
 	}
 
+	// Decode file contents from JSON
 	var gc models.GlobalConfig
 	err = json.NewDecoder(gcFile).Decode(&gc)
 	if err != nil {

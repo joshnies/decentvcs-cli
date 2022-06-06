@@ -87,6 +87,11 @@ func main() {
 								Aliases: []string{"y"},
 								Usage:   "Skip confirmation",
 							},
+							&cli.StringFlag{
+								Name:    "message",
+								Aliases: []string{"m"},
+								Usage:   "Commit message",
+							},
 						},
 					},
 					{

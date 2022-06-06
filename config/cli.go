@@ -109,7 +109,7 @@ func InitConfig() CLIConfig {
 		Verbose:              os.Getenv(constants.VerboseEnvVar) == "1",
 		GlobalConfigFilePath: globalConfigFilePath,
 		API: APIConfig{
-			Host: "http://localhost:8080/v1",
+			Host: "http://localhost:8080",
 		},
 		Storage: StorageConfig{
 			PartSize:         partSize,
