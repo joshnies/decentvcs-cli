@@ -4,15 +4,12 @@ package constants
 const VerboseEnvVar = "V"
 
 // File system
-const ProjectFileName = ".decent"
-const IgnoreFileName = ".decentignore"
-const GlobalConfigFileName = ".decentconfig"
+const GlobalConfigFileName = "~/.decent/config.json"
 
 // Error messages
 const ErrMsgInternal = "An internal error occurred. If the issue persists, please contact us."
 const ErrMsgAuthFailed = "Authentication failed"
 const ErrMsgNotAuthenticated = "Not logged in. You can use `decent login` to authenticate."
-const ErrMsgNoProject = "No project found in current directory. You can use `decent init` to create a project."
 
 // Formatting
 const TimeFormat = "2006-01-02 @ 03:04:05pm"

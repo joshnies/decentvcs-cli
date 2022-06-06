@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/joshnies/decent/constants"
 )
@@ -24,15 +26,22 @@ type StorageConfig struct {
 	DownloadPoolSize int
 }
 
+type CLIVCSConfig struct {
+	// Max file size for diffing.
+	MaxFileSizeForDiff int64
+}
+
 type CLIConfig struct {
 	// Whether or not to print verbose output.
 	Verbose bool
-	// Max file size for diffing.
-	MaxFileSizeForDiff int64
+	// Path to the Decent global config file.
+	GlobalConfigFilePath string
 	// API configuration.
 	API APIConfig
 	// Storage configuration.
 	Storage StorageConfig
+	// DecentVCS configuration.
+	VCS CLIVCSConfig
 }
 
 // Singleton CLI config instance.
@@ -40,16 +49,20 @@ var I CLIConfig
 
 // Initialize the CLI config.
 func InitConfig() CLIConfig {
-	maxFileSizeForDiffStr := os.Getenv("MAX_FILE_SIZE_FOR_DIFF")
-	if maxFileSizeForDiffStr == "" {
-		maxFileSizeForDiffStr = fmt.Sprint(1 * 1024 * 1024) // 1MB
-	}
-
-	maxFileSizeForDiff, err := strconv.ParseInt(maxFileSizeForDiffStr, 10, 64)
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal("Invalid MAX_FILE_SIZE_FOR_DIFF")
+		log.Fatal(err)
 	}
 
+	// Validate root config
+	globalConfigFilePath := os.Getenv("DECENT_CONFIG")
+	if globalConfigFilePath == "" {
+		globalConfigFilePath = filepath.Join(homeDir, ".decent/config.json")
+	} else {
+		globalConfigFilePath = strings.Replace(globalConfigFilePath, "~", homeDir, 1)
+	}
+
+	// Validate storage config
 	partSizeStr := os.Getenv("PART_SIZE")
 	if partSizeStr == "" {
 		partSizeStr = fmt.Sprint(5 * 1024 * 1024) // 5MB
@@ -80,9 +93,21 @@ func InitConfig() CLIConfig {
 		log.Fatal("Invalid DOWNLOAD_POOL_SIZE")
 	}
 
+	// Validate VCS config
+	maxFileSizeForDiffStr := os.Getenv("MAX_FILE_SIZE_FOR_DIFF")
+	if maxFileSizeForDiffStr == "" {
+		maxFileSizeForDiffStr = fmt.Sprint(1 * 1024 * 1024) // 1MB
+	}
+
+	maxFileSizeForDiff, err := strconv.ParseInt(maxFileSizeForDiffStr, 10, 64)
+	if err != nil {
+		log.Fatal("Invalid MAX_FILE_SIZE_FOR_DIFF")
+	}
+
+	// Construct config
 	I = CLIConfig{
-		Verbose:            os.Getenv(constants.VerboseEnvVar) == "1",
-		MaxFileSizeForDiff: maxFileSizeForDiff,
+		Verbose:              os.Getenv(constants.VerboseEnvVar) == "1",
+		GlobalConfigFilePath: globalConfigFilePath,
 		API: APIConfig{
 			Host: "http://localhost:8080/v1",
 		},
@@ -90,6 +115,9 @@ func InitConfig() CLIConfig {
 			PartSize:         partSize,
 			UploadPoolSize:   uploadPoolSize,
 			DownloadPoolSize: downloadPoolSize,
+		},
+		VCS: CLIVCSConfig{
+			MaxFileSizeForDiff: maxFileSizeForDiff,
 		},
 	}
 

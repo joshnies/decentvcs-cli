@@ -1,4 +1,4 @@
-package cmd
+package vcs
 
 import (
 	"github.com/joshnies/decent/lib/auth"

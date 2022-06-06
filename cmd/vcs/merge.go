@@ -1,4 +1,4 @@
-package cmd
+package vcs
 
 import (
 	"encoding/json"
@@ -185,13 +185,13 @@ func Merge(c *cli.Context) error {
 				// Print file name and diff
 				//
 				// Ensure local file and downloaded file are not too big to read into memory
-				if dlSize > config.I.MaxFileSizeForDiff {
+				if dlSize > config.I.VCS.MaxFileSizeForDiff {
 					console.Warning("Merging version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
 					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
 					continue
 				}
 
-				if localSize > config.I.MaxFileSizeForDiff {
+				if localSize > config.I.VCS.MaxFileSizeForDiff {
 					console.Warning("Local version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
 					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
 					continue
