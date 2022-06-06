@@ -20,6 +20,12 @@ func main() {
 		Usage:     "Decent CLI",
 		Version:   "0.0.1",
 		Copyright: "Copyright 2022 Joshua Nies. All rights reserved.",
+		Authors: []*cli.Author{
+			{
+				Name:  "Joshua Nies",
+				Email: "josh@decentvcs.com",
+			},
+		},
 		Commands: []*cli.Command{
 			{
 				Name:   "login",
