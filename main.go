@@ -23,12 +23,12 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:   "login",
-				Usage:  "Authenticate with Decent (required to use other commands)",
+				Usage:  "Log in (required to use other commands)",
 				Action: globalcmd.LogIn,
 			},
 			{
 				Name:   "logout",
-				Usage:  "Log out of Decent",
+				Usage:  "Log out",
 				Action: globalcmd.LogOut,
 			},
 			{
