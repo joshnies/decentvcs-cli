@@ -198,8 +198,9 @@ func main() {
 						Action: vcscmd.ListBranches,
 					},
 					{
-						Name:  "merge",
-						Usage: "Merge a branch into the current branch",
+						Name:      "merge",
+						Usage:     "Merge a branch into the current branch",
+						ArgsUsage: "[branch]",
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "no-confirm",
