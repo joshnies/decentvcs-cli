@@ -9,7 +9,6 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
@@ -68,6 +67,7 @@ func RenameBranch(c *cli.Context) error {
 		return err
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
@@ -76,6 +76,6 @@ func RenameBranch(c *cli.Context) error {
 		return err
 	}
 
-	console.Success("Renamed branch %s to %s", color.InRed(oldName), color.InGreen(newName))
+	fmt.Printf("Renamed branch %s to %s\n", color.InRed(oldName), color.InGreen(newName))
 	return nil
 }
