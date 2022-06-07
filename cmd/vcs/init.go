@@ -23,8 +23,6 @@ import (
 func Init(c *cli.Context) error {
 	gc := auth.Validate()
 
-	// TODO: Add "name" option (defaults to current directory name)
-
 	// Get absolute file path
 	path := strings.TrimSpace(c.Args().First())
 	if path == "" {
@@ -51,8 +49,12 @@ func Init(c *cli.Context) error {
 		}
 	}
 
-	// Get project name from absolute path
-	name := filepath.Base(absPath)
+	// Get project name
+	name := c.String("name")
+	if name == "" {
+		// Default to directory name
+		name = filepath.Base(absPath)
+	}
 
 	// Create project in API
 	httpClient := http.Client{}

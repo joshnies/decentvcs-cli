@@ -53,6 +53,13 @@ func main() {
 						ArgsUsage: "[path]",
 						Aliases:   []string{"i"},
 						Action:    vcscmd.Init,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "name",
+								Aliases: []string{"n"},
+								Usage:   "Name of the project",
+							},
+						},
 					},
 					{
 						Name:      "clone",
