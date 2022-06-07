@@ -9,8 +9,8 @@ import (
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/commits"
 	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
-	"github.com/joshnies/decent/lib/projects"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
@@ -54,7 +54,7 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Reset all changes to current commit
-	err = projects.ResetChanges(gc, !c.Bool("no-confirm"))
+	err = corefs.ResetChanges(gc, !c.Bool("no-confirm"))
 	if err != nil {
 		console.ErrorPrint("An error occurred while resetting changes")
 		return err

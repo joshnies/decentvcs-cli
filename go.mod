@@ -11,7 +11,6 @@ require (
 	github.com/lucsky/cuid v1.2.1
 	github.com/samber/lo v1.17.0
 	github.com/schollz/progressbar/v3 v3.8.6
-	github.com/sergi/go-diff v1.2.0
 	github.com/urfave/cli/v2 v2.4.8
 	github.com/xyproto/binary v1.3.0
 	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17

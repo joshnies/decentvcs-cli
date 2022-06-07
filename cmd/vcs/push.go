@@ -10,8 +10,8 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
-	"github.com/joshnies/decent/lib/projects"
 	"github.com/joshnies/decent/lib/storage"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
@@ -91,7 +91,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	console.Info("Detecting changes...")
 	startTime := time.Now()
 	// TODO: Use user-provided project path if available
-	fc, err := projects.DetectFileChanges(".", currentBranch.Commit.HashMap)
+	fc, err := corefs.DetectFileChanges(".", currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

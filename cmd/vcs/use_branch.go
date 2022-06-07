@@ -8,8 +8,8 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/commits"
+	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
-	"github.com/joshnies/decent/lib/projects"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
@@ -65,7 +65,7 @@ func UseBranch(c *cli.Context) error {
 	// Reset local changes if specified branch points to a different commit than current
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
 		// Reset local changes
-		err = projects.ResetChanges(gc, !c.Bool("no-confirm"))
+		err = corefs.ResetChanges(gc, !c.Bool("no-confirm"))
 		if err != nil {
 			return err
 		}
