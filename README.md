@@ -7,6 +7,7 @@ Official CLI for the Decent platform.
 | Dependency | Version |
 | ---------- | ------- |
 | go         | 1.18+   |
+| git        | 2.35+   |
 
 ## Running
 
