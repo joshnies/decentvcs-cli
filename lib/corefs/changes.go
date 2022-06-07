@@ -1,4 +1,4 @@
-package projects
+package corefs
 
 import (
 	"bufio"
@@ -45,6 +45,76 @@ func GetFileHash(path string) (string, error) {
 	}
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// Calculate hash map for all local files.
+// Ignores files that match ignore patterns.
+//
+// @param rootPath - Root directory path for where to start the calculation.
+//
+// @returns Map of file paths to hashes.
+//
+func CalculateHashes(rootPath string) (map[string]string, error) {
+	console.Verbose("Calculating hashes...")
+
+	// Get known file paths in current commit
+	hashMap := make(map[string]string)
+
+	// Read ignore file
+	ignoreFilePath := filepath.Join(rootPath, constants.IgnoreFileName)
+	ignoreFile, err := os.Open(ignoreFilePath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	defer ignoreFile.Close()
+
+	// Read ignore file
+	ignoredFilePatterns := []string{}
+	scanner := bufio.NewScanner(ignoreFile)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			ignoredFilePatterns = append(ignoredFilePatterns, line)
+		}
+	}
+
+	// Walk project directory
+	err = filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and Quanta project file
+		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
+			return nil
+		}
+
+		// Skip hidden files
+		for _, pattern := range ignoredFilePatterns {
+			matched, err := regexp.Match(pattern, []byte(path))
+			if err != nil {
+				return err
+			}
+			if matched {
+				console.Verbose("Ignoring file \"%s\"", path)
+				return nil
+			}
+		}
+
+		// Calculate file hash
+		newHash, err := GetFileHash(path)
+		if err != nil {
+			return err
+		}
+
+		hashMap[path] = newHash
+		return nil
+	})
+	if err != nil {
+		return nil, console.Error("Failed to calculate hashes: %v", err)
+	}
+
+	return hashMap, nil
 }
 
 // Result of `projects.DetectFileChanges()`

@@ -3,29 +3,29 @@ package vcs
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
-	"github.com/joshnies/decent/lib/projects"
 	"github.com/joshnies/decent/lib/storage"
 	"github.com/joshnies/decent/lib/system"
 	"github.com/joshnies/decent/lib/util"
 	"github.com/joshnies/decent/models"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/urfave/cli/v2"
 	"github.com/xyproto/binary"
 )
 
 // Merge the specified branch into the current branch.
-// User must be synced with remote first.
+//
+// NOTE: User does not need to be synced with remote first, since they may be force pushing a local
+// merge to remote.
 func Merge(c *cli.Context) error {
 	gc := auth.Validate()
 
@@ -44,9 +44,15 @@ func Merge(c *cli.Context) error {
 		return err
 	}
 
-	// Get current branch w/ current commit
+	// Calculate local hash map
+	localHashMap, err := corefs.CalculateHashes(".")
+	if err != nil {
+		return err
+	}
+
+	// Get current branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -62,15 +68,10 @@ func Merge(c *cli.Context) error {
 	defer res.Body.Close()
 
 	// Parse response
-	var currentBranch models.BranchWithCommit
+	var currentBranch models.Branch
 	err = json.NewDecoder(res.Body).Decode(&currentBranch)
 	if err != nil {
 		return err
-	}
-
-	// Make sure user is synced with remote before continuing
-	if currentBranch.Commit.Index != projectConfig.CurrentCommitIndex {
-		return console.Error("You are not synced with the remote. Please run `quanta pull`.")
 	}
 
 	// Get specified branch w/ commit
@@ -96,131 +97,57 @@ func Merge(c *cli.Context) error {
 		return err
 	}
 
-	// Detect local changes
-	// TODO: Use user-provided project path if available
-	fc, err := projects.DetectFileChanges(".", currentBranch.Commit.HashMap)
-	if err != nil {
-		return err
-	}
-
-	// Detect new files in branch to merge
-	createdHashMap := make(map[string]string)
+	// Detect movable files, which will simply be moved to the local project, overriding the current
+	// versions.
+	mvHashMap := make(map[string]string)
 	for path, hash := range branchToMerge.Commit.HashMap {
-		if _, ok := fc.HashMap[path]; !ok {
-			createdHashMap[path] = hash
+		if _, ok := localHashMap[path]; !ok {
+			mvHashMap[path] = hash
 		}
 	}
 
-	// Get difference between local hash map and the hash map of the branch to merge
-	modifiedHashMap := make(map[string]string)
-	for path, hash := range fc.HashMap {
+	// Detect mergable files
+	mergeHashMap := make(map[string]string)
+	for path, hash := range localHashMap {
 		newHash := branchToMerge.Commit.HashMap[path]
 		if hash != newHash {
-			modifiedHashMap[path] = newHash
+			// Get file info
+			isBinary, err := binary.File(path)
+			if err != nil {
+				return err
+			}
+
+			if isBinary {
+				// File cannot be merged
+				mvHashMap[path] = newHash
+			} else {
+				// File can be merged
+				mergeHashMap[path] = newHash
+			}
 		}
 	}
 
-	combinedHashMap := util.MergeMaps(createdHashMap, modifiedHashMap)
+	combinedHashMap := util.MergeMaps(mvHashMap, mergeHashMap)
 
 	// Return if no changes detected
 	if len(combinedHashMap) == 0 {
-		fmt.Println("No changes detected, nothing to merge.")
+		console.Warning("Local changes and branch \"%s\" are equivalent, aborting merge.", branchName)
 		return nil
 	}
 
 	// Get temp dir for storing downloaded files
 	tempDirPath := system.GetTempDir()
 
-	// Download created and modified files from storage
+	// Download files from storage for:
+	// - movable files
+	// - mergable files
+	//
 	// NOTE: Downloaded files are already decompressed
-	console.Info("Downloading created & modified files...")
+	console.Info("Downloading required files...")
 	console.Verbose("Temp directory: %s", tempDirPath)
 	err = storage.DownloadMany(projectConfig.ProjectID, tempDirPath, combinedHashMap)
 	if err != nil {
 		return err
-	}
-
-	dmp := diffmatchpatch.New()
-
-	// Print changes to be merged.
-	// For binary files, only show file name and size (compressed).
-	// For text-based files, show file name and diff.
-	console.Info("Detecting changes...")
-	if len(createdHashMap) > 0 {
-		fmt.Println(color.InGreen(color.InBold("Created files:")))
-		for path := range createdHashMap {
-			console.Verbose("  * %s", path)
-		}
-	}
-
-	patchMap := make(map[string][]diffmatchpatch.Patch)
-	if len(modifiedHashMap) > 0 {
-		fmt.Println(color.InBlue(color.InBold("Modified files:")))
-		for localPath := range modifiedHashMap {
-			dlPath := filepath.Join(tempDirPath, localPath)
-			isBinary, err := binary.File(dlPath)
-			if err != nil {
-				return err
-			}
-
-			localInfo, err := os.Stat(localPath)
-			if err != nil {
-				return err
-			}
-
-			localSize := localInfo.Size()
-
-			dlInfo, err := os.Stat(dlPath)
-			if err != nil {
-				return err
-			}
-
-			dlSize := dlInfo.Size()
-			dlSizeFormatted := util.FormatBytesSize(dlSize)
-
-			if isBinary {
-				// Print file name and size
-				fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
-			} else {
-				// Print file name and diff
-				//
-				// Ensure local file and downloaded file are not too big to read into memory
-				if dlSize > config.I.VCS.MaxFileSizeForDiff {
-					console.Warning("Merging version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
-					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
-					continue
-				}
-
-				if localSize > config.I.VCS.MaxFileSizeForDiff {
-					console.Warning("Local version of file \"%s\" (%s) is too big to show diff, skipping", localPath, dlSizeFormatted)
-					fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
-					continue
-				}
-
-				// Read local file
-				localFileBytes, err := ioutil.ReadFile(localPath)
-				if err != nil {
-					return err
-				}
-				localFileStr := string(localFileBytes)
-
-				// Read downloaded (merging) file
-				dlFileBytes, err := ioutil.ReadFile(dlPath)
-				if err != nil {
-					return err
-				}
-				dlFileStr := string(dlFileBytes)
-
-				// Create and print diff
-				diffs := dmp.DiffMain(localFileStr, dlFileStr, true)
-				fmt.Printf(color.InBlue("%s (%s)\n"), localPath, dlSizeFormatted)
-				fmt.Println(dmp.DiffPrettyText(diffs))
-				fmt.Println()
-
-				// Create patches
-				patchMap[localPath] = dmp.PatchMake(localFileStr, dlFileStr)
-			}
-		}
 	}
 
 	// Prompt user to confirm merge
@@ -244,8 +171,8 @@ func Merge(c *cli.Context) error {
 	}
 
 	// Move created files to project dir
-	console.Verbose("Moving created files to project directory...")
-	for path := range createdHashMap {
+	console.Verbose("Moving %d files to project...", len(mvHashMap))
+	for path := range mvHashMap {
 		dlPath := filepath.Join(tempDirPath, path)
 		err = os.Rename(dlPath, path)
 		if err != nil {
@@ -253,28 +180,15 @@ func Merge(c *cli.Context) error {
 		}
 	}
 
-	// Merge modified files
-	console.Verbose("Merging modified files...")
-	for localPath, patches := range patchMap {
-		console.Verbose("  [Applying] %s", localPath)
-
-		// Read local file
-		localFileBytes, err := ioutil.ReadFile(localPath)
+	// TODO: Merge modified files
+	console.Verbose("Merging %d files...", len(mergeHashMap))
+	for path := range mergeHashMap {
+		dlPath := filepath.Join(tempDirPath, path)
+		cmd := exec.Command("git", "merge-file", path, "~/decent/temp/empty", dlPath, "--union")
+		err := cmd.Run()
 		if err != nil {
-			return err
+			return console.Error("Failed to merge file \"%s\": %v", path, err)
 		}
-		localFileStr := string(localFileBytes)
-
-		// Patch file contents in-memory
-		patchedFileStr, _ := dmp.PatchApply(patches, localFileStr)
-
-		// Write patched file
-		err = ioutil.WriteFile(localPath, []byte(patchedFileStr), 0644)
-		if err != nil {
-			return err
-		}
-
-		console.Verbose("  [Success] %s", localPath)
 	}
 
 	// Delete temp dir
