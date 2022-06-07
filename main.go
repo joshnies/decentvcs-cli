@@ -197,6 +197,12 @@ func main() {
 								ArgsUsage: "[name]",
 								Action:    vcscmd.SetDefaultBranch,
 							},
+							{
+								Name:      "rename",
+								Usage:     "Rename a branch",
+								ArgsUsage: "[old_name] [new_name]",
+								Action:    vcscmd.RenameBranch,
+							},
 						},
 					},
 					{
