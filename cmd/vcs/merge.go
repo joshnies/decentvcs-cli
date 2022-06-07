@@ -3,6 +3,7 @@ package vcs
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -170,6 +171,13 @@ func Merge(c *cli.Context) error {
 		}
 	}
 
+	// Create empty base file for three-way merge
+	baseFilePath := filepath.Join(tempDirPath, "empty")
+	err = ioutil.WriteFile(baseFilePath, []byte{}, 0644)
+	if err != nil {
+		return console.Error("Failed to create base file: %s", err)
+	}
+
 	// Move created files to project dir
 	console.Verbose("Moving %d files to project...", len(mvHashMap))
 	for path := range mvHashMap {
@@ -184,7 +192,7 @@ func Merge(c *cli.Context) error {
 	console.Verbose("Merging %d files...", len(mergeHashMap))
 	for path := range mergeHashMap {
 		dlPath := filepath.Join(tempDirPath, path)
-		cmd := exec.Command("git", "merge-file", path, "~/decent/temp/empty", dlPath, "--union")
+		cmd := exec.Command("git", "merge-file", path, baseFilePath, dlPath, "--union")
 		err := cmd.Run()
 		if err != nil {
 			return console.Error("Failed to merge file \"%s\": %v", path, err)
