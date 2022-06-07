@@ -9,10 +9,16 @@ Official CLI for the Decent platform.
 | go         | 1.18+   |
 | git        | 2.35+   |
 
-## Running
+## Install
 
 ```sh
-go run main.go
+./install.sh
+```
+
+## Usage
+
+```sh
+decent [global options] command [command options] [arguments...]
 ```
 
 ## Commands
