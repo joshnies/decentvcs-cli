@@ -21,7 +21,7 @@ func Sync(c *cli.Context) error {
 	}
 
 	if projectConfig.CurrentCommitIndex <= 0 {
-		return console.Error("Current commit ID is invalid. Please check your project config file.")
+		return console.Error("Current commit index is invalid. Please check your project config file.")
 	}
 
 	commitIndex, _ := strconv.Atoi(c.Args().Get(0))
