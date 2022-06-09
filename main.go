@@ -241,6 +241,12 @@ func main() {
 							},
 						},
 					},
+					{
+						Name:      "invite",
+						Usage:     "Invite a user to collaborate on the project",
+						ArgsUsage: "[emails...]",
+						Action:    vcscmd.Invite,
+					},
 				},
 			},
 		},
