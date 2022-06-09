@@ -50,7 +50,7 @@ func Invite(c *cli.Context) error {
 		return err
 	}
 	if res.StatusCode > 201 {
-		return console.Error("Error inviting users: received status code %s", res.StatusCode)
+		return console.Error("Error inviting users: received status code %d", res.StatusCode)
 	}
 
 	console.Info("Invited users via email")
