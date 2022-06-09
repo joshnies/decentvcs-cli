@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/commits"
+	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/models"
@@ -72,10 +74,13 @@ func UseBranch(c *cli.Context) error {
 	}
 
 	// Sync
-	err = commits.SyncToCommit(gc, projectConfig, branch.Commit.Index, true)
-	if err != nil {
-		return err
+	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
+		err = commits.SyncToCommit(gc, projectConfig, branch.Commit.Index, true)
+		if err != nil {
+			return err
+		}
 	}
 
+	console.Info("Switched to branch %s", color.InBold(branchName))
 	return nil
 }
