@@ -11,7 +11,7 @@ go build && go install
 
 echo "Installed"
 
-# Add alias if not set
+# Add aliases if not set
 if [[ $SHELL = "/bin/zsh" ]]; then
   # zsh
   shell_file="$HOME/.zshrc"
@@ -27,6 +27,7 @@ else
   exit 0
 fi
 
+# Add `dvcs` alias
 if ! grep -q "alias dvcs" $shell_file; then
   echo 'alias dvcs="decent vcs"' >> $shell_file
   echo "Added the following aliases to $shell_file:"
