@@ -53,6 +53,6 @@ func Invite(c *cli.Context) error {
 		return console.Error("Error inviting users: received status code %d", res.StatusCode)
 	}
 
-	console.Info("Invited users via email")
+	console.Info("Invited %d users to project", len(emails))
 	return nil
 }
