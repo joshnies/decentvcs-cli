@@ -2,10 +2,8 @@ package auth0
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,7 +26,7 @@ func LogIn(c *cli.Context) error {
 	port := 4242
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
 	if err != nil {
-		log.Fatalf("failed to generate code verifier: %v", err)
+		console.Fatal("Failed to generate code verifier: %v", err)
 	}
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
 	serverState := cuid.New()
@@ -62,11 +60,11 @@ func LogIn(c *cli.Context) error {
 			console.Verbose("Client state does not match server state")
 			console.Verbose("Client state: %s", clientState)
 			console.Verbose("Server state: %s", serverState)
-			log.Fatal("auth state check failed")
+			console.Fatal("Auth state check failed")
 		}
 
 		if resError != "" {
-			log.Fatalf(
+			console.Fatal(
 				"Received error from authentication callback: %s; %s",
 				resError,
 				resErrorDesc,
@@ -87,7 +85,7 @@ func LogIn(c *cli.Context) error {
 			strings.NewReader(tokenReqData.Encode()),
 		)
 		if err != nil {
-			log.Fatalf("error while retrieving access token: %v", err)
+			console.Fatal("Error while retrieving access token: %v", err)
 		}
 
 		if tokenRes.StatusCode != 200 {
@@ -96,18 +94,18 @@ func LogIn(c *cli.Context) error {
 			_ = json.NewDecoder(tokenRes.Body).Decode(&body)
 
 			errorDesc := body["error_description"]
-			log.Fatalf("received HTTP status %d while retrieving access token: %s", tokenRes.StatusCode, errorDesc)
+			console.Fatal("Received HTTP status %d while retrieving access token: %s", tokenRes.StatusCode, errorDesc)
 		}
 
 		// Parse response
 		authConfig, err := ParseAccessTokenResponse(tokenRes)
 		if err != nil {
-			log.Fatalf("error while parsing access token response from Auth0: %v", err)
+			console.Fatal("Error while parsing access token response from Auth0: %v", err)
 		}
 
 		// Make sure a refresh token was included in response
 		if authConfig.RefreshToken == "" {
-			log.Fatal("no refresh token included in response from Auth0")
+			console.Fatal("No refresh token included in response from Auth0")
 		}
 
 		// Print auth data
@@ -120,19 +118,19 @@ func LogIn(c *cli.Context) error {
 		config.I.Auth = authConfig
 		cYaml, err := yaml.Marshal(config.I)
 		if err != nil {
-			log.Fatalf("error while marshalling config: %v", err)
+			console.Fatal("Error while marshalling config: %v", err)
 		}
 		err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)
 		if err != nil {
-			log.Fatalf("error while writing config: %v", err)
+			console.Fatal("Error while writing config: %v", err)
 		}
 
-		console.Success("authenticated")
+		console.Success("Authenticated")
 		os.Exit(0)
 	})
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
-	return errors.New("ending authentication attempt after 3 minutes")
+	return console.Error("Ending authentication attempt after 3 minutes")
 }

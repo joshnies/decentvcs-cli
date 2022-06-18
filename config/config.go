@@ -41,10 +41,10 @@ type AuthConfig struct {
 	// Authentication server provider.
 	// Currently supports `auth0` and `stytch`.
 	Provider        AuthProvider
-	AccessToken     string `yaml:"access_token"`
-	RefreshToken    string `yaml:"refresh_token"`
-	IDToken         string `yaml:"id_token"`
-	ExpiresIn       int64  `yaml:"expires_in"`
+	AccessToken     string `yaml:"access_token" json:"access_token"`
+	RefreshToken    string `yaml:"refresh_token" json:"refresh_token"`
+	IDToken         string `yaml:"id_token" json:"id_token"`
+	ExpiresIn       int64  `yaml:"expires_in" json:"expires_in"`
 	AuthenticatedAt int64  `yaml:"authenticated_at"`
 }
 

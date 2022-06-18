@@ -3,6 +3,7 @@ package globalcmd
 import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/auth0"
+	"github.com/joshnies/decent/lib/console"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,5 +17,10 @@ func LogIn(c *cli.Context) error {
 		return nil
 	}
 
-	return nil
+	return console.Error(
+		"Invalid authentication provider \"%s\". Must be either \"%s\" or \"%s\".",
+		config.I.Auth.Provider,
+		config.AuthProviderAuth0,
+		config.AuthProviderStytch,
+	)
 }
