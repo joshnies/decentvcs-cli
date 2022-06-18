@@ -29,7 +29,8 @@ fi
 
 # Add `dvcs` alias
 if ! grep -q "alias dvcs" $shell_file; then
-  echo 'alias dvcs="decent vcs"' >> $shell_file
+  dvcs_alias='alias dvcs="decent vcs"'
+  echo $dvcs_alias >> $shell_file
   echo "Added the following aliases to $shell_file:"
-  echo '  alias dvcs="decent vcs"'
+  echo "  $dvcs_alias"
 fi
