@@ -12,12 +12,14 @@ import (
 	"github.com/joshnies/decent/constants"
 )
 
-type APIConfig struct {
-	// API hostname.
-	Host string
-}
+type AuthProvider string
 
-type StorageConfig struct {
+const (
+	AuthProviderAuth0  AuthProvider = "auth0"
+	AuthProviderStytch AuthProvider = "stytch"
+)
+
+type VCSStorageConfig struct {
 	// Multipart upload part size.
 	PartSize int64
 	// Workerpool size for parallel file uploads.
@@ -26,29 +28,30 @@ type StorageConfig struct {
 	DownloadPoolSize int
 }
 
-type CLIVCSConfig struct {
+type VCSConfig struct {
+	// DecentVCS server hostname.
+	ServerHost string
 	// Max file size for diffing.
 	MaxFileSizeForDiff int64
+	// Storage configuration.
+	Storage VCSStorageConfig
 }
 
-type CLIConfig struct {
+type Config struct {
 	// Whether or not to print verbose output.
 	Verbose bool
 	// Path to the Decent global config file.
 	GlobalConfigFilePath string
-	// API configuration.
-	API APIConfig
-	// Storage configuration.
-	Storage StorageConfig
+	AuthProvider         AuthProvider
 	// DecentVCS configuration.
-	VCS CLIVCSConfig
+	VCS VCSConfig
 }
 
 // Singleton CLI config instance.
-var I CLIConfig
+var I Config
 
 // Initialize the CLI config.
-func InitConfig() CLIConfig {
+func InitConfig() Config {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal(err)
@@ -60,6 +63,30 @@ func InitConfig() CLIConfig {
 		globalConfigFilePath = filepath.Join(homeDir, ".decent/config.json")
 	} else {
 		globalConfigFilePath = strings.Replace(globalConfigFilePath, "~", homeDir, 1)
+	}
+
+	var authProvider AuthProvider
+	authProviderStr := os.Getenv("AUTH")
+	if authProviderStr == "" {
+		authProvider = AuthProviderAuth0
+	} else if authProviderStr != string(AuthProviderAuth0) && authProviderStr != string(AuthProviderStytch) {
+		log.Fatal("Invalid AUTH")
+	}
+
+	// Validate VCS config
+	vcsServerHost := os.Getenv("VCS_SERVER_HOST")
+	if vcsServerHost == "" {
+		vcsServerHost = "http://localhost:8080"
+	}
+
+	maxFileSizeForDiffStr := os.Getenv("MAX_FILE_SIZE_FOR_DIFF")
+	if maxFileSizeForDiffStr == "" {
+		maxFileSizeForDiffStr = fmt.Sprint(1 * 1024 * 1024) // 1MB
+	}
+
+	maxFileSizeForDiff, err := strconv.ParseInt(maxFileSizeForDiffStr, 10, 64)
+	if err != nil {
+		log.Fatal("Invalid MAX_FILE_SIZE_FOR_DIFF")
 	}
 
 	// Validate storage config
@@ -93,31 +120,19 @@ func InitConfig() CLIConfig {
 		log.Fatal("Invalid DOWNLOAD_POOL_SIZE")
 	}
 
-	// Validate VCS config
-	maxFileSizeForDiffStr := os.Getenv("MAX_FILE_SIZE_FOR_DIFF")
-	if maxFileSizeForDiffStr == "" {
-		maxFileSizeForDiffStr = fmt.Sprint(1 * 1024 * 1024) // 1MB
-	}
-
-	maxFileSizeForDiff, err := strconv.ParseInt(maxFileSizeForDiffStr, 10, 64)
-	if err != nil {
-		log.Fatal("Invalid MAX_FILE_SIZE_FOR_DIFF")
-	}
-
 	// Construct config
-	I = CLIConfig{
+	I = Config{
 		Verbose:              os.Getenv(constants.VerboseEnvVar) == "1",
 		GlobalConfigFilePath: globalConfigFilePath,
-		API: APIConfig{
-			Host: "http://localhost:8080",
-		},
-		Storage: StorageConfig{
-			PartSize:         partSize,
-			UploadPoolSize:   uploadPoolSize,
-			DownloadPoolSize: downloadPoolSize,
-		},
-		VCS: CLIVCSConfig{
+		AuthProvider:         authProvider,
+		VCS: VCSConfig{
+			ServerHost:         vcsServerHost,
 			MaxFileSizeForDiff: maxFileSizeForDiff,
+			Storage: VCSStorageConfig{
+				PartSize:         partSize,
+				UploadPoolSize:   uploadPoolSize,
+				DownloadPoolSize: downloadPoolSize,
+			},
 		},
 	}
 

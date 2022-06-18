@@ -26,7 +26,7 @@ func PrintStatus(c *cli.Context) error {
 
 	// Get project
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.API.Host, projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func PrintStatus(c *cli.Context) error {
 	res.Body.Close()
 
 	// Get branch
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func PrintStatus(c *cli.Context) error {
 	res.Body.Close()
 
 	// Get commit
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err

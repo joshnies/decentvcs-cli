@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Log out of Quanta Control.
+// Log out.
 func LogOut(c *cli.Context) error {
 	gc := auth.Validate()
 

@@ -32,7 +32,7 @@ func PrintHistory(c *cli.Context) error {
 
 	// Get commits up to limit
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/commits?limit=%d", config.I.API.Host, projectConfig.ProjectID, limit)
+	reqUrl := fmt.Sprintf("%s/projects/%s/commits?limit=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, limit)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err

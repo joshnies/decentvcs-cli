@@ -287,7 +287,7 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 
 	// Get current commit
 	httpClient := http.Client{}
-	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err

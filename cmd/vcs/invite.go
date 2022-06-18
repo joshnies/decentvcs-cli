@@ -41,7 +41,7 @@ func Invite(c *cli.Context) error {
 	body, _ := json.Marshal(map[string]any{
 		"emails": emails,
 	})
-	reqUrl := fmt.Sprintf("%s/projects/%s/invite", config.I.API.Host, projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/invite", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))

@@ -23,7 +23,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	httpClient := &http.Client{}
 
 	// Get current commit
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentCommitIndex), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex), nil)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		console.Verbose("Getting current branch with latest commit...")
 
 		// Get current branch with latest commit
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID), nil)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		}
 
 		// Get user-specified commit
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.API.Host, projectConfig.ProjectID, commitIndex), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, commitIndex), nil)
 		if err != nil {
 			return err
 		}

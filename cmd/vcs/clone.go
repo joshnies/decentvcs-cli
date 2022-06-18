@@ -44,7 +44,7 @@ func CloneProject(c *cli.Context) error {
 
 	// Get project
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/blob/%s", config.I.API.Host, projectBlob)
+	reqUrl := fmt.Sprintf("%s/projects/blob/%s", config.I.VCS.ServerHost, projectBlob)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func CloneProject(c *cli.Context) error {
 	var branch models.BranchWithCommit
 	if branchName == "" {
 		// Get default branch
-		reqUrl = fmt.Sprintf("%s/projects/%s/branches/default?join_commit=true", config.I.API.Host, project.ID)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/default?join_commit=true", config.I.VCS.ServerHost, project.ID)
 		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err
@@ -91,7 +91,7 @@ func CloneProject(c *cli.Context) error {
 		}
 	} else {
 		// Get specified branch
-		reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, project.ID, branchName)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, project.ID, branchName)
 		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err

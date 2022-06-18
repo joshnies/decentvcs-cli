@@ -45,7 +45,7 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Upload objects in parallel
-	pool := workerpool.New(config.I.Storage.UploadPoolSize)
+	pool := workerpool.New(config.I.VCS.Storage.UploadPoolSize)
 	for path, hash := range hashMap {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
 		params := uploadParams{
@@ -106,7 +106,7 @@ func upload(ctx context.Context, params uploadParams) {
 	// }
 	contentType := "application/octet-stream"
 
-	if fileSize < config.I.Storage.PartSize {
+	if fileSize < config.I.VCS.Storage.PartSize {
 		// NON-MULTIPART
 		//
 		// Read file into byte array
@@ -169,7 +169,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.API.Host, params.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectID)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		panic(err)
@@ -236,7 +236,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.API.Host, params.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectID)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		panic(err)
@@ -272,7 +272,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	var start int64
 	remaining := fileSize
 	for remaining > 0 {
-		chunkSize := int64(math.Min(float64(remaining), float64(config.I.Storage.PartSize)))
+		chunkSize := int64(math.Min(float64(remaining), float64(config.I.VCS.Storage.PartSize)))
 		chunks = append(chunks, fileBytes[start:start+chunkSize])
 		start += chunkSize
 		remaining -= chunkSize
@@ -311,7 +311,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		panic(console.Error("Error marshalling \"complete multipart upload\" request body for file \"%s\": %v", params.FilePath, err))
 	}
 
-	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.API.Host, params.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectID)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
 	if err != nil {
 		panic(err)
@@ -405,7 +405,7 @@ func DownloadMany(projectId string, dest string, hashMap map[string]string) erro
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.API.Host, projectId)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectId)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
@@ -429,7 +429,7 @@ func DownloadMany(projectId string, dest string, hashMap map[string]string) erro
 	}
 
 	// Download objects in parallel (limited to pool size)
-	pool := workerpool.New(config.I.Storage.DownloadPoolSize)
+	pool := workerpool.New(config.I.VCS.Storage.DownloadPoolSize)
 	bar := progressbar.Default(int64(len(hashMap)))
 	for hash, url := range hashUrlMap {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION

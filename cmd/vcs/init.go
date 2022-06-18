@@ -59,7 +59,7 @@ func Init(c *cli.Context) error {
 	// Create project in API
 	httpClient := http.Client{}
 	bodyJson, _ := json.Marshal(map[string]string{"name": name})
-	reqUrl := fmt.Sprintf("%s/projects", config.I.API.Host)
+	reqUrl := fmt.Sprintf("%s/projects", config.I.VCS.ServerHost)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err

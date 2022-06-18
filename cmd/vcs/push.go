@@ -60,7 +60,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Get current branch w/ current commit
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.API.Host, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		"deleted_files":  fc.DeletedFilePaths,
 		"hash_map":       fc.HashMap,
 	})
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.API.Host, projectConfig.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
