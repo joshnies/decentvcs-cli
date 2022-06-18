@@ -14,7 +14,7 @@ func LogIn(c *cli.Context) error {
 		return auth0.LogIn(c)
 	case config.AuthProviderStytch:
 		// TODO: Implement Stytch login
-		return nil
+		return console.Error("Stytch login is not yet implemented")
 	}
 
 	return console.Error(
