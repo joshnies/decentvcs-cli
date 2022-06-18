@@ -21,18 +21,18 @@ const (
 
 type VCSStorageConfig struct {
 	// Multipart upload part size.
-	PartSize int64
+	PartSize int64 `yaml:"part_size"`
 	// Workerpool size for parallel file uploads.
-	UploadPoolSize int
+	UploadPoolSize int `yaml:"upload_pool_size"`
 	// Workerpool size for parallel file downloads.
-	DownloadPoolSize int
+	DownloadPoolSize int `yaml:"download_pool_size"`
 }
 
 type VCSConfig struct {
 	// DecentVCS server hostname.
-	ServerHost string
+	ServerHost string `yaml:"server_host"`
 	// Max file size for diffing.
-	MaxFileSizeForDiff int64
+	MaxFileSizeForDiff int64 `yaml:"max_file_size_for_diff"`
 	// Storage configuration.
 	Storage VCSStorageConfig
 }
@@ -41,11 +41,11 @@ type AuthConfig struct {
 	// Authentication server provider.
 	// Currently supports `auth0` and `stytch`.
 	Provider        AuthProvider
-	AccessToken     string
-	RefreshToken    string
+	AccessToken     string `yaml:"access_token"`
+	RefreshToken    string `yaml:"refresh_token"`
 	IDToken         string `yaml:"id_token"`
-	ExpiresIn       int64
-	AuthenticatedAt int64
+	ExpiresIn       int64  `yaml:"expires_in"`
+	AuthenticatedAt int64  `yaml:"authenticated_at"`
 }
 
 type Config struct {
