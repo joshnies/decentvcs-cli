@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"github.com/joshnies/decent/lib/auth"
@@ -8,6 +8,6 @@ import (
 
 // Command for resetting all changes on local machine.
 func Reset(c *cli.Context) error {
-	gc := auth.Validate()
-	return corefs.ResetChanges(gc, !c.Bool("no-confirm"))
+	auth.Validate()
+	return corefs.ResetChanges(!c.Bool("no-confirm"))
 }

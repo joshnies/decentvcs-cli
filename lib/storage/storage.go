@@ -36,7 +36,7 @@ import (
 // - hashMap: Map of local file paths to file hashes (which are used as object keys)
 //
 func UploadMany(projectId string, hashMap map[string]string) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -53,7 +53,6 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 			FilePath:  path,
 			Hash:      hash,
 			Bar:       bar,
-			GC:        &gc,
 		}
 		pool.Submit(func() {
 			upload(ctx, params)
@@ -73,7 +72,6 @@ type uploadParams struct {
 	FilePath  string
 	Hash      string
 	Bar       *progressbar.ProgressBar
-	GC        *models.GlobalConfig
 }
 
 // Upload object to storage. Can be multipart or in full.
@@ -174,7 +172,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -241,7 +239,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -316,7 +314,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", params.GC.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Add("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {
@@ -387,7 +385,7 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 // Returns map of object keys to data.
 //
 func DownloadMany(projectId string, dest string, hashMap map[string]string) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -410,7 +408,7 @@ func DownloadMany(projectId string, dest string, hashMap map[string]string) erro
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {

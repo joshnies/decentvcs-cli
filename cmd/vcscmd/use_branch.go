@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
@@ -19,7 +20,7 @@ import (
 // Switch to the specified branch.
 // This will also sync to the latest commit on that branch.
 func UseBranch(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Get the branch name
 	branchName := c.Args().First()
@@ -28,7 +29,7 @@ func UseBranch(c *cli.Context) error {
 	}
 
 	// Get project config
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -40,7 +41,7 @@ func UseBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -59,7 +60,7 @@ func UseBranch(c *cli.Context) error {
 
 	// Set the current branch in project config
 	projectConfig.CurrentBranchID = branch.ID
-	projectConfig, err = config.SaveProjectConfig(".", projectConfig)
+	projectConfig, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func UseBranch(c *cli.Context) error {
 	// Reset local changes if specified branch points to a different commit than current
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
 		// Reset local changes
-		err = corefs.ResetChanges(gc, !c.Bool("no-confirm"))
+		err = corefs.ResetChanges(!c.Bool("no-confirm"))
 		if err != nil {
 			return err
 		}
@@ -75,7 +76,7 @@ func UseBranch(c *cli.Context) error {
 
 	// Sync
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
-		err = commits.SyncToCommit(gc, projectConfig, branch.Commit.Index, true)
+		err = commits.SyncToCommit(projectConfig, branch.Commit.Index, true)
 		if err != nil {
 			return err
 		}

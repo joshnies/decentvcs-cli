@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/storage"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
@@ -36,7 +37,7 @@ func WithNoConfirm() func(*PushOptions) {
 
 // Push local changes to remote
 func Push(c *cli.Context, opts ...func(*PushOptions)) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Build options
 	o := &PushOptions{
@@ -53,7 +54,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Get project config, implicitly making sure current directory is a project
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -65,7 +66,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {
@@ -157,7 +158,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = commit.Index
-	_, err = config.SaveProjectConfig(".", projectConfig)
+	_, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
 	}

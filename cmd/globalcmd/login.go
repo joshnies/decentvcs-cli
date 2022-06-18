@@ -1,4 +1,4 @@
-package global
+package globalcmd
 
 import (
 	"github.com/joshnies/decent/config"
@@ -8,7 +8,7 @@ import (
 
 // Log in.
 func LogIn(c *cli.Context) error {
-	switch config.I.AuthProvider {
+	switch config.I.Auth.Provider {
 	case config.AuthProviderAuth0:
 		return auth0.LogIn(c)
 	case config.AuthProviderStytch:

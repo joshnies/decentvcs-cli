@@ -2,6 +2,7 @@ package constants
 
 // Config
 const VerboseEnvVar = "V"
+const DefaultConfigPath = ".decent/config.yml"
 
 // Error messages
 const ErrMsgInternal = "An internal error occurred. If the issue persists, please contact us."

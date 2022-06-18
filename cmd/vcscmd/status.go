@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"encoding/json"
@@ -10,16 +10,17 @@ import (
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
 
 // Print info for the current project, branch, and commit
 func PrintStatus(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Get project config
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -31,7 +32,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -54,7 +55,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
@@ -77,7 +78,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"encoding/json"
@@ -18,6 +18,7 @@ import (
 	"github.com/joshnies/decent/lib/storage"
 	"github.com/joshnies/decent/lib/system"
 	"github.com/joshnies/decent/lib/util"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 	"github.com/xyproto/binary"
@@ -28,7 +29,7 @@ import (
 // NOTE: User does not need to be synced with remote first, since they may be force pushing a local
 // merge to remote.
 func Merge(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Extract args
 	branchName := c.Args().Get(0)
@@ -40,7 +41,7 @@ func Merge(c *cli.Context) error {
 	push := c.Bool("push")
 
 	// Get project config, implicitly making sure current directory is a project
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -81,7 +82,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

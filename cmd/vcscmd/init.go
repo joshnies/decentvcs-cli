@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"bytes"
@@ -15,13 +15,14 @@ import (
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
 
 // Initialize a new project on local system and in the database.
 func Init(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Get absolute file path
 	path := strings.TrimSpace(c.Args().First())
@@ -64,7 +65,7 @@ func Init(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -98,7 +99,7 @@ func Init(c *cli.Context) error {
 		CurrentBranchID:    currentBranch.ID,
 		CurrentCommitIndex: currentBranch.Commit.Index,
 	}
-	config.SaveProjectConfig(absPath, projectFileData)
+	vcs.SaveProjectConfig(absPath, projectFileData)
 
 	console.Info("Created project \"%s\"", name)
 	return nil

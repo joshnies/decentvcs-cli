@@ -2,7 +2,10 @@ package auth0
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -10,14 +13,13 @@ import (
 	"time"
 
 	"github.com/grokify/go-pkce"
+	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
-	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/configio"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/system"
-	"github.com/joshnies/decent/models"
 	"github.com/lucsky/cuid"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Log in using Auth0.
@@ -26,9 +28,7 @@ func LogIn(c *cli.Context) error {
 	port := 4242
 	codeVerifier, err := pkce.NewCodeVerifierWithLength(32)
 	if err != nil {
-		console.Verbose("Failed to generate code verifier: %v", err)
-		console.ErrorPrint(constants.ErrMsgInternal)
-		os.Exit(1)
+		log.Fatalf("failed to generate code verifier: %v", err)
 	}
 	codeChallenge := pkce.CodeChallengeS256(codeVerifier)
 	serverState := cuid.New()
@@ -62,21 +62,16 @@ func LogIn(c *cli.Context) error {
 			console.Verbose("Client state does not match server state")
 			console.Verbose("Client state: %s", clientState)
 			console.Verbose("Server state: %s", serverState)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-			os.Exit(1)
+			log.Fatal("auth state check failed")
 		}
 
 		if resError != "" {
-			console.Verbose(
+			log.Fatalf(
 				"Received error from authentication callback: %s; %s",
 				resError,
 				resErrorDesc,
 			)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-			os.Exit(1)
 		}
-
-		console.Verbose("Authorization code: %s", code)
 
 		// Validate code
 		tokenReqUrl := fmt.Sprintf("%s/oauth/token", constants.Auth0DomainDev)
@@ -92,42 +87,27 @@ func LogIn(c *cli.Context) error {
 			strings.NewReader(tokenReqData.Encode()),
 		)
 		if err != nil {
-			console.Verbose("Error while retrieving access token: %s", err)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-			os.Exit(1)
+			log.Fatalf("error while retrieving access token: %v", err)
 		}
 
 		if tokenRes.StatusCode != 200 {
-			console.Verbose("Error while retrieving access token: %s", tokenRes.Status)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-
 			// Parse response body
 			var body map[string]interface{}
-			err = json.NewDecoder(tokenRes.Body).Decode(&body)
-			if err != nil {
-				console.Verbose("Error while parsing response body: %s", err)
-			}
+			_ = json.NewDecoder(tokenRes.Body).Decode(&body)
 
 			errorDesc := body["error_description"]
-			if errorDesc != nil {
-				console.Verbose("Error description: %s", errorDesc)
-			}
-
-			os.Exit(1)
+			log.Fatalf("received HTTP status %d while retrieving access token: %s", tokenRes.StatusCode, errorDesc)
 		}
 
 		// Parse response
-		authConfig, err := auth.ParseAccessTokenResponse(tokenRes)
+		authConfig, err := ParseAccessTokenResponse(tokenRes)
 		if err != nil {
-			console.Verbose("Error while parsing access token response: %s", err)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-			os.Exit(1)
+			log.Fatalf("error while parsing access token response from Auth0: %v", err)
 		}
 
 		// Make sure a refresh token was included in response
 		if authConfig.RefreshToken == "" {
-			console.ErrorPrint("Refresh token not found in response")
-			os.Exit(1)
+			log.Fatal("no refresh token included in response from Auth0")
 		}
 
 		// Print auth data
@@ -137,24 +117,22 @@ func LogIn(c *cli.Context) error {
 		console.Verbose("Expires in: %d hours", authConfig.ExpiresIn/60/60)
 		console.Verbose("Authenticated at: %s", authConfig.AuthenticatedAt)
 
-		// Save auth data to global config file
-		gc := models.GlobalConfig{
-			Auth: authConfig,
-		}
-
-		err = configio.SaveGlobalConfig(gc)
+		config.I.Auth = authConfig
+		cYaml, err := yaml.Marshal(config.I)
 		if err != nil {
-			console.ErrorPrint("Error while saving auth data to global config file: %s", err)
-			console.ErrorPrint(constants.ErrMsgAuthFailed)
-			os.Exit(1)
+			log.Fatalf("error while marshalling config: %v", err)
+		}
+		err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)
+		if err != nil {
+			log.Fatalf("error while writing config: %v", err)
 		}
 
-		console.Info("Authentication successful")
+		console.Success("authenticated")
 		os.Exit(0)
 	})
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
-	return console.Error("Ending authentication process after 3 minutes")
+	return errors.New("ending authentication attempt after 3 minutes")
 }

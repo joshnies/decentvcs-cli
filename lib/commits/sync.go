@@ -13,12 +13,13 @@ import (
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/storage"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"golang.org/x/exp/maps"
 )
 
 // Sync to a specific commit.
-func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, commitIndex int, confirm bool) error {
+func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm bool) error {
 	console.Verbose("Getting current commit...")
 	httpClient := &http.Client{}
 
@@ -27,7 +28,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	commitRes, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -55,7 +56,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		if err != nil {
 			return err
 		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 		res, err := httpClient.Do(req)
 		if err != nil {
 			return err
@@ -86,7 +87,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 		if err != nil {
 			return err
 		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 		res, err := httpClient.Do(req)
 		if err != nil {
 			return err
@@ -212,7 +213,7 @@ func SyncToCommit(gc models.GlobalConfig, projectConfig models.ProjectConfig, co
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = toCommit.Index
-	_, err = config.SaveProjectConfig(".", projectConfig)
+	_, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
 	}

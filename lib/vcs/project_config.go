@@ -1,4 +1,4 @@
-package config
+package vcs
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 // Get project config from file in current directory.
 func GetProjectConfig() (models.ProjectConfig, error) {
 	// Open file
-	// TODO: Find project config file within parent directories?
+	// TODO: Find project config file within parent directories
 	jsonFile, err := os.Open(constants.ProjectFileName)
 	if err != nil {
 		return models.ProjectConfig{}, console.Error(constants.ErrMsgNoProject)

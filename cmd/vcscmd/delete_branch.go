@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
@@ -16,7 +17,7 @@ import (
 // Soft-delete the specified branch.
 // Does NOT effect the branch's commits.
 func DeleteBranch(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Get the branch name
 	branchName := c.Args().First()
@@ -25,7 +26,7 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	// Get project config
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

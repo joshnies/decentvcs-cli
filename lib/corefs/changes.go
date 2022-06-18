@@ -21,6 +21,7 @@ import (
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/storage"
 	"github.com/joshnies/decent/lib/util"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
@@ -275,12 +276,11 @@ func DetectFileChanges(projectPath string, currentHashMap map[string]string) (Fi
 //
 // - Recreate all deleted files
 //
-// @param gc Global config
 // @param confirm Whether to prompt user for confirmation before resetting
 //
-func ResetChanges(gc models.GlobalConfig, confirm bool) error {
+func ResetChanges(confirm bool) error {
 	// Get project config
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func ResetChanges(gc models.GlobalConfig, confirm bool) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return console.Error("Failed to get commit: %s", err)

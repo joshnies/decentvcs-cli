@@ -1,4 +1,4 @@
-package vcs
+package vcscmd
 
 import (
 	"bytes"
@@ -11,16 +11,17 @@ import (
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 )
 
 // Set default branch for project.
 func SetDefaultBranch(c *cli.Context) error {
-	gc := auth.Validate()
+	auth.Validate()
 
 	// Get project config
-	projectConfig, err := config.GetProjectConfig()
+	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
 		return err
 	}
@@ -35,7 +36,7 @@ func SetDefaultBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -67,7 +68,7 @@ func SetDefaultBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", gc.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {

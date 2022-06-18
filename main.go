@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	globalcmd "github.com/joshnies/decent/cmd/global"
-	vcscmd "github.com/joshnies/decent/cmd/vcs"
+	"github.com/joshnies/decent/cmd/globalcmd"
+	"github.com/joshnies/decent/cmd/vcscmd"
 	"github.com/joshnies/decent/config"
 	"github.com/urfave/cli/v2"
 )
