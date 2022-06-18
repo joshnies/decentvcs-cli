@@ -17,6 +17,11 @@ import (
 )
 
 // Parse access token response from Auth0 Authentication API
+//
+// @param res - Auth0 access token HTTP response
+//
+// @returns New auth config
+//
 func ParseAccessTokenResponse(res *http.Response) (config.AuthConfig, error) {
 	// Parse response
 	var authConfig config.AuthConfig
@@ -40,8 +45,11 @@ func ParseAccessTokenResponse(res *http.Response) (config.AuthConfig, error) {
 		return config.AuthConfig{}, errors.New("\"expires_in\" not found in response")
 	}
 
+	// Retain provider
+	authConfig.Provider = config.I.Auth.Provider
 	// Add additional data
 	authConfig.AuthenticatedAt = time.Now().Unix()
+
 	return authConfig, nil
 }
 
