@@ -1,67 +1,68 @@
 package vcs
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/joshnies/decent/constants"
-	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/models"
+	"gopkg.in/yaml.v3"
 )
 
 // Get project config from file in current directory.
+// TODO: Find project config file within parent directories
 func GetProjectConfig() (models.ProjectConfig, error) {
-	// Open file
-	// TODO: Find project config file within parent directories
-	jsonFile, err := os.Open(constants.ProjectFileName)
-	if err != nil {
-		return models.ProjectConfig{}, console.Error(constants.ErrMsgNoProject)
+	// Check if file exists
+	configPath := filepath.Join(".", constants.ProjectFileName)
+	if _, err := os.Stat(configPath); err != nil {
+		return models.ProjectConfig{}, err
 	}
-	defer jsonFile.Close()
 
-	// Decode JSON
-	var data models.ProjectConfig
-	err = json.NewDecoder(jsonFile).Decode(&data)
+	// Read file
+	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return models.ProjectConfig{}, err
 	}
 
-	return data, nil
+	// Unmarshal
+	var config models.ProjectConfig
+	err = yaml.Unmarshal(configBytes, &config)
+	if err != nil {
+		return models.ProjectConfig{}, err
+	}
+
+	return config, nil
 }
 
 // Write project file.
-func SaveProjectConfig(path string, data models.ProjectConfig) (models.ProjectConfig, error) {
+func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfig, error) {
 	configPath := filepath.Join(path, constants.ProjectFileName)
 
 	// Read existing project file (if it exists)
-	jsonFile, err := os.Open(configPath)
-	if err != nil && !os.IsNotExist(err) {
-		return models.ProjectConfig{}, err
-	}
-	defer jsonFile.Close()
-
-	// Decode existing data JSON
-	var existingData models.ProjectConfig
-	if jsonFile != nil {
-		err = json.NewDecoder(jsonFile).Decode(&existingData)
+	newConfig := c
+	if _, err := os.Stat(configPath); err == nil {
+		exBytes, err := ioutil.ReadFile(configPath)
 		if err != nil {
-			// TODO: Improve this error
 			return models.ProjectConfig{}, err
 		}
+
+		var exConfig models.ProjectConfig
+		err = yaml.Unmarshal(exBytes, &exConfig)
+		if err != nil {
+			return models.ProjectConfig{}, err
+		}
+
+		// Merge existing data with new data
+		newConfig = models.MergeProjectConfigs(exConfig, c)
 	}
 
-	// If existing data exists, merge it with new data
-	mergedData := models.MergeProjectConfigs(existingData, data)
-
 	// Write
-	json, err := json.MarshalIndent(mergedData, "", "  ")
+	newConfigBytes, err := yaml.Marshal(newConfig)
 	if err != nil {
-		// TODO: Improve this error
 		return models.ProjectConfig{}, err
 	}
 
-	err = ioutil.WriteFile(configPath, json, os.ModePerm)
-	return mergedData, err
+	err = ioutil.WriteFile(configPath, newConfigBytes, os.ModePerm)
+	return newConfig, err
 }

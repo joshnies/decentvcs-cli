@@ -1,9 +1,9 @@
 package models
 
 type ProjectConfig struct {
-	ProjectID          string `json:"project,omitempty"`
-	CurrentBranchID    string `json:"branch,omitempty"`
-	CurrentCommitIndex int    `json:"commit,omitempty"`
+	ProjectID          string `yaml:"project"`
+	CurrentBranchID    string `yaml:"branch"`
+	CurrentCommitIndex int    `yaml:"commit"`
 }
 
 // Merge new project config into the old one.
