@@ -1,6 +1,8 @@
 package globalcmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,7 +13,9 @@ import (
 
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/system"
+	"github.com/joshnies/decent/models"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -32,17 +36,43 @@ func LogIn(c *cli.Context) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		console.Verbose("Received auth redirect")
 
-		// Get session token from query params
+		// Get token (not the session token!) from query params
 		token := r.URL.Query().Get("token")
 		if token == "" {
 			log.Fatal("Request received, but no token found")
 		}
+		console.Verbose("Token: %s", token)
 
-		console.Verbose("Session token (?): %s", token)
-		console.Verbose("Updating config file with new session...")
+		// Authenticate with DecentVCS server
+		console.Verbose("Authenticating with DecentVCS server...")
+		httpClient := http.Client{}
+		reqUrl := config.I.VCS.ServerHost + "/authenticate"
+		reqBody := models.AuthenticateRequest{
+			Token: token,
+		}
+		reqBodyJson, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqBodyJson))
+		req.Header.Set("Content-Type", "application/json")
+		res, err := httpClient.Do(req)
+		if err != nil {
+			console.Fatal("Failed to authenticate with DecentVCS server: %s", err.Error())
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			console.Fatal("Failed to authenticate with DecentVCS server: %s", err.Error())
+		}
+		defer res.Body.Close()
+
+		// Parse authentication response
+		console.Verbose("Parsing DecentVCS server authentication response...")
+		var authRes models.AuthenticateResponse
+		err = json.NewDecoder(res.Body).Decode(&authRes)
+		if err != nil {
+			console.Fatal("Failed to parse DecentVCS server authentication response: %s", err.Error())
+		}
 
 		// Update config with auth data
-		config.I.Auth.SessionToken = token
+		console.Verbose("Updating config file with new session...")
+		config.I.Auth.SessionToken = authRes.SessionToken
 		cYaml, err := yaml.Marshal(config.I)
 		if err != nil {
 			console.Fatal("Error while marshalling config: %v", err)
