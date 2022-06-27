@@ -38,14 +38,7 @@ type VCSConfig struct {
 }
 
 type AuthConfig struct {
-	// Authentication server provider.
-	// Currently supports `auth0` and `stytch`.
-	Provider        AuthProvider
-	AccessToken     string `yaml:"access_token" json:"access_token"`
-	RefreshToken    string `yaml:"refresh_token" json:"refresh_token"`
-	IDToken         string `yaml:"id_token" json:"id_token"`
-	ExpiresIn       int64  `yaml:"expires_in" json:"expires_in"`
-	AuthenticatedAt int64  `yaml:"authenticated_at"`
+	SessionToken string `yaml:"session_token" json:"session_token"`
 }
 
 type Config struct {
@@ -82,9 +75,6 @@ func InitConfig() Config {
 
 		I = Config{
 			Verbose: false,
-			Auth: AuthConfig{
-				Provider: AuthProviderAuth0,
-			},
 			VCS: VCSConfig{
 				ServerHost:         "http://localhost:8080",
 				MaxFileSizeForDiff: 1 * 1024 * 1024, // 1 MB

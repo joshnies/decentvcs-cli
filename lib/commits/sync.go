@@ -28,7 +28,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	commitRes, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		if err != nil {
 			return err
 		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 		res, err := httpClient.Do(req)
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		if err != nil {
 			return err
 		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 		res, err := httpClient.Do(req)
 		if err != nil {
 			return err

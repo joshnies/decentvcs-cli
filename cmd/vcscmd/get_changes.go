@@ -17,7 +17,7 @@ import (
 
 // Print list of current changes
 func GetChanges(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get project config, implicitly making sure current directory is a project
 	projectConfig, err := vcs.GetProjectConfig()
@@ -32,7 +32,7 @@ func GetChanges(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err

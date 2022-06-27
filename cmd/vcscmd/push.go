@@ -37,7 +37,7 @@ func WithNoConfirm() func(*PushOptions) {
 
 // Push local changes to remote
 func Push(c *cli.Context, opts ...func(*PushOptions)) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Build options
 	o := &PushOptions{
@@ -66,7 +66,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {

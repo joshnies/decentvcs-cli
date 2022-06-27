@@ -13,7 +13,7 @@ import (
 
 // Log out.
 func LogOut(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Clear auth data
 	config.I.Auth = config.AuthConfig{}

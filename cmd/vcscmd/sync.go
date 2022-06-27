@@ -12,7 +12,7 @@ import (
 
 // Sync local project to a commit
 func Sync(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get project config
 	projectConfig, err := vcs.GetProjectConfig()

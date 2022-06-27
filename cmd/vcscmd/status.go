@@ -17,7 +17,7 @@ import (
 
 // Print info for the current project, branch, and commit
 func PrintStatus(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get project config
 	projectConfig, err := vcs.GetProjectConfig()
@@ -32,7 +32,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

@@ -20,7 +20,7 @@ import (
 // Switch to the specified branch.
 // This will also sync to the latest commit on that branch.
 func UseBranch(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get the branch name
 	branchName := c.Args().First()
@@ -41,7 +41,7 @@ func UseBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err

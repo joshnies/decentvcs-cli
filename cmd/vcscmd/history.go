@@ -17,7 +17,7 @@ import (
 
 // Print commit history
 func PrintHistory(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Parse args
 	limit := c.Int("limit")
@@ -38,7 +38,7 @@ func PrintHistory(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err

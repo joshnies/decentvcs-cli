@@ -17,7 +17,7 @@ import (
 
 // Create a new branch.
 func NewBranch(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get branch name from args
 	branchName := c.Args().First()
@@ -46,7 +46,7 @@ func NewBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {

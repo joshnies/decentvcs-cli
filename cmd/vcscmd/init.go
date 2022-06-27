@@ -22,7 +22,7 @@ import (
 
 // Initialize a new project on local system and in the database.
 func Init(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get absolute file path
 	path := strings.TrimSpace(c.Args().First())
@@ -65,7 +65,7 @@ func Init(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	req.Header.Set("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {

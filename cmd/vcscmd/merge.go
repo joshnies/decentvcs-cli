@@ -29,7 +29,7 @@ import (
 // NOTE: User does not need to be synced with remote first, since they may be force pushing a local
 // merge to remote.
 func Merge(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Extract args
 	branchName := c.Args().Get(0)
@@ -59,7 +59,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

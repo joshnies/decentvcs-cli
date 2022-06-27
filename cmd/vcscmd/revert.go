@@ -18,7 +18,7 @@ import (
 
 // Reset all local changes and sync to last commit.
 func Revert(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get project config
 	projectConfig, err := vcs.GetProjectConfig()
@@ -37,7 +37,7 @@ func Revert(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err

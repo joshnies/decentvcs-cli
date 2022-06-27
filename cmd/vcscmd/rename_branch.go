@@ -17,7 +17,7 @@ import (
 
 // Rename the specified branch.
 func RenameBranch(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get args
 	oldName := c.Args().First()
@@ -43,7 +43,7 @@ func RenameBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func RenameBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	req.Header.Add("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {

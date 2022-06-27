@@ -21,7 +21,7 @@ import (
 
 // Clone remote project at default branch to local machine.
 func CloneProject(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get project blob from first arg
 	projectBlob := c.Args().First()
@@ -50,7 +50,7 @@ func CloneProject(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func CloneProject(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 		res, err = httpClient.Do(req)
 		if err != nil {
 			return err
@@ -97,7 +97,7 @@ func CloneProject(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 		res, err = httpClient.Do(req)
 		if err != nil {
 			return err

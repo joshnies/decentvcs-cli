@@ -8,6 +8,6 @@ import (
 
 // Command for resetting all changes on local machine.
 func Reset(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 	return corefs.ResetChanges(!c.Bool("no-confirm"))
 }

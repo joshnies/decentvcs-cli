@@ -17,7 +17,7 @@ import (
 // Soft-delete the specified branch.
 // Does NOT effect the branch's commits.
 func DeleteBranch(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	// Get the branch name
 	branchName := c.Args().First()
@@ -38,7 +38,7 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

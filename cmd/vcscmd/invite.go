@@ -20,7 +20,7 @@ import (
 //
 // Emails are separated by spaces.
 func Invite(c *cli.Context) error {
-	auth.Validate()
+	auth.HasToken()
 
 	projectConfig, err := vcs.GetProjectConfig()
 	if err != nil {
@@ -45,7 +45,7 @@ func Invite(c *cli.Context) error {
 	reqUrl := fmt.Sprintf("%s/projects/%s/invite", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
