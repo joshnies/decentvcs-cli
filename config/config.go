@@ -12,13 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type AuthProvider string
-
-const (
-	AuthProviderAuth0  AuthProvider = "auth0"
-	AuthProviderStytch AuthProvider = "stytch"
-)
-
 type VCSStorageConfig struct {
 	// Multipart upload part size.
 	PartSize int64 `yaml:"part_size"`
