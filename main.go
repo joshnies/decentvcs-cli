@@ -38,12 +38,6 @@ func main() {
 				Action: globalcmd.LogOut,
 			},
 			{
-				Name:    "auth",
-				Aliases: []string{"a"},
-				Usage:   "Print current authentication state",
-				Action:  globalcmd.PrintAuthState,
-			},
-			{
 				Name:  "vcs",
 				Usage: "DecentVCS commands",
 				Subcommands: []*cli.Command{
