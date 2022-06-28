@@ -1,5 +1,8 @@
 package constants
 
+// VCS server
+const SessionTokenHeader = "X-Session-Token"
+
 // File system
 const ProjectFileName = ".decent"
 const IgnoreFileName = ".decentignore"
