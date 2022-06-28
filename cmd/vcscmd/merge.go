@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/joshnies/decent/config"
+	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
@@ -59,7 +60,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -82,7 +83,7 @@ func Merge(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
