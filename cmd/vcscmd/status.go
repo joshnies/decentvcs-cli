@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
+	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
@@ -32,7 +33,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -55,7 +56,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
@@ -78,7 +79,7 @@ func PrintStatus(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err

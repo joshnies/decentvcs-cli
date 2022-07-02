@@ -68,7 +68,7 @@ func RenameBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {

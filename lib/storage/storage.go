@@ -172,7 +172,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -239,7 +239,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -314,7 +314,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {
@@ -408,7 +408,7 @@ func DownloadMany(projectId string, dest string, hashMap map[string]string) erro
 	if err != nil {
 		return err
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.I.Auth.SessionToken))
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
