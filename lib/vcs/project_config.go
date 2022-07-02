@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/models"
 	"gopkg.in/yaml.v3"
@@ -32,6 +33,12 @@ func GetProjectConfig() (models.ProjectConfig, error) {
 		return models.ProjectConfig{}, err
 	}
 
+	// Validate
+	err = ValidateProjectConfig(config)
+	if err != nil {
+		return models.ProjectConfig{}, err
+	}
+
 	return config, nil
 }
 
@@ -54,7 +61,7 @@ func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfi
 		}
 
 		// Merge existing data with new data
-		newConfig = models.MergeProjectConfigs(exConfig, c)
+		newConfig = MergeProjectConfigs(exConfig, c)
 	}
 
 	// Write
@@ -65,4 +72,29 @@ func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfi
 
 	err = ioutil.WriteFile(configPath, newConfigBytes, os.ModePerm)
 	return newConfig, err
+}
+
+// Validate a project config model.
+func ValidateProjectConfig(projectConfig models.ProjectConfig) error {
+	v := validator.New()
+	return v.Struct(projectConfig)
+}
+
+// Merge new project config into the old one.
+func MergeProjectConfigs(oldData models.ProjectConfig, newData models.ProjectConfig) models.ProjectConfig {
+	merged := oldData
+
+	if newData.ProjectID != "" {
+		merged.ProjectID = newData.ProjectID
+	}
+
+	if newData.CurrentBranchID != "" {
+		merged.CurrentBranchID = newData.CurrentBranchID
+	}
+
+	if newData.CurrentCommitIndex != 0 {
+		merged.CurrentCommitIndex = newData.CurrentCommitIndex
+	}
+
+	return merged
 }
