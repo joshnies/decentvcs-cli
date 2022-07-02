@@ -86,7 +86,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Make sure user is synced with remote before continuing
 	if currentBranch.Commit.Index != projectConfig.CurrentCommitIndex {
-		return console.Error("You are not synced with the remote. Please run `quanta sync`.")
+		return console.Error("You are not synced with the remote. Please run `decent sync`.")
 	}
 
 	// Detect local changes

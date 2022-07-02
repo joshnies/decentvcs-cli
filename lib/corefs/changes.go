@@ -85,7 +85,7 @@ func CalculateHashes(rootPath string) (map[string]string, error) {
 			return err
 		}
 
-		// Skip directories and Quanta project file
+		// Skip directories and project file
 		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
 		}
@@ -170,7 +170,7 @@ func DetectFileChanges(projectPath string, currentHashMap map[string]string) (Fi
 			return err
 		}
 
-		// Skip directories and Quanta project file
+		// Skip directories and project file
 		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
 		}

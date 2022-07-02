@@ -27,7 +27,7 @@ func OpenBrowser(url string) {
 	}
 }
 
-// Get quanta-specific temp directory.
+// Get temp directory specific to Decent.
 // The directory is created if it doesn't exist.
 func GetTempDir() string {
 	// Get user home dir
@@ -37,7 +37,7 @@ func GetTempDir() string {
 	}
 
 	// Get temp dir
-	tempDir := filepath.Join(homeDir, "quanta", "tmp")
+	tempDir := filepath.Join(homeDir, "decent", "tmp")
 	if err != nil {
 		log.Fatal(err)
 	}
