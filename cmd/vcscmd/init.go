@@ -89,10 +89,6 @@ func Init(c *cli.Context) error {
 
 	currentBranch := project.Branches[0]
 
-	console.Verbose("Project ID: %s", project.ID)
-	console.Verbose("Current branch ID: %s", currentBranch.ID)
-	console.Verbose("Current commit index: %d", currentBranch.Commit.Index)
-
 	// Create project file
 	projectFileData := models.ProjectConfig{
 		ProjectID:          project.ID,
@@ -101,6 +97,6 @@ func Init(c *cli.Context) error {
 	}
 	vcs.SaveProjectConfig(absPath, projectFileData)
 
-	console.Info("Created project \"%s\"", name)
+	console.Info("Created project %s", project.Blob)
 	return nil
 }
