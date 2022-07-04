@@ -25,7 +25,7 @@ func Init(c *cli.Context) error {
 	auth.HasToken()
 
 	// Get absolute file path
-	path := strings.TrimSpace(c.Args().First())
+	path := c.String("path")
 	if path == "" {
 		path = "."
 	}
@@ -50,16 +50,18 @@ func Init(c *cli.Context) error {
 		}
 	}
 
-	// Get project name
-	name := c.String("name")
-	if name == "" {
+	// Get project blob ("team-blob/project-blob")
+	blob := strings.TrimSpace(c.Args().First())
+	if blob == "" {
 		// Default to directory name
-		name = filepath.Base(absPath)
+		blob = filepath.Base(absPath)
 	}
+
+	// TODO: Validate blob via regex
 
 	// Create project in API
 	httpClient := http.Client{}
-	bodyJson, _ := json.Marshal(map[string]string{"name": name})
+	bodyJson, _ := json.Marshal(map[string]string{"blob": blob})
 	reqUrl := fmt.Sprintf("%s/projects", config.I.VCS.ServerHost)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
@@ -84,7 +86,7 @@ func Init(c *cli.Context) error {
 	}
 
 	if len(project.Branches) == 0 {
-		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please submit this as a bug!", name)
+		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please submit this as a bug!", blob)
 	}
 
 	currentBranch := project.Branches[0]
