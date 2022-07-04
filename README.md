@@ -31,7 +31,6 @@ Commands used for the entire Decent platform.
 | -------- | --------------------------------------- |
 | `login`  | Log in (required to use other commands) |
 | `logout` | Log out                                 |
-| `auth`   | Print current authentication state      |
 
 #### DecentVCS
 
@@ -39,7 +38,7 @@ Commands for DecentVCS, the open-source version control system built to be simpl
 
 | Command                                              | Description                                                                                                                            |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `vcs init [path?]`                                   | Initialize a new project at the specified path                                                                                         |
+| `vcs init [-p \| --path?] [blob?]`                   | Initialize a new project. If no `blob` provided, the default team name and current directory name are used.                            |
 | `vcs clone [-p \| --path?] [-b \| --branch?] [blob]` | Clone a project                                                                                                                        |
 | `vcs changes`                                        | Print local changes                                                                                                                    |
 | `vcs push [-y] [message?]`                           | Push local changes to remote.                                                                                                          |
