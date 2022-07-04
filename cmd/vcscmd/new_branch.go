@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
@@ -24,6 +25,12 @@ func NewBranch(c *cli.Context) error {
 	branchName := c.Args().First()
 	if branchName == "" {
 		return console.Error("Branch name is required")
+	}
+
+	// Validate branch name
+	regex := regexp.MustCompile(`^[\w\-]+$`)
+	if !regex.MatchString(branchName) {
+		return console.Error("Invalid branch name; must be alphanumeric with dashes")
 	}
 
 	// Get project config
