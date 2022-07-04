@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/joshnies/decent/config"
@@ -57,7 +58,11 @@ func Init(c *cli.Context) error {
 		blob = filepath.Base(absPath)
 	}
 
-	// TODO: Validate blob via regex
+	// Validate blob
+	regex := regexp.MustCompile(`^(?:[\w\-]+\/)?[\w\-]+$`)
+	if !regex.MatchString(blob) {
+		return console.Error("Invalid blob; must be in the format \"<team_name>/<project_name>\" (team name is optional)")
+	}
 
 	// Create project in API
 	httpClient := http.Client{}
