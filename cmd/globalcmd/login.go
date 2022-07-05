@@ -26,7 +26,7 @@ func LogIn(c *cli.Context) error {
 	port := 4242
 	redirectUri := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
 	// TODO: Update authUrl based on env
-	authUrl := fmt.Sprintf("http://localhost:3000/login?redirect_uri=%s", redirectUri)
+	authUrl := fmt.Sprintf("http://localhost:3000/login?require=true&redirect_uri=%s", redirectUri)
 	console.Info("Opening browser to log you in...")
 	console.Info("You can also open this URL:")
 	fmt.Println(authUrl + "\n")
