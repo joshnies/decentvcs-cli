@@ -25,7 +25,7 @@ func LogIn(c *cli.Context) error {
 	// Open login link in browser
 	port := 4242
 	redirectUri := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
-	// TODO: Update authUrl based on env
+	// TODO: Use website domain from decent global config file
 	authUrl := fmt.Sprintf("http://localhost:3000/login?require=true&redirect_uri=%s", redirectUri)
 	console.Info("Opening browser to log you in...")
 	console.Info("You can also open this URL:")
@@ -43,12 +43,19 @@ func LogIn(c *cli.Context) error {
 		}
 		console.Verbose("Token: %s", token)
 
+		tokenType := r.URL.Query().Get("stytch_token_type")
+		if tokenType == "" {
+			log.Fatal("Request received, but no token type found")
+		}
+		console.Verbose("Token type: %s", tokenType)
+
 		// Authenticate with DecentVCS server
 		console.Verbose("Authenticating with DecentVCS server...")
 		httpClient := http.Client{}
 		reqUrl := config.I.VCS.ServerHost + "/authenticate"
 		reqBody := models.AuthenticateRequest{
-			Token: token,
+			Token:     token,
+			TokenType: tokenType,
 		}
 		reqBodyJson, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqBodyJson))
