@@ -4,20 +4,43 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joshnies/decent/constants"
+	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/models"
 	"gopkg.in/yaml.v3"
 )
 
 // Get project config from file in current directory.
-// TODO: Find project config file within parent directories
 func GetProjectConfig() (models.ProjectConfig, error) {
-	// Check if file exists
-	configPath := filepath.Join(".", constants.ProjectFileName)
-	if _, err := os.Stat(configPath); err != nil {
+	// Look for project config file
+	//
+	// Get absolute current directory as initial search path
+	searchPath, err := os.Getwd()
+	if err != nil {
 		return models.ProjectConfig{}, err
+	}
+
+	// While config path is empty...
+	var configPath string
+	for configPath == "" {
+		// Check if file exists
+		searchPathWithFile := filepath.Join(searchPath, constants.ProjectFileName)
+		if _, err := os.Stat(searchPathWithFile); err != nil {
+			// If end of search path, return error
+			if strings.Split(searchPath, string(os.PathSeparator))[0] == searchPath {
+				return models.ProjectConfig{}, console.Error(constants.ErrNoProject)
+			}
+
+			// Not found yet (or an error occurred), move up one directory
+			searchPath = filepath.Dir(searchPath)
+		} else {
+			// File was found, break
+			configPath = searchPathWithFile
+			break
+		}
 	}
 
 	// Read file

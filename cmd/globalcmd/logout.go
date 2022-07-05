@@ -38,7 +38,7 @@ func LogOut(c *cli.Context) error {
 	cYaml, err := yaml.Marshal(config.I)
 	if err != nil {
 		console.Verbose("Error while encoding auth config as JSON: %s", err)
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error(constants.ErrInternal)
 	}
 
 	err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)

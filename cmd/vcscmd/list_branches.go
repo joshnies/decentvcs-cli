@@ -47,7 +47,7 @@ func ListBranches(c *cli.Context) error {
 	var branches []models.BranchWithCommit
 	err = json.NewDecoder(res.Body).Decode(&branches)
 	if err != nil {
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error(constants.ErrInternal)
 	}
 
 	// Print branches

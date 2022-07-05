@@ -9,6 +9,7 @@ import (
 	"runtime"
 )
 
+// Open the default browser with the given URL.
 func OpenBrowser(url string) {
 	var err error
 

@@ -51,7 +51,7 @@ func SetDefaultBranch(c *cli.Context) error {
 	err = json.NewDecoder(res.Body).Decode(&branch)
 	if err != nil {
 		console.Verbose("Failed to parse branch \"%s\": %s", branchName, err)
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error(constants.ErrInternal)
 	}
 
 	// Update project with default branch
@@ -61,7 +61,7 @@ func SetDefaultBranch(c *cli.Context) error {
 	bodyJson, err := json.Marshal(bodyData)
 	if err != nil {
 		console.Verbose("Failed to convert project DTO to JSON: %s", err)
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error(constants.ErrInternal)
 	}
 	reqUrl = fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))

@@ -42,7 +42,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	var currentCommit models.Commit
 	err = json.NewDecoder(commitRes.Body).Decode(&currentCommit)
 	if err != nil {
-		return console.Error(constants.ErrMsgInternal)
+		return console.Error(constants.ErrInternal)
 	}
 
 	// Get specified commit ID from args; default to latest commit
@@ -70,7 +70,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		var branchwc models.BranchWithCommit
 		err = json.NewDecoder(res.Body).Decode(&branchwc)
 		if err != nil {
-			return console.Error(constants.ErrMsgInternal)
+			return console.Error(constants.ErrInternal)
 		}
 
 		toCommit = branchwc.Commit
@@ -100,7 +100,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		// Parse commit
 		err = json.NewDecoder(res.Body).Decode(&toCommit)
 		if err != nil {
-			return console.Error(constants.ErrMsgInternal)
+			return console.Error(constants.ErrInternal)
 		}
 	}
 

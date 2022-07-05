@@ -8,4 +8,4 @@ const ProjectFileName = ".decent"
 const IgnoreFileName = ".decentignore"
 
 // Error messages
-const ErrMsgNoProject = "No project found in current directory. You can use `dvcs init` to create one."
+const ErrNoProject = "Looks like you're not in a DecentVCS project. You can use `dvcs init` to create one."
