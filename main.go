@@ -253,6 +253,18 @@ func main() {
 						ArgsUsage: "[paths...]",
 						Action:    vcscmd.Unlock,
 					},
+					{
+						Name:   "locks",
+						Usage:  "List all files and directories that are locked from modification",
+						Action: vcscmd.ListLocks,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "branch",
+								Aliases: []string{"b"},
+								Usage:   "Branch to list locks from",
+							},
+						},
+					},
 				},
 			},
 		},

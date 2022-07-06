@@ -23,7 +23,7 @@ func DeleteBranch(c *cli.Context) error {
 	// Get the branch name
 	branchName := c.Args().First()
 	if branchName == "" {
-		return cli.Exit("You must specify a branch name", 1)
+		return console.Error("You must specify a branch name")
 	}
 
 	// Get project config
