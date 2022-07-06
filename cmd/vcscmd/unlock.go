@@ -17,10 +17,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Lock one or many files from edits by other users.
+// Unlock one or many files, allowing other users to edit them again.
 // Specific to a branch.
-// TODO: Add support for locking remote-only files
-func Lock(c *cli.Context) error {
+// TODO: Add support for unlocking remote-only files
+func Unlock(c *cli.Context) error {
 	auth.HasToken()
 
 	// Get project config
@@ -32,7 +32,7 @@ func Lock(c *cli.Context) error {
 	// Get file paths from args
 	originPaths := c.Args().Slice()
 	if len(originPaths) == 0 {
-		return console.Error("Please specify at least one file path to lock")
+		return console.Error("Please specify at least one file or directory to unlock")
 	}
 
 	var paths []string
@@ -60,22 +60,22 @@ func Lock(c *cli.Context) error {
 		return console.Error("No files found in the given directories")
 	}
 
-	// Lock files on the server
+	// Unlock files on the server
 	httpClient := http.Client{}
 	bodyData := map[string]interface{}{
 		"paths": paths,
 	}
 	body, _ := json.Marshal(bodyData)
 	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks", projectConfig.ProjectID, projectConfig.CurrentBranchID)
-	req, _ := http.NewRequest("POST", reqURL, bytes.NewBuffer(body))
+	req, _ := http.NewRequest("DELETE", reqURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
 	if err != nil || httpvalidation.ValidateResponse(res) != nil {
-		return console.Error("Could not lock files")
+		return console.Error("Could not unlock files")
 	}
 	defer res.Body.Close()
 
-	console.Success("Locked %d files, they're all yours!", len(paths))
+	console.Success("Unlocked %d files", len(paths))
 	return nil
 }
