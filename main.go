@@ -241,6 +241,18 @@ func main() {
 						ArgsUsage: "[emails...]",
 						Action:    vcscmd.Invite,
 					},
+					{
+						Name:      "lock",
+						Usage:     "Lock one or many files or directories from being modified by others",
+						ArgsUsage: "[paths...]",
+						Action:    vcscmd.Lock,
+					},
+					{
+						Name:      "unlock",
+						Usage:     "Unlock one or many files or directories, allowing other users to modify them again",
+						ArgsUsage: "[paths...]",
+						Action:    vcscmd.Unlock,
+					},
 				},
 			},
 		},

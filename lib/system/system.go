@@ -53,3 +53,19 @@ func GetTempDir() string {
 
 	return tempDir
 }
+
+// Returns a slice of all files in a directory recursively.
+func ListFiles(dir string) ([]string, error) {
+	var res []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		res = append(res, path)
+		return nil
+	})
+	return res, err
+}
