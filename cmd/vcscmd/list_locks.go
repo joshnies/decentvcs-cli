@@ -50,7 +50,7 @@ func ListLocks(c *cli.Context) error {
 	}
 
 	if len(branch.Locks) == 0 {
-		console.Warning("No files locked in branch %s", branch.Name)
+		console.Info("No files locked in branch %s", branch.Name)
 		return nil
 	}
 
