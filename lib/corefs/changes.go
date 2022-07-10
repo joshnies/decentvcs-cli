@@ -144,7 +144,6 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 
 	createdFileSizeTotal := int64(0)
 	modifiedFileSizeTotal := int64(0)
-	deletedFileSizeTotal := int64(0)
 
 	// Get project config file path
 	projectConfigPath, err := vcs.GetProjectConfigPath()
@@ -242,17 +241,9 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
-			if fileInfo, ok := fileInfoMap[fp]; ok {
-				fileSize := fileInfo.Size()
-				deletedFileSizeTotal += fileSize
-				relFilePath, _ := filepath.Rel(projectPath, fp)
-				fmt.Printf(color.InRed("  - %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
-			} else {
-				fmt.Printf(color.InRed("  - %s\n"), fp)
-			}
+			relFilePath, _ := filepath.Rel(projectPath, fp)
+			fmt.Printf(color.InRed("  - %s\n"), relFilePath)
 		}
-
-		console.Info(color.InRed("  Total: %s\n"), util.FormatBytesSize(deletedFileSizeTotal))
 	}
 
 	// Return result
