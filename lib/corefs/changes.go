@@ -147,10 +147,12 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	deletedFileSizeTotal := int64(0)
 
 	// Get project config file path
-	projectPath, err := vcs.GetProjectPath()
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
 		return FileChangeDetectionResult{}, err
 	}
+
+	projectPath := filepath.Dir(projectConfigPath)
 
 	// Get ignore file patterns
 	ignoredFilePatterns, err := vcs.GetIgnoredFilePatterns()
@@ -219,7 +221,8 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			fileInfo := fileInfoMap[fp]
 			fileSize := fileInfo.Size()
 			createdFileSizeTotal += fileSize
-			fmt.Printf(color.InGreen("  + %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
+			relFilePath, _ := filepath.Rel(projectPath, fp)
+			fmt.Printf(color.InGreen("  + %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
 		}
 
 		fmt.Printf(color.InGreen("  Total: %s\n"), util.FormatBytesSize(createdFileSizeTotal))
@@ -230,7 +233,8 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			fileInfo := fileInfoMap[fp]
 			fileSize := fileInfo.Size()
 			modifiedFileSizeTotal += fileSize
-			fmt.Printf(color.InBlue("  * %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
+			relFilePath, _ := filepath.Rel(projectPath, fp)
+			fmt.Printf(color.InBlue("  * %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
 		}
 
 		console.Info(color.InBlue("  Total: %s\n"), util.FormatBytesSize(modifiedFileSizeTotal))
@@ -241,7 +245,8 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			if fileInfo, ok := fileInfoMap[fp]; ok {
 				fileSize := fileInfo.Size()
 				deletedFileSizeTotal += fileSize
-				fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
+				relFilePath, _ := filepath.Rel(projectPath, fp)
+				fmt.Printf(color.InRed("  - %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
 			} else {
 				fmt.Printf(color.InRed("  - %s\n"), fp)
 			}

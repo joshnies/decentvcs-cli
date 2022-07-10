@@ -15,7 +15,7 @@ import (
 
 // Get the path to the closest DecentVCS project config file (using an upwards file search).
 // Returns an error if not found.
-func GetProjectPath() (string, error) {
+func GetProjectConfigPath() (string, error) {
 	// Get absolute current directory as initial search path
 	searchPath, err := os.Getwd()
 	if err != nil {
@@ -48,7 +48,7 @@ func GetProjectPath() (string, error) {
 // Get project config from file in current directory.
 func GetProjectConfig() (models.ProjectConfig, error) {
 	// Get project config file path
-	configPath, err := GetProjectPath()
+	configPath, err := GetProjectConfigPath()
 	if err != nil {
 		return models.ProjectConfig{}, err
 	}
