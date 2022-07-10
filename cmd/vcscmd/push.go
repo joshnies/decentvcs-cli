@@ -173,7 +173,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	if len(filesToUpload) > 0 {
-		// TODO: Compress files before uploading
 		err = storage.UploadMany(projectConfig.ProjectID, uploadHashMap)
 		if err != nil {
 			return err
