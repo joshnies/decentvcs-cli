@@ -10,6 +10,7 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
+	"github.com/joshnies/decent/lib/commits"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
@@ -132,6 +133,11 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 			console.Info("Aborted")
 			return nil
 		}
+	}
+
+	// Delete commits ahead of current commit
+	if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentBranch.ID, projectConfig.CurrentCommitIndex); err != nil {
+		return err
 	}
 
 	// TODO: Create commit after uploads are complete?
