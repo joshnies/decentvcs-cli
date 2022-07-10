@@ -1,12 +1,14 @@
 package system
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // Open the default browser with the given URL.
@@ -68,4 +70,38 @@ func ListFiles(dir string) ([]string, error) {
 		return nil
 	})
 	return res, err
+}
+
+// Searches for the specified file within any directory above the current working directory.
+// Returns the path to the file if found, otherwise an error.
+func FindFileUpwards(filename string) (string, error) {
+	// Look for project config file
+	//
+	// Get absolute current directory as initial search path
+	searchPath, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// While config foundPath is empty...
+	var foundPath string
+	for foundPath == "" {
+		// Check if file exists
+		searchPathWithFile := filepath.Join(searchPath, filename)
+		if _, err := os.Stat(searchPathWithFile); err != nil {
+			// If end of search path, return error
+			if strings.Split(searchPath, string(os.PathSeparator))[0] == searchPath {
+				return "", errors.New("not found")
+			}
+
+			// Not found yet (or an error occurred), move up one directory
+			searchPath = filepath.Dir(searchPath)
+		} else {
+			// File was found, break
+			foundPath = searchPathWithFile
+			break
+		}
+	}
+
+	return foundPath, nil
 }

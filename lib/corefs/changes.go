@@ -131,7 +131,7 @@ type FileChangeDetectionResult struct {
 //
 // @param currentHashMap - Hash map of current commit fetched from remote
 //
-func DetectFileChanges(projectPath string, currentHashMap map[string]string) (FileChangeDetectionResult, error) {
+func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionResult, error) {
 	console.Info("Checking for changes...")
 
 	// Get known file paths in current commit
@@ -146,22 +146,16 @@ func DetectFileChanges(projectPath string, currentHashMap map[string]string) (Fi
 	modifiedFileSizeTotal := int64(0)
 	deletedFileSizeTotal := int64(0)
 
-	// Read ignore file
-	ignoreFilePath := filepath.Join(projectPath, constants.IgnoreFileName)
-	ignoreFile, err := os.Open(ignoreFilePath)
-	if err != nil && !os.IsNotExist(err) {
+	// Get project config file path
+	projectPath, err := vcs.GetProjectPath()
+	if err != nil {
 		return FileChangeDetectionResult{}, err
 	}
-	defer ignoreFile.Close()
 
-	// Read ignore file
-	ignoredFilePatterns := []string{}
-	scanner := bufio.NewScanner(ignoreFile)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" && !strings.HasPrefix(line, "#") {
-			ignoredFilePatterns = append(ignoredFilePatterns, line)
-		}
+	// Get ignore file patterns
+	ignoredFilePatterns, err := vcs.GetIgnoredFilePatterns()
+	if err != nil {
+		return FileChangeDetectionResult{}, err
 	}
 
 	// Walk project directory
@@ -310,8 +304,7 @@ func ResetChanges(confirm bool) error {
 	}
 
 	// Detect file changes
-	// TODO: Use user-provided project path if available
-	fc, err := DetectFileChanges(".", commit.HashMap)
+	fc, err := DetectFileChanges(commit.HashMap)
 	if err != nil {
 		return err
 	}

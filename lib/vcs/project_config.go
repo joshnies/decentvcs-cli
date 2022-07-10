@@ -13,14 +13,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Get project config from file in current directory.
-func GetProjectConfig() (models.ProjectConfig, error) {
-	// Look for project config file
-	//
+// Get the path to the closest DecentVCS project config file (using an upwards file search).
+// Returns an error if not found.
+func GetProjectPath() (string, error) {
 	// Get absolute current directory as initial search path
 	searchPath, err := os.Getwd()
 	if err != nil {
-		return models.ProjectConfig{}, err
+		return "", err
 	}
 
 	// While config path is empty...
@@ -31,7 +30,7 @@ func GetProjectConfig() (models.ProjectConfig, error) {
 		if _, err := os.Stat(searchPathWithFile); err != nil {
 			// If end of search path, return error
 			if strings.Split(searchPath, string(os.PathSeparator))[0] == searchPath {
-				return models.ProjectConfig{}, console.Error(constants.ErrNoProject)
+				return "", console.Error(constants.ErrNoProject)
 			}
 
 			// Not found yet (or an error occurred), move up one directory
@@ -41,6 +40,17 @@ func GetProjectConfig() (models.ProjectConfig, error) {
 			configPath = searchPathWithFile
 			break
 		}
+	}
+
+	return configPath, nil
+}
+
+// Get project config from file in current directory.
+func GetProjectConfig() (models.ProjectConfig, error) {
+	// Get project config file path
+	configPath, err := GetProjectPath()
+	if err != nil {
+		return models.ProjectConfig{}, err
 	}
 
 	// Read file
