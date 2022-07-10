@@ -84,9 +84,26 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		return err
 	}
 
+	// Get "force" flag
+	force := c.Bool("force")
+
 	// Make sure user is synced with remote before continuing
 	if currentBranch.Commit.Index != projectConfig.CurrentCommitIndex {
-		return console.Error("You are not synced with the remote. Please run `decent sync`.")
+		if force {
+			console.Warning("You're about to force push!")
+			console.Warning("This will archive all commits ahead of your current commit (#%d) on this branch (%s).", projectConfig.CurrentCommitIndex, currentBranch.Name)
+			console.Warning("Continue? (y/n)")
+
+			var answer string
+			fmt.Scanln(&answer)
+			if answer != "y" {
+				console.Info("Aborted")
+				return nil
+			}
+		} else {
+			console.ErrorPrint("Your are on commit #%d, but the remote branch points to commit #%d.", projectConfig.CurrentCommitIndex, currentBranch.Commit.Index)
+			return console.Error("You can forcefully push your changes by using the --force flag.")
+		}
 	}
 
 	// Detect local changes

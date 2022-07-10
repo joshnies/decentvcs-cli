@@ -94,6 +94,11 @@ func main() {
 								Aliases: []string{"y"},
 								Usage:   "Skip confirmation",
 							},
+							&cli.BoolFlag{
+								Name:    "force",
+								Aliases: []string{"f"},
+								Usage:   "Force push",
+							},
 							&cli.StringFlag{
 								Name:    "message",
 								Aliases: []string{"m"},
