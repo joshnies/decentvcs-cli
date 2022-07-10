@@ -19,7 +19,7 @@ import (
 
 // Unlock one or many files, allowing other users to edit them again.
 // Specific to a branch.
-// TODO: Add support for unlocking remote-only files
+// TODO: Change locks to only work for remote files (currently only works for local files)
 func Unlock(c *cli.Context) error {
 	auth.HasToken()
 
@@ -34,6 +34,8 @@ func Unlock(c *cli.Context) error {
 	if len(originPaths) == 0 {
 		return console.Error("Please specify at least one file or directory to unlock")
 	}
+
+	force := c.Bool("force")
 
 	var paths []string
 	for _, path := range originPaths {
@@ -66,7 +68,13 @@ func Unlock(c *cli.Context) error {
 		"paths": paths,
 	}
 	body, _ := json.Marshal(bodyData)
-	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks", projectConfig.ProjectID, projectConfig.CurrentBranchID)
+
+	var queryParam string
+	if force {
+		queryParam = "?force=true"
+	}
+
+	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks%s", projectConfig.ProjectID, projectConfig.CurrentBranchID, queryParam)
 	req, _ := http.NewRequest("DELETE", reqURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)

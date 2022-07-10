@@ -252,6 +252,13 @@ func main() {
 						Usage:     "Unlock one or many files or directories, allowing other users to modify them again",
 						ArgsUsage: "[paths...]",
 						Action:    vcscmd.Unlock,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:    "force",
+								Aliases: []string{"f"},
+								Usage:   "Force unlock (must be a project admin or owner)",
+							},
+						},
 					},
 					{
 						Name:   "locks",
