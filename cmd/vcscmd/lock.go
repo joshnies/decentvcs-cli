@@ -44,8 +44,11 @@ func Lock(c *cli.Context) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
-	if err != nil || httpvalidation.ValidateResponse(res) != nil {
-		return console.Error("Could not lock files")
+	if err != nil {
+		console.ErrorPrint("Could not lock files")
+		return console.Error("%v", err)
+	} else if err := httpvalidation.ValidateResponse(res); err != nil {
+		return console.Error("%v", err)
 	}
 	defer res.Body.Close()
 
