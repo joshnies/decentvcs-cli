@@ -5,21 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
-	"github.com/joshnies/decent/lib/system"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/urfave/cli/v2"
 )
 
 // Lock one or many files from edits by other users.
+// File(s) must exist in remote.
 // Specific to a branch.
-// TODO: Add support for locking remote-only files
 func Lock(c *cli.Context) error {
 	auth.HasToken()
 
@@ -30,34 +28,9 @@ func Lock(c *cli.Context) error {
 	}
 
 	// Get file paths from args
-	originPaths := c.Args().Slice()
-	if len(originPaths) == 0 {
-		return console.Error("Please specify at least one file path to lock")
-	}
-
-	var paths []string
-	for _, path := range originPaths {
-		// Check if directory
-		stat, err := os.Stat(path)
-		if err != nil {
-			return console.Error("Could not stat file \"%s\", it probably doesn't exist on your local machine", path)
-		}
-
-		if stat.IsDir() {
-			// Is directory, get all files in it
-			newPaths, err := system.ListFiles(path)
-			if err != nil {
-				return console.Error("Could not list files in directory \"%s\"", path)
-			}
-			paths = append(paths, newPaths...)
-		} else {
-			// Is file
-			paths = append(paths, path)
-		}
-	}
-
+	paths := c.Args().Slice()
 	if len(paths) == 0 {
-		return console.Error("No files found in the given directories")
+		return console.Error("Please specify at least one file path to lock")
 	}
 
 	// Lock files on the server
@@ -71,8 +44,11 @@ func Lock(c *cli.Context) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
-	if err != nil || httpvalidation.ValidateResponse(res) != nil {
-		return console.Error("Could not lock files")
+	if err != nil {
+		console.ErrorPrint("Could not lock files")
+		return console.Error("%v", err)
+	} else if err := httpvalidation.ValidateResponse(res); err != nil {
+		return console.Error("%v", err)
 	}
 	defer res.Body.Close()
 

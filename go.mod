@@ -7,7 +7,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/gammazero/workerpool v1.1.2
 	github.com/klauspost/compress v1.15.5
-	github.com/samber/lo v1.17.0
+	github.com/samber/lo v1.25.0
 	github.com/schollz/progressbar/v3 v3.8.6
 	github.com/urfave/cli/v2 v2.4.8
 	github.com/xyproto/binary v1.3.0
