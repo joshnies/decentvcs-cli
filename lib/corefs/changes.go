@@ -188,23 +188,24 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			return err
 		}
 
-		newHashMap[path] = newHash
-		fileInfoMap[path] = info
+		relPath, _ := filepath.Rel(projectPath, path)
+		newHashMap[relPath] = newHash
+		fileInfoMap[relPath] = info
 
 		// Detect changes
-		if oldHash, ok := currentHashMap[path]; ok {
+		if oldHash, ok := currentHashMap[relPath]; ok {
 			if oldHash != newHash {
 				// File was modified
-				modifiedFilePaths = append(modifiedFilePaths, path)
+				modifiedFilePaths = append(modifiedFilePaths, relPath)
 			}
 		} else {
 			// File is new
-			createdFilePaths = append(createdFilePaths, path)
+			createdFilePaths = append(createdFilePaths, relPath)
 		}
 
 		// Remove file path from remaining file paths
 		remainingPaths = lo.Filter(remainingPaths, func(p string, _ int) bool {
-			return p != path
+			return p != relPath
 		})
 
 		return nil
@@ -220,8 +221,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			fileInfo := fileInfoMap[fp]
 			fileSize := fileInfo.Size()
 			createdFileSizeTotal += fileSize
-			relFilePath, _ := filepath.Rel(projectPath, fp)
-			fmt.Printf(color.InGreen("  + %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
+			fmt.Printf(color.InGreen("  + %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
 		}
 
 		fmt.Printf(color.InGreen("  Total: %s\n"), util.FormatBytesSize(createdFileSizeTotal))
@@ -232,8 +232,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			fileInfo := fileInfoMap[fp]
 			fileSize := fileInfo.Size()
 			modifiedFileSizeTotal += fileSize
-			relFilePath, _ := filepath.Rel(projectPath, fp)
-			fmt.Printf(color.InBlue("  * %s (%s)\n"), relFilePath, util.FormatBytesSize(fileSize))
+			fmt.Printf(color.InBlue("  * %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
 		}
 
 		console.Info(color.InBlue("  Total: %s\n"), util.FormatBytesSize(modifiedFileSizeTotal))
@@ -241,8 +240,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
-			relFilePath, _ := filepath.Rel(projectPath, fp)
-			fmt.Printf(color.InRed("  - %s\n"), relFilePath)
+			fmt.Printf(color.InRed("  - %s\n"), fp)
 		}
 	}
 
