@@ -30,7 +30,7 @@ func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchIDOrNam
 
 	// Delete all unused objects from storage
 	console.Info("Deleting unused objects (this may take a while)...")
-	reqUrl = fmt.Sprintf("%s/projects/%s/unused", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/storage/unused", config.I.VCS.ServerHost, projectConfig.ProjectID)
 	req, _ = http.NewRequest("DELETE", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err = httpClient.Do(req)
