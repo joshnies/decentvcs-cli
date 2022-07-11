@@ -95,10 +95,10 @@ func LogIn(c *cli.Context) error {
 		fmt.Fprintf(w,
 			`<html>
 				<head>
-					<meta http-equiv="refresh" content="0; url=https://decentvcs.com/login/external/success">
+					<meta http-equiv="refresh" content="0; url=%s">
 					<title>Redirecting...</title>
 				</head>
-			</html>`,
+			</html>`, getLoginSuccessURL(),
 		)
 
 		console.Success("Authenticated")
@@ -108,4 +108,16 @@ func LogIn(c *cli.Context) error {
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
 	return console.Error("Authentication timed out")
+}
+
+// Returns the URL to the login success page based on the CLI environment.
+func getLoginSuccessURL() string {
+	switch config.I.Env {
+	case config.EnvDev:
+		return "http://dev.decentvcs.com/login/external/success"
+	case config.EnvLcl:
+		return "http://localhost:3000/login/external/success"
+	default:
+		return "https://decentvcs.com/login/external/success"
+	}
 }

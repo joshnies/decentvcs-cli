@@ -12,6 +12,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Env string
+
+const (
+	// Local environment
+	EnvLcl Env = "lcl"
+	// Development environment
+	EnvDev Env = "dev"
+	// Production environment
+	EnvPrd Env = "prd"
+)
+
 type VCSStorageConfig struct {
 	// Multipart upload part size.
 	PartSize int64 `yaml:"part_size"`
@@ -35,6 +46,8 @@ type AuthConfig struct {
 }
 
 type Config struct {
+	// Environment to run the CLI in.
+	Env Env
 	// Whether or not to print verbose output.
 	Verbose bool
 	Auth    AuthConfig
@@ -67,7 +80,6 @@ func InitConfig() Config {
 		}
 
 		I = Config{
-			Verbose: false,
 			VCS: VCSConfig{
 				ServerHost:         "http://localhost:8080",
 				MaxFileSizeForDiff: 1 * 1024 * 1024, // 1 MB
@@ -98,10 +110,18 @@ func InitConfig() Config {
 		}
 
 		// Decode file contents
-		err = yaml.Unmarshal(gcBytes, &I)
+		var config Config
+		err = yaml.Unmarshal(gcBytes, &config)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Set defaults for missing fields
+		if config.Env == "" {
+			config.Env = EnvPrd
+		}
+
+		I = config
 	}
 
 	// Validate config
