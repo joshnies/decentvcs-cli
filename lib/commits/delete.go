@@ -14,32 +14,13 @@ import (
 // Delete all commits ahead of the given index for the specified branch.
 // All unique file uploads are immediately deleted (based on commit hash maps).
 func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchIDOrName string, index int) error {
-	// Get file hashes for all files that only appear in commits ahead of the given index
-	console.Verbose("Getting all unique file hashes ahead of commit #%d...", index)
-	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/unique_hashes?after_commit_index=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, branchIDOrName, index)
-	req, err := http.NewRequest("GET", reqUrl, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	res, err := httpClient.Do(req)
-	if err != nil {
-		return console.Error("Failed to get unique file hashes: %v", err)
-	}
-	if err := httpvalidation.ValidateResponse(res); err != nil {
-		return err
-	}
-
 	// Delete all commits ahead of the given index for the specified branch
 	console.Verbose("Deleting commits ahead of commit #%d...", index)
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, branchIDOrName, index)
-	req, err = http.NewRequest("DELETE", reqUrl, nil)
-	if err != nil {
-		return err
-	}
+	httpClient := http.Client{}
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, branchIDOrName, index)
+	req, _ := http.NewRequest("DELETE", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	res, err = httpClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return console.Error("Failed to delete commits: %v", err)
 	}
@@ -47,7 +28,18 @@ func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchIDOrNam
 		return err
 	}
 
-	// TODO: Delete all unique file uploads from storage
+	// Delete all unused objects from storage
+	console.Info("Deleting unused objects (this may take a while)...")
+	reqUrl = fmt.Sprintf("%s/projects/%s/unused", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	req, _ = http.NewRequest("DELETE", reqUrl, nil)
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return console.Error("Failed to delete unused objects: %v", err)
+	}
+	if err := httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
 
 	return nil
 }
