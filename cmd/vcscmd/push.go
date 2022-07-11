@@ -135,9 +135,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
-	// Delete commits ahead of current commit
-	if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentBranch.ID, projectConfig.CurrentCommitIndex); err != nil {
-		return err
+	if force {
+		// User is force pushing.
+		// Delete commits ahead of current commit.
+		if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentBranch.ID, projectConfig.CurrentCommitIndex); err != nil {
+			return err
+		}
 	}
 
 	// TODO: Create commit after uploads are complete?
