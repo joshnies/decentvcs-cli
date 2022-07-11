@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,13 +38,15 @@ func LogIn(c *cli.Context) error {
 		// Get token (not the session token!) from query params
 		token := r.URL.Query().Get("token")
 		if token == "" {
-			log.Fatal("Request received, but no token found")
+			// User was most likely redirected after successful login, silently exit with non-zero exit code
+			os.Exit(0)
 		}
 		console.Verbose("Token: %s", token)
 
 		tokenType := r.URL.Query().Get("stytch_token_type")
 		if tokenType == "" {
-			log.Fatal("Request received, but no token type found")
+			// User was most likely redirected after successful login, silently exit with non-zero exit code
+			os.Exit(0)
 		}
 		console.Verbose("Token type: %s", tokenType)
 
@@ -89,10 +90,18 @@ func LogIn(c *cli.Context) error {
 			console.Fatal("Error while writing config: %v", err)
 		}
 
-		// TODO: Write HTML response
+		// Write HTML response
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w,
+			`<html>
+				<head>
+					<meta http-equiv="refresh" content="0; url=https://decentvcs.com/login/external/success">
+					<title>Redirecting...</title>
+				</head>
+			</html>`,
+		)
 
 		console.Success("Authenticated")
-		os.Exit(0)
 	})
 	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 
