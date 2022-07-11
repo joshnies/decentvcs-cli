@@ -108,7 +108,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Detect local changes
-	console.Info("Detecting changes...")
 	startTime := time.Now()
 	fc, err := corefs.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
