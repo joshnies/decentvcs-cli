@@ -160,7 +160,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if force {
 		// User is force pushing.
 		// Delete commits ahead of current commit.
-		if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentCommit.ID, projectConfig.CurrentCommitIndex); err != nil {
+		if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentCommit.ID, currentCommit.Index); err != nil {
 			return err
 		}
 	}
