@@ -13,11 +13,11 @@ import (
 
 // Delete all commits ahead of the given index for the specified branch.
 // All unique file uploads are immediately deleted (based on commit hash maps).
-func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchIDOrName string, index int) error {
+func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchID string, index int) error {
 	// Delete all commits ahead of the given index for the specified branch
 	console.Verbose("Deleting commits ahead of commit #%d...", index)
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, branchIDOrName, index)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectID, branchID, index)
 	req, _ := http.NewRequest("DELETE", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
