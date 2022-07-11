@@ -170,8 +170,8 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	startTime = time.Now()
 
 	// Create commit in database
-	bodyJson, _ := json.Marshal(map[string]any{
-		"branch_id":      projectConfig.CurrentBranchID,
+	bodyJson, _ := json.Marshal(map[string]interface{}{
+		"branch_id":      currentBranch.ID,
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": fc.ModifiedFilePaths,
