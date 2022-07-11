@@ -10,6 +10,7 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
+	"github.com/joshnies/decent/lib/commits"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
@@ -60,7 +61,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		return err
 	}
 
-	// Get current branch w/ current commit
+	// Get current branch w/ latest commit
 	httpClient := http.Client{}
 	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
@@ -84,15 +85,54 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		return err
 	}
 
+	// Get current commit
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	req, err = http.NewRequest("GET", reqUrl, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	// Parse response
+	var currentCommit models.Commit
+	err = json.NewDecoder(res.Body).Decode(&currentCommit)
+	if err != nil {
+		return err
+	}
+
+	// Get "force" flag
+	force := c.Bool("force")
+
 	// Make sure user is synced with remote before continuing
 	if currentBranch.Commit.Index != projectConfig.CurrentCommitIndex {
-		return console.Error("You are not synced with the remote. Please run `decent sync`.")
+		if force {
+			console.Warning("You're about to force push!")
+			console.Warning("This will permanently delete all commits and new files ahead of your current commit (#%d) on this branch (%s).", projectConfig.CurrentCommitIndex, currentBranch.Name)
+			console.Warning("Continue? (y/n)")
+
+			var answer string
+			fmt.Scanln(&answer)
+			if answer != "y" {
+				console.Info("Aborted")
+				return nil
+			}
+		} else {
+			console.ErrorPrint("Your are on commit #%d, but the remote branch points to commit #%d.", projectConfig.CurrentCommitIndex, currentCommit.Index)
+			return console.Error("You can forcefully push your changes by using the --force flag.")
+		}
 	}
 
 	// Detect local changes
-	console.Info("Detecting changes...")
 	startTime := time.Now()
-	fc, err := corefs.DetectFileChanges(currentBranch.Commit.HashMap)
+	fc, err := corefs.DetectFileChanges(currentCommit.HashMap)
 	if err != nil {
 		return err
 	}
@@ -117,13 +157,21 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
+	if force {
+		// User is force pushing.
+		// Delete commits ahead of current commit.
+		if err = commits.DeleteCommitsAheadOfIndex(projectConfig, currentBranch.ID, currentCommit.Index); err != nil {
+			return err
+		}
+	}
+
 	// TODO: Create commit after uploads are complete?
 	console.Verbose("Creating commit...")
 	startTime = time.Now()
 
 	// Create commit in database
-	bodyJson, _ := json.Marshal(map[string]any{
-		"branch_id":      projectConfig.CurrentBranchID,
+	bodyJson, _ := json.Marshal(map[string]interface{}{
+		"branch_id":      currentBranch.ID,
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": fc.ModifiedFilePaths,
@@ -173,7 +221,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	if len(filesToUpload) > 0 {
-		// TODO: Compress files before uploading
 		err = storage.UploadMany(projectConfig.ProjectID, uploadHashMap)
 		if err != nil {
 			return err

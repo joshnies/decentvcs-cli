@@ -144,13 +144,14 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 
 	createdFileSizeTotal := int64(0)
 	modifiedFileSizeTotal := int64(0)
-	deletedFileSizeTotal := int64(0)
 
 	// Get project config file path
-	projectPath, err := vcs.GetProjectPath()
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
 		return FileChangeDetectionResult{}, err
 	}
+
+	projectPath := filepath.Dir(projectConfigPath)
 
 	// Get ignore file patterns
 	ignoredFilePatterns, err := vcs.GetIgnoredFilePatterns()
@@ -187,23 +188,24 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 			return err
 		}
 
-		newHashMap[path] = newHash
-		fileInfoMap[path] = info
+		relPath, _ := filepath.Rel(projectPath, path)
+		newHashMap[relPath] = newHash
+		fileInfoMap[relPath] = info
 
 		// Detect changes
-		if oldHash, ok := currentHashMap[path]; ok {
+		if oldHash, ok := currentHashMap[relPath]; ok {
 			if oldHash != newHash {
 				// File was modified
-				modifiedFilePaths = append(modifiedFilePaths, path)
+				modifiedFilePaths = append(modifiedFilePaths, relPath)
 			}
 		} else {
 			// File is new
-			createdFilePaths = append(createdFilePaths, path)
+			createdFilePaths = append(createdFilePaths, relPath)
 		}
 
 		// Remove file path from remaining file paths
 		remainingPaths = lo.Filter(remainingPaths, func(p string, _ int) bool {
-			return p != path
+			return p != relPath
 		})
 
 		return nil
@@ -238,16 +240,8 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	if len(remainingPaths) > 0 {
 		console.Info(color.InRed(color.InBold("Deleted files:")))
 		for _, fp := range remainingPaths {
-			if fileInfo, ok := fileInfoMap[fp]; ok {
-				fileSize := fileInfo.Size()
-				deletedFileSizeTotal += fileSize
-				fmt.Printf(color.InRed("  - %s (%s)\n"), fp, util.FormatBytesSize(fileSize))
-			} else {
-				fmt.Printf(color.InRed("  - %s\n"), fp)
-			}
+			fmt.Printf(color.InRed("  - %s\n"), fp)
 		}
-
-		console.Info(color.InRed("  Total: %s\n"), util.FormatBytesSize(deletedFileSizeTotal))
 	}
 
 	// Return result
