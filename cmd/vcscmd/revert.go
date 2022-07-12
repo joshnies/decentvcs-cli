@@ -8,9 +8,7 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/commit_lib"
 	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
@@ -56,12 +54,12 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Reset all changes to current commit
-	err = corefs.ResetChanges(!c.Bool("no-confirm"))
+	err = vcs.ResetChanges(!c.Bool("no-confirm"))
 	if err != nil {
 		console.ErrorPrint("An error occurred while resetting changes")
 		return err
 	}
 
 	// Sync to last commit
-	return commit_lib.SyncToCommit(projectConfig, currentCommit.Index-1, !c.Bool("no-confirm"))
+	return vcs.SyncToCommit(projectConfig, currentCommit.Index-1, !c.Bool("no-confirm"))
 }

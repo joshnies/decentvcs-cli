@@ -1,4 +1,4 @@
-package commit_lib
+package vcs
 
 import (
 	"encoding/json"
@@ -10,10 +10,8 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/storage"
-	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"golang.org/x/exp/maps"
 )
@@ -165,7 +163,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	for key, hash := range currentCommit.HashMap {
 		if _, ok := toCommit.HashMap[key]; !ok {
 			// File is deleted from last commit. Add to list of files to delete if it doesn't exist in current changes
-			curHash, err := corefs.GetFileHash(key)
+			curHash, err := GetFileHash(key)
 			if err != nil {
 				return err
 			}
@@ -213,7 +211,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = toCommit.Index
-	_, err = vcs.SaveProjectConfig(".", projectConfig)
+	_, err = SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err
 	}

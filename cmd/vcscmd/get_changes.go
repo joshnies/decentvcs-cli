@@ -9,7 +9,6 @@ import (
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
 	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
@@ -51,7 +50,7 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	fc, err := corefs.DetectFileChanges(currentBranch.Commit.HashMap)
+	fc, err := vcs.DetectFileChanges(currentBranch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

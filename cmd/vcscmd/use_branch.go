@@ -9,9 +9,7 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/commit_lib"
 	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
@@ -69,7 +67,7 @@ func UseBranch(c *cli.Context) error {
 	// Reset local changes if specified branch points to a different commit than current
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
 		// Reset local changes
-		err = corefs.ResetChanges(!c.Bool("no-confirm"))
+		err = vcs.ResetChanges(!c.Bool("no-confirm"))
 		if err != nil {
 			return err
 		}
@@ -77,7 +75,7 @@ func UseBranch(c *cli.Context) error {
 
 	// Sync
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
-		err = commit_lib.SyncToCommit(projectConfig, branch.Commit.Index, true)
+		err = vcs.SyncToCommit(projectConfig, branch.Commit.Index, true)
 		if err != nil {
 			return err
 		}

@@ -1,4 +1,4 @@
-package corefs
+package vcs
 
 import (
 	"bufio"
@@ -21,7 +21,6 @@ import (
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/storage"
 	"github.com/joshnies/decent/lib/util"
-	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
@@ -146,7 +145,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	modifiedFileSizeTotal := int64(0)
 
 	// Get project config file path
-	projectConfigPath, err := vcs.GetProjectConfigPath()
+	projectConfigPath, err := GetProjectConfigPath()
 	if err != nil {
 		return FileChangeDetectionResult{}, err
 	}
@@ -154,7 +153,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 	projectPath := filepath.Dir(projectConfigPath)
 
 	// Get ignore file patterns
-	ignoredFilePatterns, err := vcs.GetIgnoredFilePatterns()
+	ignoredFilePatterns, err := GetIgnoredFilePatterns()
 	if err != nil {
 		return FileChangeDetectionResult{}, err
 	}
@@ -268,7 +267,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 //
 func ResetChanges(confirm bool) error {
 	// Get project config
-	projectConfig, err := vcs.GetProjectConfig()
+	projectConfig, err := GetProjectConfig()
 	if err != nil {
 		return err
 	}

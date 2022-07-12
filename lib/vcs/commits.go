@@ -1,4 +1,4 @@
-package commit_lib
+package vcs
 
 import (
 	"fmt"
