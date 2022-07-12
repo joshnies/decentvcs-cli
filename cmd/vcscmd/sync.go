@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/commits"
+	"github.com/joshnies/decent/lib/commit_lib"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/urfave/cli/v2"
@@ -25,5 +25,5 @@ func Sync(c *cli.Context) error {
 	}
 
 	commitIndex, _ := strconv.Atoi(c.Args().Get(0))
-	return commits.SyncToCommit(projectConfig, commitIndex, !c.Bool("no-confirm"))
+	return commit_lib.SyncToCommit(projectConfig, commitIndex, !c.Bool("no-confirm"))
 }

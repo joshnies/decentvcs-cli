@@ -8,7 +8,7 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/commits"
+	"github.com/joshnies/decent/lib/commit_lib"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/corefs"
 	"github.com/joshnies/decent/lib/httpvalidation"
@@ -63,5 +63,5 @@ func Revert(c *cli.Context) error {
 	}
 
 	// Sync to last commit
-	return commits.SyncToCommit(projectConfig, currentCommit.Index-1, !c.Bool("no-confirm"))
+	return commit_lib.SyncToCommit(projectConfig, currentCommit.Index-1, !c.Bool("no-confirm"))
 }
