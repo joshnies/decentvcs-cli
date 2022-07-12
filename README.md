@@ -52,6 +52,10 @@ Commands for DecentVCS, the open-source version control system built to be simpl
 | `vcs branch set-default [name]`                      | Set the default branch for the project                                                                                                 |
 | `vcs history [-l=10]`                                | Print commit history                                                                                                                   |
 | `vcs status`                                         | Print project config                                                                                                                   |
+| `vcs invite [emails...]`                             | Invite one or many users to the project                                                                                                |
+| `vcs locks [-b \| --branch?]`                        | List locked files for a branch                                                                                                         |
+| `vcs lock [paths...]`                                | Lock files or directories from being modified by others                                                                                |
+| `vcs unlock [-f \| --force?] [paths...]`             | Unlock files or directories, allowing them to be modified again by others                                                              |
 
 ### Common flags
 
