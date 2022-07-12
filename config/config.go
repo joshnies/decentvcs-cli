@@ -81,6 +81,18 @@ func getWebsiteURL(env Env) string {
 	}
 }
 
+// Returns the DecentVCS server host based on the CLI environment.
+func getVCSServerHost(env Env) string {
+	switch env {
+	case EnvDev:
+		return "http://dev-vcs.decentvcs.com"
+	case EnvLcl:
+		return "http://localhost:8080"
+	default:
+		return "https://vcs.decentvcs.com"
+	}
+}
+
 // Initialize the CLI config.
 func InitConfig() Config {
 	cpath := GetConfigPath()
@@ -95,7 +107,6 @@ func InitConfig() Config {
 
 		I = Config{
 			VCS: VCSConfig{
-				ServerHost:         "http://localhost:8080",
 				MaxFileSizeForDiff: 1 * 1024 * 1024, // 1 MB
 				Storage: VCSStorageConfig{
 					PartSize:         64 * 1024 * 1024, // 64 MB
@@ -115,6 +126,9 @@ func InitConfig() Config {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// Set internal and default config fields
+		SetInternalConfigFields(&I)
 	} else {
 		// Open file
 		gcBytes, err := ioutil.ReadFile(cpath)
@@ -129,13 +143,8 @@ func InitConfig() Config {
 			log.Fatal(err)
 		}
 
-		// Set defaults for missing fields
-		if config.Env == "" {
-			config.Env = EnvPrd
-		}
-
-		// Set internal config fields
-		config.WebsiteURL = getWebsiteURL(config.Env)
+		// Set internal and default config fields
+		SetInternalConfigFields(&config)
 
 		// Set config instance
 		I = config
@@ -170,4 +179,16 @@ func InitConfig() Config {
 	}
 
 	return I
+}
+
+// Set internal config fields.
+func SetInternalConfigFields(config *Config) {
+	// Set defaults for missing fields
+	if config.Env == "" {
+		config.Env = EnvPrd
+	}
+
+	// Set internal config fields
+	config.WebsiteURL = getWebsiteURL(config.Env)
+	config.VCS.ServerHost = getVCSServerHost(config.Env)
 }
