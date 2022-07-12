@@ -98,8 +98,7 @@ func InitConfig() Config {
 				ServerHost:         "http://localhost:8080",
 				MaxFileSizeForDiff: 1 * 1024 * 1024, // 1 MB
 				Storage: VCSStorageConfig{
-					// TODO: Should we increase default PartSize to 64 MB?
-					PartSize:         5 * 1024 * 1024, // 5 MB
+					PartSize:         64 * 1024 * 1024, // 64 MB
 					UploadPoolSize:   128,
 					DownloadPoolSize: 32,
 				},
