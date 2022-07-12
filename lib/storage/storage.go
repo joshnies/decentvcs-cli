@@ -276,8 +276,8 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		remaining -= chunkSize
 	}
 
-	// Upload parts in parallel (limited to pool size)
-	// TODO: Parallelize this
+	// Upload parts in sequence.
+	// This is not done in parallel due to rate limiting and threading concerns.
 	parts := []models.MultipartUploadPart{}
 	totalParts := len(chunks)
 	for i, url := range presignRes.URLs {
