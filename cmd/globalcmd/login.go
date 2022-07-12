@@ -24,8 +24,7 @@ func LogIn(c *cli.Context) error {
 	// Open login link in browser
 	port := 4242
 	redirectUri := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
-	// TODO: Use website domain from decent global config file
-	authUrl := fmt.Sprintf("http://localhost:3000/login?require=true&redirect_uri=%s", redirectUri)
+	authUrl := fmt.Sprintf("%s/login?require=true&redirect_uri=%s", config.I.WebsiteURL, redirectUri)
 	console.Info("Opening browser to log you in...")
 	console.Info("You can also open this URL:")
 	fmt.Println(authUrl + "\n")
@@ -95,10 +94,10 @@ func LogIn(c *cli.Context) error {
 		fmt.Fprintf(w,
 			`<html>
 				<head>
-					<meta http-equiv="refresh" content="0; url=%s">
+					<meta http-equiv="refresh" content="0; url=%s/login/external/success">
 					<title>Redirecting...</title>
 				</head>
-			</html>`, getLoginSuccessURL(),
+			</html>`, config.I.WebsiteURL,
 		)
 
 		console.Success("Authenticated")
@@ -108,16 +107,4 @@ func LogIn(c *cli.Context) error {
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
 	return console.Error("Authentication timed out")
-}
-
-// Returns the URL to the login success page based on the CLI environment.
-func getLoginSuccessURL() string {
-	switch config.I.Env {
-	case config.EnvDev:
-		return "http://dev.decentvcs.com/login/external/success"
-	case config.EnvLcl:
-		return "http://localhost:3000/login/external/success"
-	default:
-		return "https://decentvcs.com/login/external/success"
-	}
 }

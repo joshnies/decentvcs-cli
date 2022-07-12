@@ -50,8 +50,10 @@ type Config struct {
 	Env Env
 	// Whether or not to print verbose output.
 	Verbose bool
-	Auth    AuthConfig
-	VCS     VCSConfig
+	// [Internal] Decent website URL.
+	WebsiteURL string
+	Auth       AuthConfig
+	VCS        VCSConfig
 }
 
 // Singleton CLI config instance.
@@ -65,6 +67,18 @@ func GetConfigPath() string {
 	}
 
 	return filepath.Join(homeDir, ".decent/config.yml")
+}
+
+// Returns the website URL based on the CLI environment.
+func getWebsiteURL(env Env) string {
+	switch env {
+	case EnvDev:
+		return "http://dev.decentvcs.com"
+	case EnvLcl:
+		return "http://localhost:3000"
+	default:
+		return "https://decentvcs.com"
+	}
 }
 
 // Initialize the CLI config.
@@ -121,6 +135,10 @@ func InitConfig() Config {
 			config.Env = EnvPrd
 		}
 
+		// Set internal config fields
+		config.WebsiteURL = getWebsiteURL(config.Env)
+
+		// Set config instance
 		I = config
 	}
 
