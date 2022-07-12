@@ -114,17 +114,17 @@ func Merge(c *cli.Context) error {
 	for path, hash := range localHashMap {
 		newHash := branchToMerge.Commit.HashMap[path]
 		if hash != newHash {
-			// Get file info
+			// Check if file is binary data
 			isBinary, err := binary.File(path)
 			if err != nil {
 				return err
 			}
 
 			if isBinary {
-				// File cannot be merged
+				// Binary, file cannot be merged
 				mvHashMap[path] = newHash
 			} else {
-				// File can be merged
+				// Non-binary, file can be merged
 				mergeHashMap[path] = newHash
 			}
 		}
@@ -190,7 +190,6 @@ func Merge(c *cli.Context) error {
 		}
 	}
 
-	// TODO: Merge modified files
 	console.Verbose("Merging %d files...", len(mergeHashMap))
 	for path := range mergeHashMap {
 		dlPath := filepath.Join(tempDirPath, path)

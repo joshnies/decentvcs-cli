@@ -19,7 +19,6 @@ import (
 
 // Unlock one or many files, allowing other users to edit them again.
 // Specific to a branch.
-// TODO: Change locks to only work for remote files (currently only works for local files)
 func Unlock(c *cli.Context) error {
 	auth.HasToken()
 
