@@ -77,6 +77,7 @@ func getWebsiteURL(env Env) string {
 	case EnvLcl:
 		return "http://localhost:3000"
 	default:
+		// Production is the default
 		return "https://decentvcs.com"
 	}
 }
@@ -89,6 +90,7 @@ func getVCSServerHost(env Env) string {
 	case EnvLcl:
 		return "http://localhost:8080"
 	default:
+		// Production is the default
 		return "https://vcs.decentvcs.com"
 	}
 }
