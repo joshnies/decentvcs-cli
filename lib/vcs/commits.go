@@ -17,7 +17,7 @@ func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchID stri
 	// Delete all commits ahead of the given index for the specified branch
 	console.Verbose("Deleting commits ahead of commit #%d...", index)
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectName, branchID, index)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s/commits?after=%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchID, index)
 	req, _ := http.NewRequest("DELETE", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
@@ -30,7 +30,7 @@ func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchID stri
 
 	// Delete all unused objects from storage
 	console.Info("Deleting unused objects (this may take a while)...")
-	reqUrl = fmt.Sprintf("%s/projects/%s/storage/unused", config.I.VCS.ServerHost, projectConfig.ProjectName)
+	reqUrl = fmt.Sprintf("%s/projects/%s/storage/unused", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
 	req, _ = http.NewRequest("DELETE", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err = httpClient.Do(req)

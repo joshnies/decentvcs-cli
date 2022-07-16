@@ -34,7 +34,7 @@ func ListLocks(c *cli.Context) error {
 
 	// Get branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectName, branchNameOrID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchNameOrID)
 	req, _ := http.NewRequest("GET", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)

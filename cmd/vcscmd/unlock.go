@@ -73,7 +73,7 @@ func Unlock(c *cli.Context) error {
 		queryParam = "?force=true"
 	}
 
-	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks%s", projectConfig.ProjectName, projectConfig.CurrentBranchName, queryParam)
+	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks%s", projectConfig.ProjectSlug, projectConfig.CurrentBranchName, queryParam)
 	req, _ := http.NewRequest("DELETE", reqURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)

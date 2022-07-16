@@ -31,7 +31,7 @@ func Revert(c *cli.Context) error {
 
 	// Get current commit by index
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectName, projectConfig.CurrentCommitIndex)
+	reqUrl := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err

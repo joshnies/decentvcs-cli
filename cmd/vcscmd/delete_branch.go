@@ -34,7 +34,7 @@ func DeleteBranch(c *cli.Context) error {
 
 	// Get specified branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectName, branchName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	// Soft-delete branch
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectName, branchName)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err = http.NewRequest("DELETE", reqUrl, nil)
 	if err != nil {
 		return err

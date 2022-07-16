@@ -91,7 +91,7 @@ func Init(c *cli.Context) error {
 
 	// Create project file
 	projectFileData := models.ProjectConfig{
-		ProjectName:        project.Name,
+		ProjectSlug:        slug,
 		CurrentBranchName:  currentBranch.Name,
 		CurrentCommitIndex: currentBranch.Commit.Index,
 	}

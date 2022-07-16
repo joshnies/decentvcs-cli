@@ -117,8 +117,8 @@ func ValidateProjectConfig(projectConfig models.ProjectConfig) error {
 func MergeProjectConfigs(oldData models.ProjectConfig, newData models.ProjectConfig) models.ProjectConfig {
 	merged := oldData
 
-	if newData.ProjectName != "" {
-		merged.ProjectName = newData.ProjectName
+	if newData.ProjectSlug != "" {
+		merged.ProjectSlug = newData.ProjectSlug
 	}
 
 	if newData.CurrentBranchName != "" {
