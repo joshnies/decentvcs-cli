@@ -29,12 +29,12 @@ func ListLocks(c *cli.Context) error {
 	branchNameOrID := c.String("branch")
 	if branchNameOrID == "" {
 		// Default to current branch
-		branchNameOrID = projectConfig.CurrentBranchID
+		branchNameOrID = projectConfig.CurrentBranchName
 	}
 
 	// Get branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, branchNameOrID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectName, branchNameOrID)
 	req, _ := http.NewRequest("GET", reqUrl, nil)
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)

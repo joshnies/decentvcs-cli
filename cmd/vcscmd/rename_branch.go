@@ -39,7 +39,7 @@ func RenameBranch(c *cli.Context) error {
 
 	// Get specified branch (for validation purposes)
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, oldName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectName, oldName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func RenameBranch(c *cli.Context) error {
 	}
 
 	// Rename branch
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, oldName)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectName, oldName)
 	bodyJson, _ := json.Marshal(map[string]string{"name": newName})
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {

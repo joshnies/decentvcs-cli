@@ -61,7 +61,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Get current branch w/ latest commit
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectName, projectConfig.CurrentBranchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Get current commit
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectName, projectConfig.CurrentCommitIndex)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		"deleted_files":  fc.DeletedFilePaths,
 		"hash_map":       fc.HashMap,
 	})
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.VCS.ServerHost, projectConfig.ProjectName)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
@@ -219,7 +219,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	if len(filesToUpload) > 0 {
-		err = storage.UploadMany(projectConfig.ProjectID, uploadHashMap)
+		err = storage.UploadMany(projectConfig.ProjectName, uploadHashMap)
 		if err != nil {
 			return err
 		}

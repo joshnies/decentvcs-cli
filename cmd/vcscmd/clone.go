@@ -130,8 +130,8 @@ func CloneProject(c *cli.Context) error {
 	// Create project config file
 	console.Verbose("Creating project config file...")
 	projectConfig := models.ProjectConfig{
-		ProjectID:          project.ID,
-		CurrentBranchID:    branch.ID,
+		ProjectName:        project.ID,
+		CurrentBranchName:  branch.ID,
 		CurrentCommitIndex: branch.Commit.Index,
 	}
 
@@ -143,7 +143,7 @@ func CloneProject(c *cli.Context) error {
 	console.Verbose("Project config file created")
 
 	// Download all files
-	err = storage.DownloadMany(projectConfig.ProjectID, clonePath, branch.Commit.HashMap)
+	err = storage.DownloadMany(projectConfig.ProjectName, clonePath, branch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

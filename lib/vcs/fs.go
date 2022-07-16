@@ -274,7 +274,7 @@ func ResetChanges(confirm bool) error {
 
 	// Get current commit
 	httpClient := http.Client{}
-	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex)
+	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectName, projectConfig.CurrentCommitIndex)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
@@ -340,7 +340,7 @@ func ResetChanges(confirm bool) error {
 	}
 
 	// Download remote versions of modified and deleted files
-	err = storage.DownloadMany(projectConfig.ProjectID, ".", overrideHashMap)
+	err = storage.DownloadMany(projectConfig.ProjectName, ".", overrideHashMap)
 	if err != nil {
 		return console.Error("Failed to download files: %s", err)
 	}

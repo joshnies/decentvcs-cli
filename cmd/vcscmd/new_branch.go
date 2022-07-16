@@ -49,7 +49,7 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches", config.I.VCS.ServerHost, projectConfig.ProjectName)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Set current branch
-	projectConfig.CurrentBranchID = branch.ID
+	projectConfig.CurrentBranchName = branch.ID
 	_, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err

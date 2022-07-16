@@ -35,7 +35,7 @@ func UseBranch(c *cli.Context) error {
 
 	// Get specified branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, branchName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectName, branchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func UseBranch(c *cli.Context) error {
 	res.Body.Close()
 
 	// Set the current branch in project config
-	projectConfig.CurrentBranchID = branch.ID
+	projectConfig.CurrentBranchName = branch.ID
 	projectConfig, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err

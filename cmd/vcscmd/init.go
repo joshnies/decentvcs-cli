@@ -1,7 +1,6 @@
 package vcscmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -51,29 +50,23 @@ func Init(c *cli.Context) error {
 		}
 	}
 
-	// Get project blob ("team-blob/project-blob")
-	blob := strings.TrimSpace(c.Args().First())
-	if blob == "" {
-		// Default to directory name
-		blob = filepath.Base(absPath)
-	}
+	// Get project slug ("<team_name>/<project_name>")
+	slug := strings.TrimSpace(c.Args().First())
 
-	// Validate blob
-	regex := regexp.MustCompile(`^(?:[\w\-]+\/)?[\w\-]+$`)
-	if !regex.MatchString(blob) {
-		return console.Error("Invalid blob; must be in the format \"<team_name>/<project_name>\" (team name is optional)")
+	// Validate project slug
+	regex := regexp.MustCompile(`^(?:[\w\-\.]+\/)?[\w\-\.]+$`)
+	if !regex.MatchString(slug) {
+		return console.Error("Invalid project slug; must be in the format \"<team_name>/<project_name>\"")
 	}
 
 	// Create project in API
 	httpClient := http.Client{}
-	bodyJson, _ := json.Marshal(map[string]string{"blob": blob})
-	reqUrl := fmt.Sprintf("%s/projects", config.I.VCS.ServerHost)
-	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, slug)
+	req, err := http.NewRequest("POST", reqUrl, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	req.Header.Set("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -91,19 +84,19 @@ func Init(c *cli.Context) error {
 	}
 
 	if len(project.Branches) == 0 {
-		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please submit this as a bug!", blob)
+		log.Fatalf("Project \"%s\" was created without a default branch. This should never happen! Please submit this as a bug!", slug)
 	}
 
 	currentBranch := project.Branches[0]
 
 	// Create project file
 	projectFileData := models.ProjectConfig{
-		ProjectID:          project.ID,
-		CurrentBranchID:    currentBranch.ID,
+		ProjectName:        project.Name,
+		CurrentBranchName:  currentBranch.Name,
 		CurrentCommitIndex: currentBranch.Commit.Index,
 	}
 	vcs.SaveProjectConfig(absPath, projectFileData)
 
-	console.Info("Created project %s", project.Blob)
+	console.Info("Created project %s", slug)
 	return nil
 }

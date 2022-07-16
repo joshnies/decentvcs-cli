@@ -28,7 +28,7 @@ func ListBranches(c *cli.Context) error {
 
 	// Get all branches in project
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func ListBranches(c *cli.Context) error {
 
 	// Print branches
 	for _, branch := range branches {
-		isCurrentBranch := projectConfig.CurrentBranchID == branch.ID
+		isCurrentBranch := projectConfig.CurrentBranchName == branch.ID
 
 		currentNote := ""
 		if isCurrentBranch {
