@@ -42,14 +42,14 @@ func ValidateResponse(res *http.Response) error {
 		json.NewDecoder(res.Body).Decode(&resBody)
 
 		// Print error message
-		if resMsg, ok := resBody["message"]; ok {
-			msg = resMsg.(string)
+		if errMsg, ok := resBody["error"]; ok {
+			msg = errMsg.(string)
 		} else {
 			resBodyBytes, _ := json.MarshalIndent(resBody, "", "  ")
 			console.ErrorPrintV("Server response:\n%v", string(resBodyBytes))
 		}
 
-		return fmt.Errorf(msg)
+		return console.Error(msg)
 	}
 
 	return nil
