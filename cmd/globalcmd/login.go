@@ -77,6 +77,10 @@ func LogIn(c *cli.Context) error {
 			console.Fatal("Failed to parse DecentVCS server authentication response: %s", err.Error())
 		}
 
+		if authRes.SessionToken == "" {
+			console.Fatal("Failed to authenticate with DecentVCS server: no session token returned")
+		}
+
 		// Update config with auth data
 		console.Verbose("Updating config file with new session...")
 		config.I.Auth.SessionToken = authRes.SessionToken
