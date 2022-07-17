@@ -274,7 +274,7 @@ func ResetChanges(confirm bool) error {
 
 	// Get current commit
 	httpClient := http.Client{}
-	url := fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
+	url := fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err

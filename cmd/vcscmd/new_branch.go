@@ -28,9 +28,9 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Validate branch name
-	regex := regexp.MustCompile(`^[\w\-]+$`)
+	regex := regexp.MustCompile(`^[\w\-\.]+$`)
 	if !regex.MatchString(branchName) {
-		return console.Error("Invalid branch name; must be alphanumeric with dashes")
+		return console.Error("Invalid branch name; must be alphanumeric, and can contain dashes or periods")
 	}
 
 	// Get project config

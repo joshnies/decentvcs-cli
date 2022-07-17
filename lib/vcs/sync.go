@@ -22,7 +22,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	httpClient := &http.Client{}
 
 	// Get current commit
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex), nil)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		}
 
 		// Get user-specified commit
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, commitIndex), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, commitIndex), nil)
 		if err != nil {
 			return err
 		}

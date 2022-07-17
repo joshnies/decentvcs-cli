@@ -74,7 +74,7 @@ func PrintStatus(c *cli.Context) error {
 	res.Body.Close()
 
 	// Get commit
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
+	reqUrl = fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
