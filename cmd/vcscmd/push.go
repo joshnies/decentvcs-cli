@@ -163,20 +163,19 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
-	// TODO: Create commit after uploads are complete?
 	console.Verbose("Creating commit...")
 	startTime = time.Now()
 
 	// Create commit in database
+	// TODO: Create commit after uploads are complete?
 	bodyJson, _ := json.Marshal(map[string]interface{}{
-		"branch_id":      currentBranch.ID,
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": fc.ModifiedFilePaths,
 		"deleted_files":  fc.DeletedFilePaths,
 		"hash_map":       fc.HashMap,
 	})
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s/commit", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
