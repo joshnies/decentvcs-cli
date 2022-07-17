@@ -54,12 +54,14 @@ func ListBranches(c *cli.Context) error {
 	for _, branch := range branches {
 		isCurrentBranch := projectConfig.CurrentBranchName == branch.ID
 
-		currentNote := ""
+		branchNameFmt := branch.Name + ":"
 		if isCurrentBranch {
-			currentNote = " (current)"
+			branchNameFmt = color.InBold(color.InCyan(fmt.Sprintf("%s (current)", branchNameFmt)))
+		} else {
+			branchNameFmt = color.InCyan(branchNameFmt)
 		}
 
-		fmt.Printf(color.InBold(color.InCyan("%s%s:"))+" commit #%d\n", branch.Name, currentNote, branch.Commit.Index)
+		fmt.Printf(branchNameFmt+" commit #%d\n", branch.Commit.Index)
 	}
 
 	return nil
