@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joshnies/decent/config"
@@ -211,8 +212,12 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = toCommit.Index
-	_, err = SaveProjectConfig(".", projectConfig)
+	projectConfigPath, err := GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

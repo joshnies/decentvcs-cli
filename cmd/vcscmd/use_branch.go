@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
@@ -59,8 +60,12 @@ func UseBranch(c *cli.Context) error {
 
 	// Set the current branch in project config
 	projectConfig.CurrentBranchName = branch.Name
-	projectConfig, err = vcs.SaveProjectConfig(".", projectConfig)
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

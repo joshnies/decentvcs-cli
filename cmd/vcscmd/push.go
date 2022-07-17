@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/joshnies/decent/config"
@@ -203,8 +204,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = commit.Index
-	_, err = vcs.SaveProjectConfig(".", projectConfig)
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

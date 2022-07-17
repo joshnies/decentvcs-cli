@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"regexp"
 
 	"github.com/joshnies/decent/config"
@@ -74,8 +75,12 @@ func NewBranch(c *cli.Context) error {
 
 	// Set current branch
 	projectConfig.CurrentBranchName = branch.Name
-	_, err = vcs.SaveProjectConfig(".", projectConfig)
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 
