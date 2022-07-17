@@ -1,9 +1,11 @@
 package vcs
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -109,8 +111,25 @@ func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfi
 
 // Validate a project config model.
 func ValidateProjectConfig(projectConfig models.ProjectConfig) error {
+	// Validator
 	v := validator.New()
-	return v.Struct(projectConfig)
+	err := v.Struct(projectConfig)
+	if err != nil {
+		return err
+	}
+
+	// Custom validation
+	regex := regexp.MustCompile(`^[\w\-\.]+/[\w\-\.]+$`)
+	if !regex.MatchString(projectConfig.ProjectSlug) {
+		return errors.New("project slug must be in the format \"team_name/project_name\"")
+	}
+
+	regex = regexp.MustCompile(`^[\w\-\.]+$`)
+	if !regex.MatchString(projectConfig.CurrentBranchName) {
+		return errors.New("invalid current branch name")
+	}
+
+	return nil
 }
 
 // Merge new project config into the old one.

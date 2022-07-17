@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"strings"
 
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
@@ -38,12 +39,14 @@ func Invite(c *cli.Context) error {
 		}
 	}
 
+	teamName := strings.Split(projectConfig.ProjectSlug, "/")[0]
+
 	// Invite users
 	httpClient := &http.Client{}
 	body, _ := json.Marshal(map[string]any{
 		"emails": emails,
 	})
-	reqUrl := fmt.Sprintf("%s/projects/%s/invite", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
+	reqUrl := fmt.Sprintf("%s/teams/%s/invite", config.I.VCS.ServerHost, teamName)
 	req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
@@ -55,6 +58,6 @@ func Invite(c *cli.Context) error {
 		return console.Error("Error inviting users: received status code %d", res.StatusCode)
 	}
 
-	console.Info("Invited %d users to project", len(emails))
+	console.Info("Invited %d users to the %s team", len(emails), teamName)
 	return nil
 }
