@@ -31,11 +31,11 @@ import (
 //
 // Params:
 //
-// - projectId: Project ID
+// - projectSlug: Project slug (<team_name>/<project_name>)
 //
 // - hashMap: Map of local file paths to file hashes (which are used as object keys)
 //
-func UploadMany(projectId string, hashMap map[string]string) error {
+func UploadMany(projectSlug string, hashMap map[string]string) error {
 	auth.HasToken()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,10 +49,10 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 	for path, hash := range hashMap {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
 		params := uploadParams{
-			ProjectID: projectId,
-			FilePath:  path,
-			Hash:      hash,
-			Bar:       bar,
+			ProjectSlug: projectSlug,
+			FilePath:    path,
+			Hash:        hash,
+			Bar:         bar,
 		}
 		pool.Submit(func() {
 			upload(ctx, params)
@@ -68,10 +68,10 @@ func UploadMany(projectId string, hashMap map[string]string) error {
 }
 
 type uploadParams struct {
-	ProjectID string
-	FilePath  string
-	Hash      string
-	Bar       *progressbar.ProgressBar
+	ProjectSlug string
+	FilePath    string
+	Hash        string
+	Bar         *progressbar.ProgressBar
 }
 
 // Upload object to storage. Can be multipart or in full.
@@ -167,7 +167,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		panic(err)
@@ -234,7 +234,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		panic(err)
@@ -283,7 +283,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	for i, url := range presignRes.URLs {
 		partNum := i + 1
 		p, err := uploadPart(ctx, uploadPartParams{
-			ProjectID:   params.ProjectID,
+			ProjectID:   params.ProjectSlug,
 			URL:         url,
 			Hash:        params.Hash,
 			ContentType: contentType,
@@ -309,7 +309,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		panic(console.Error("Error marshalling \"complete multipart upload\" request body for file \"%s\": %v", params.FilePath, err))
 	}
 
-	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectSlug)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
 	if err != nil {
 		panic(err)
@@ -384,7 +384,7 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 //
 // Returns map of object keys to data.
 //
-func DownloadMany(projectId string, dest string, hashMap map[string]string) error {
+func DownloadMany(projectSlug string, dest string, hashMap map[string]string) error {
 	auth.HasToken()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -403,7 +403,7 @@ func DownloadMany(projectId string, dest string, hashMap map[string]string) erro
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectId)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err

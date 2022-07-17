@@ -1,12 +1,14 @@
 package models
 
+import "time"
+
 type Commit struct {
-	ID        string `json:"_id,omitempty"`
-	CreatedAt int64  `json:"created_at,omitempty"`
-	Index     int    `json:"index,omitempty"`
-	Message   string `json:"message,omitempty"`
-	ProjectID string `json:"project_id,omitempty"`
-	BranchID  string `json:"branch_id,omitempty"`
+	ID        string    `json:"_id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	Index     int       `json:"index,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	ProjectID string    `json:"project_id,omitempty"`
+	BranchID  string    `json:"branch_id,omitempty"`
 	// Array of fs paths to created files (uploaded as snapshots)
 	CreatedFiles []string `json:"created_files,omitempty"`
 	// Array of fs paths to modified files (uploaded as snapshots)
@@ -21,12 +23,12 @@ type Commit struct {
 }
 
 type CommitWithBranch struct {
-	ID        string `json:"_id,omitempty"`
-	CreatedAt int64  `json:"created_at,omitempty"`
-	Index     int    `json:"index,omitempty"`
-	Message   string `json:"message,omitempty"`
-	ProjectID string `json:"project_id,omitempty"`
-	Branch    Branch `json:"branch,omitempty"`
+	ID        string    `json:"_id,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	Index     int       `json:"index,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	ProjectID string    `json:"project_id,omitempty"`
+	Branch    Branch    `json:"branch,omitempty"`
 	// Array of fs paths to created files (uploaded as snapshots)
 	CreatedFiles []string `json:"created_files,omitempty"`
 	// Array of fs paths to modified files (uploaded as snapshots)

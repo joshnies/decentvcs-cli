@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/joshnies/decent/config"
@@ -22,7 +23,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	httpClient := &http.Client{}
 
 	// Get current commit
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentCommitIndex), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex), nil)
 	if err != nil {
 		return err
 	}
@@ -50,7 +51,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		console.Verbose("Getting current branch with latest commit...")
 
 		// Get current branch with latest commit
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName), nil)
 		if err != nil {
 			return err
 		}
@@ -81,7 +82,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		}
 
 		// Get user-specified commit
-		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/index/%d", config.I.VCS.ServerHost, projectConfig.ProjectID, commitIndex), nil)
+		req, err = http.NewRequest("GET", fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, commitIndex), nil)
 		if err != nil {
 			return err
 		}
@@ -195,7 +196,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	}
 
 	if len(maps.Keys(downloadMap)) > 0 {
-		err := storage.DownloadMany(projectConfig.ProjectID, ".", downloadMap)
+		err := storage.DownloadMany(projectConfig.ProjectSlug, ".", downloadMap)
 		if err != nil {
 			return err
 		}
@@ -211,8 +212,12 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 
 	// Update current commit ID in project config
 	projectConfig.CurrentCommitIndex = toCommit.Index
-	_, err = SaveProjectConfig(".", projectConfig)
+	projectConfigPath, err := GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

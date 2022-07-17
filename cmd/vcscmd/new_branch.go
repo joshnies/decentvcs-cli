@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"regexp"
 
 	"github.com/joshnies/decent/config"
@@ -28,9 +29,9 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Validate branch name
-	regex := regexp.MustCompile(`^[\w\-]+$`)
+	regex := regexp.MustCompile(`^[\w\-\.]+$`)
 	if !regex.MatchString(branchName) {
-		return console.Error("Invalid branch name; must be alphanumeric with dashes")
+		return console.Error("Invalid branch name; must be alphanumeric, and can contain dashes or periods")
 	}
 
 	// Get project config
@@ -49,7 +50,7 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
@@ -73,9 +74,13 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Set current branch
-	projectConfig.CurrentBranchID = branch.ID
-	_, err = vcs.SaveProjectConfig(".", projectConfig)
+	projectConfig.CurrentBranchName = branch.Name
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

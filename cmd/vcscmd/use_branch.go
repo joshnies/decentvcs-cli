@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
@@ -35,7 +36,7 @@ func UseBranch(c *cli.Context) error {
 
 	// Get specified branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, branchName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -58,9 +59,13 @@ func UseBranch(c *cli.Context) error {
 	res.Body.Close()
 
 	// Set the current branch in project config
-	projectConfig.CurrentBranchID = branch.ID
-	projectConfig, err = vcs.SaveProjectConfig(".", projectConfig)
+	projectConfig.CurrentBranchName = branch.Name
+	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
 	}
 

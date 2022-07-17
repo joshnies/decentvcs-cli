@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/auth"
+	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/vcs"
 	"github.com/joshnies/decent/models"
@@ -23,12 +25,12 @@ func RenameBranch(c *cli.Context) error {
 	// Get args
 	oldName := c.Args().First()
 	if oldName == "" {
-		return cli.Exit("Please specify the branch to rename", 1)
+		return console.Error("Please specify the branch to rename")
 	}
 
 	newName := c.Args().Get(1)
 	if newName == "" {
-		return cli.Exit("Please specify the new name for the branch", 1)
+		return console.Error("Please specify the new name for the branch")
 	}
 
 	// Get project config
@@ -39,7 +41,7 @@ func RenameBranch(c *cli.Context) error {
 
 	// Get specified branch (for validation purposes)
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, oldName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, oldName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -62,9 +64,9 @@ func RenameBranch(c *cli.Context) error {
 	}
 
 	// Rename branch
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, oldName)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, oldName)
 	bodyJson, _ := json.Marshal(map[string]string{"name": newName})
-	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+	req, err = http.NewRequest("PUT", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
 	}
@@ -76,6 +78,19 @@ func RenameBranch(c *cli.Context) error {
 	}
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		return err
+	}
+
+	// If current branch, update current branch name in project config
+	if projectConfig.CurrentBranchName == oldName {
+		projectConfig.CurrentBranchName = newName
+		projectConfigPath, err := vcs.GetProjectConfigPath()
+		if err != nil {
+			return err
+		}
+
+		if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("Renamed branch %s to %s\n", color.InRed(oldName), color.InGreen(newName))

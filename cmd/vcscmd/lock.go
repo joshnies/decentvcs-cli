@@ -39,7 +39,7 @@ func Lock(c *cli.Context) error {
 		"paths": paths,
 	}
 	body, _ := json.Marshal(bodyData)
-	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks", projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqURL := fmt.Sprintf(config.I.VCS.ServerHost+"/projects/%s/branches/%s/locks", projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
 	req, _ := http.NewRequest("POST", reqURL, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)

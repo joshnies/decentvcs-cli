@@ -24,9 +24,9 @@ func CloneProject(c *cli.Context) error {
 	auth.HasToken()
 
 	// Get project blob from first arg
-	projectBlob := c.Args().First()
-	if projectBlob == "" {
-		return console.Error("Please specify a project in the format of \"<author_or_team_alias>/<project_name>\"")
+	slug := c.Args().First()
+	if slug == "" {
+		return console.Error("Please specify a project in the format of \"<team_name>/<project_name>\"")
 	}
 
 	// Get clone path from second arg
@@ -45,7 +45,7 @@ func CloneProject(c *cli.Context) error {
 
 	// Get project
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/blob/%s", config.I.VCS.ServerHost, projectBlob)
+	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, slug)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func CloneProject(c *cli.Context) error {
 	var branch models.BranchWithCommit
 	if branchName == "" {
 		// Get default branch
-		reqUrl = fmt.Sprintf("%s/projects/%s/branches/default?join_commit=true", config.I.VCS.ServerHost, project.ID)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/default?join_commit=true", config.I.VCS.ServerHost, slug)
 		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err
@@ -92,7 +92,7 @@ func CloneProject(c *cli.Context) error {
 		}
 	} else {
 		// Get specified branch
-		reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, project.ID, branchName)
+		reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, slug, branchName)
 		req, err = http.NewRequest("GET", reqUrl, nil)
 		if err != nil {
 			return err
@@ -124,14 +124,13 @@ func CloneProject(c *cli.Context) error {
 		return err
 	}
 
-	console.Info("Cloning project \"%s\" with branch \"%s\" into \"%s\"...", project.Name, branch.Name, clonePath)
-	console.Verbose("Branch commit index: %d", branch.Commit.Index)
+	console.Info("Cloning project %s with branch \"%s\" into \"%s\"...", slug, branch.Name, clonePath)
 
 	// Create project config file
 	console.Verbose("Creating project config file...")
 	projectConfig := models.ProjectConfig{
-		ProjectID:          project.ID,
-		CurrentBranchID:    branch.ID,
+		ProjectSlug:        slug,
+		CurrentBranchName:  branch.Name,
 		CurrentCommitIndex: branch.Commit.Index,
 	}
 
@@ -143,7 +142,7 @@ func CloneProject(c *cli.Context) error {
 	console.Verbose("Project config file created")
 
 	// Download all files
-	err = storage.DownloadMany(projectConfig.ProjectID, clonePath, branch.Commit.HashMap)
+	err = storage.DownloadMany(projectConfig.ProjectSlug, clonePath, branch.Commit.HashMap)
 	if err != nil {
 		return err
 	}

@@ -31,7 +31,7 @@ func SetDefaultBranch(c *cli.Context) error {
 
 	// Get branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, branchName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func SetDefaultBranch(c *cli.Context) error {
 		console.Verbose("Failed to convert project DTO to JSON: %s", err)
 		return console.Error(constants.ErrInternal)
 	}
-	reqUrl = fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, projectConfig.ProjectID)
+	reqUrl = fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err

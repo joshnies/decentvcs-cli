@@ -45,7 +45,7 @@ func Warning(message string, vars ...any) {
 
 // Log error message to console.
 func Error(message string, vars ...any) error {
-	return fmt.Errorf(color.Ize(color.Red, "[ERROR] "+message+"\n"), vars...)
+	return fmt.Errorf(color.Ize(color.Red, "[ERROR] "+message+""), vars...)
 }
 
 // Log error message to console.

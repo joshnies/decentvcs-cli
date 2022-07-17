@@ -54,7 +54,7 @@ func Merge(c *cli.Context) error {
 
 	// Get current branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectID, projectConfig.CurrentBranchID)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func Merge(c *cli.Context) error {
 	}
 
 	// Get specified branch w/ commit
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectID, branchName)
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -147,7 +147,7 @@ func Merge(c *cli.Context) error {
 	// NOTE: Downloaded files are already decompressed
 	console.Info("Downloading required files...")
 	console.Verbose("Temp directory: %s", tempDirPath)
-	err = storage.DownloadMany(projectConfig.ProjectID, tempDirPath, combinedHashMap)
+	err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, combinedHashMap)
 	if err != nil {
 		return err
 	}

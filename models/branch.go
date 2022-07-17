@@ -1,9 +1,11 @@
 package models
 
+import "time"
+
 type Branch struct {
 	ID        string            `json:"_id,omitempty"`
-	CreatedAt int64             `json:"created_at,omitempty"`
-	DeletedAt int64             `json:"deleted_at,omitempty"`
+	CreatedAt time.Time         `json:"created_at,omitempty"`
+	DeletedAt time.Time         `json:"deleted_at,omitempty"`
 	Name      string            `json:"name,omitempty"`
 	ProjectID string            `json:"project_id,omitempty"`
 	CommitID  string            `json:"commit_id,omitempty"`
@@ -12,8 +14,8 @@ type Branch struct {
 
 type BranchWithCommit struct {
 	ID        string            `json:"_id,omitempty"`
-	CreatedAt int64             `json:"created_at,omitempty"`
-	DeletedAt int64             `json:"deleted_at,omitempty"`
+	CreatedAt time.Time         `json:"created_at,omitempty"`
+	DeletedAt time.Time         `json:"deleted_at,omitempty"`
 	Name      string            `json:"name,omitempty"`
 	ProjectID string            `json:"project_id,omitempty"`
 	Commit    Commit            `json:"commit,omitempty"`
