@@ -58,7 +58,7 @@ func UseBranch(c *cli.Context) error {
 	res.Body.Close()
 
 	// Set the current branch in project config
-	projectConfig.CurrentBranchName = branch.ID
+	projectConfig.CurrentBranchName = branch.Name
 	projectConfig, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err

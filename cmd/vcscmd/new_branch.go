@@ -73,7 +73,7 @@ func NewBranch(c *cli.Context) error {
 	}
 
 	// Set current branch
-	projectConfig.CurrentBranchName = branch.ID
+	projectConfig.CurrentBranchName = branch.Name
 	_, err = vcs.SaveProjectConfig(".", projectConfig)
 	if err != nil {
 		return err

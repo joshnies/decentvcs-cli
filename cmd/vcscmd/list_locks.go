@@ -59,9 +59,9 @@ func ListLocks(c *cli.Context) error {
 	// Get "locked by" users from Stytch to get their full names
 	lockedByUserIDs := lo.Values(branch.Locks)
 	lockedByUserNames := make(map[string]string)
-	for _, uid := range lockedByUserIDs {
+	for _, userID := range lockedByUserIDs {
 		// Get Stytch user from server
-		reqUrl = fmt.Sprintf("%s/stytch/users/%s", config.I.VCS.ServerHost, uid)
+		reqUrl = fmt.Sprintf("%s/stytch/users/%s", config.I.VCS.ServerHost, userID)
 		req, _ = http.NewRequest("GET", reqUrl, nil)
 		req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 		res, err = httpClient.Do(req)
@@ -81,10 +81,10 @@ func ListLocks(c *cli.Context) error {
 
 		if stytchUser.Name.FirstName != "" || stytchUser.Name.LastName != "" {
 			// Use name
-			lockedByUserNames[uid] = stytchUser.Name.FirstName + " " + stytchUser.Name.LastName
+			lockedByUserNames[userID] = stytchUser.Name.FirstName + " " + stytchUser.Name.LastName
 		} else {
 			// Use first email
-			lockedByUserNames[uid] = stytchUser.Emails[0].Email
+			lockedByUserNames[userID] = stytchUser.Emails[0].Email
 		}
 	}
 

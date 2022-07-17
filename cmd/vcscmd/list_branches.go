@@ -52,7 +52,7 @@ func ListBranches(c *cli.Context) error {
 
 	// Print branches
 	for _, branch := range branches {
-		isCurrentBranch := projectConfig.CurrentBranchName == branch.ID
+		isCurrentBranch := projectConfig.CurrentBranchName == branch.Name
 
 		branchNameFmt := branch.Name + ":"
 		if isCurrentBranch {
