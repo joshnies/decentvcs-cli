@@ -164,11 +164,26 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
-	console.Verbose("Creating commit...")
 	startTime = time.Now()
 
-	// Create commit in database
-	// TODO: Create commit after uploads are complete?
+	// Upload snapshots of created and modified files to storage
+	uploadHashMap := make(map[string]string)
+	filesToUpload := []string{}
+	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
+	filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
+	for _, path := range filesToUpload {
+		uploadHashMap[path] = fc.HashMap[path]
+	}
+
+	if len(filesToUpload) > 0 {
+		err = storage.UploadMany(projectConfig.ProjectSlug, uploadHashMap)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Create commit (the team will be charged for any storage space used)
+	console.Verbose("Creating commit...")
 	bodyJson, _ := json.Marshal(map[string]interface{}{
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
@@ -199,10 +214,10 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		return err
 	}
 
-	console.Verbose("Commit #%d (ID: %s) created successfully", commit.Index, commit.ID)
-	console.Verbose("Updating current commit ID in project config...")
+	console.Verbose("Commit #%d created successfully", commit.Index)
+	console.Verbose("Updating current commit index in project config...")
 
-	// Update current commit ID in project config
+	// Update current commit index in project config
 	projectConfig.CurrentCommitIndex = commit.Index
 	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
@@ -211,22 +226,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
 		return err
-	}
-
-	// Upload snapshots of created and modified files to storage
-	uploadHashMap := make(map[string]string)
-	filesToUpload := []string{}
-	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
-	filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
-	for _, path := range filesToUpload {
-		uploadHashMap[path] = fc.HashMap[path]
-	}
-
-	if len(filesToUpload) > 0 {
-		err = storage.UploadMany(projectConfig.ProjectSlug, uploadHashMap)
-		if err != nil {
-			return err
-		}
 	}
 
 	timeElapsed = time.Since(startTime).Truncate(time.Microsecond)
