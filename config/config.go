@@ -34,7 +34,7 @@ type VCSStorageConfig struct {
 
 type VCSConfig struct {
 	// DecentVCS server hostname.
-	ServerHost string `yaml:"server_host"`
+	ServerHost string `yaml:",omitempty"`
 	// Max file size for diffing.
 	MaxFileSizeForDiff int64 `yaml:"max_file_size_for_diff"`
 	// Storage configuration.
@@ -42,16 +42,16 @@ type VCSConfig struct {
 }
 
 type AuthConfig struct {
-	SessionToken string `yaml:"session_token" json:"session_token"`
+	SessionToken string `yaml:"session_token,omitempty"`
 }
 
 type Config struct {
 	// Environment to run the CLI in.
-	Env Env
+	Env Env `yaml:",omitempty"`
 	// Whether or not to print verbose output.
 	Verbose bool
 	// [Internal] Decent website URL.
-	WebsiteURL string
+	WebsiteURL string `yaml:",omitempty"`
 	Auth       AuthConfig
 	VCS        VCSConfig
 }
@@ -153,9 +153,6 @@ func InitConfig() Config {
 	}
 
 	// Validate config
-	if I.VCS.ServerHost == "" {
-		log.Fatal("\"vcs.server_host\" must be specified")
-	}
 	if I.VCS.MaxFileSizeForDiff == 0 {
 		log.Fatal("\"vcs.max_file_size_for_diff\" must be specified")
 	}
@@ -193,4 +190,13 @@ func SetInternalConfigFields(config *Config) {
 	// Set internal config fields
 	config.WebsiteURL = getWebsiteURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
+}
+
+// Omit internal config fields from a config object.
+// This should always be called before writing it to a file.
+func OmitInternalConfig(config *Config) Config {
+	// Remove internal config fields
+	config.WebsiteURL = ""
+	config.VCS.ServerHost = ""
+	return *config
 }

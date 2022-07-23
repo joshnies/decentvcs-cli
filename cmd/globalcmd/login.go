@@ -85,6 +85,7 @@ func LogIn(c *cli.Context) error {
 		// Update config with auth data
 		console.Verbose("Updating config file with new session...")
 		config.I.Auth.SessionToken = authRes.SessionToken
+		config.I = config.OmitInternalConfig(&config.I)
 		cYaml, err := yaml.Marshal(config.I)
 		if err != nil {
 			console.Fatal("Error while marshalling config: %v", err)
