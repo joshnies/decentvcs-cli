@@ -86,7 +86,7 @@ func getWebsiteURL(env Env) string {
 func getVCSServerHost(env Env) string {
 	switch env {
 	case EnvDev:
-		return "http://dev-vcs.decentvcs.com"
+		return "http://vcs-dev.decentvcs.com"
 	case EnvLcl:
 		return "http://localhost:8080"
 	default:
