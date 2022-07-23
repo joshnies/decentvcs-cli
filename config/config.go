@@ -194,9 +194,8 @@ func SetInternalConfigFields(config *Config) {
 
 // Omit internal config fields from a config object.
 // This should always be called before writing it to a file.
-func OmitInternalConfig(config *Config) Config {
+func OmitInternalConfig(config *Config) {
 	// Remove internal config fields
 	config.WebsiteURL = ""
 	config.VCS.ServerHost = ""
-	return *config
 }
