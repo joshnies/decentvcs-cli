@@ -1,7 +1,6 @@
 package globalcmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,11 +9,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/httpvalidation"
 	"github.com/joshnies/decent/lib/system"
 	"github.com/joshnies/decent/models"
+	"github.com/rs/cors"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -24,67 +24,51 @@ func LogIn(c *cli.Context) error {
 	// Open login link in browser
 	// NOTE: Only OAuth (social login) is supported for the CLI due to PKCE.
 	port := 4242
-	redirectUri := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
-	authUrl := fmt.Sprintf("%s/login?require=true&require_oauth=true&redirect_uri=%s", config.I.WebsiteURL, redirectUri)
+	webhookURL := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
+	authUrl := fmt.Sprintf("%s/login?require=true&webhook=%s", config.I.WebsiteURL, webhookURL)
 	console.Info("Opening browser to log you in...")
 	console.Info("You can also open this URL:")
 	fmt.Println(authUrl + "\n")
 	system.OpenBrowser(authUrl)
 
-	// Start local HTTP server for receiving authentication redirect requests
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		console.Verbose("Received auth redirect")
+	// Start local HTTP server for receiving authentication webhook requests
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins: []string{config.I.WebsiteURL},
+		AllowedMethods: []string{"POST"},
+	})
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		console.Verbose("Received request to auth webhook")
 
-		// Get token (not the session token!) from query params
-		token := r.URL.Query().Get("token")
-		if token == "" {
-			// User was most likely redirected after successful login, silently exit with non-zero exit code
-			os.Exit(0)
-		}
-		console.Verbose("Token: %s", token)
-
-		tokenType := r.URL.Query().Get("stytch_token_type")
-		if tokenType == "" {
-			// User was most likely redirected after successful login, silently exit with non-zero exit code
-			os.Exit(0)
-		}
-		console.Verbose("Token type: %s", tokenType)
-
-		// Authenticate with DecentVCS server
-		console.Verbose("Authenticating with DecentVCS server...")
-		httpClient := http.Client{}
-		reqUrl := config.I.VCS.ServerHost + "/authenticate"
-		reqBody := models.AuthenticateRequest{
-			Token:     token,
-			TokenType: tokenType,
-		}
-		reqBodyJson, _ := json.Marshal(reqBody)
-		req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqBodyJson))
-		req.Header.Set("Content-Type", "application/json")
-		res, err := httpClient.Do(req)
+		// Parse request body
+		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			console.Fatal("Failed to authenticate with DecentVCS server: %s", err.Error())
+			console.Error("Failed to read request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		if err = httpvalidation.ValidateResponse(res); err != nil {
-			console.Fatal("Failed to authenticate with DecentVCS server: %s", err.Error())
-		}
-		defer res.Body.Close()
 
-		// Parse authentication response
-		console.Verbose("Parsing DecentVCS server authentication response...")
-		var authRes models.AuthenticateResponse
-		err = json.NewDecoder(res.Body).Decode(&authRes)
+		// Parse request body
+		var data models.AuthWebhookRequest
+		err = json.Unmarshal(body, &data)
 		if err != nil {
-			console.Fatal("Failed to parse DecentVCS server authentication response: %s", err.Error())
+			console.Error("Failed to parse request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
-		if authRes.SessionToken == "" {
-			console.Fatal("Failed to authenticate with DecentVCS server: no session token returned")
+		// Validate request body
+		validate := validator.New()
+		if err := validate.Struct(data); err != nil {
+			console.Error(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
+
+		console.Verbose("Session token: %s", data.SessionToken)
 
 		// Update config with auth data
 		console.Verbose("Updating config file with new session...")
-		config.I.Auth.SessionToken = authRes.SessionToken
+		config.I.Auth.SessionToken = data.SessionToken
 
 		newConfig := config.I
 		config.OmitInternalConfig(&newConfig)
@@ -98,20 +82,11 @@ func LogIn(c *cli.Context) error {
 			console.Fatal("Error while writing config: %v", err)
 		}
 
-		// Write HTML response
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w,
-			`<html>
-				<head>
-					<meta http-equiv="refresh" content="0; url=%s/login/external/success">
-					<title>Redirecting...</title>
-				</head>
-			</html>`, config.I.WebsiteURL,
-		)
-
+		w.WriteHeader(http.StatusOK)
 		console.Success("Authenticated")
+		os.Exit(0)
 	})
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), corsMiddleware.Handler(handler))
 
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)
