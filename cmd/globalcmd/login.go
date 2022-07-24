@@ -1,6 +1,7 @@
 package globalcmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/system"
+	"github.com/joshnies/decent/models"
+	"github.com/rs/cors"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -27,21 +30,41 @@ func LogIn(c *cli.Context) error {
 	fmt.Println(authUrl + "\n")
 	system.OpenBrowser(authUrl)
 
-	// Start local HTTP server for receiving authentication redirect requests
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		console.Verbose("Received auth redirect")
-
-		// Get token (not the session token!) from query params
-		sessionToken := r.URL.Query().Get("session_token")
-		if sessionToken == "" {
-			// User was most likely redirected after successful login, silently exit with non-zero exit code
-			os.Exit(0)
+	// Start local HTTP server for receiving authentication webhook requests
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins: []string{config.I.WebsiteURL},
+		AllowedMethods: []string{"POST"},
+	})
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
 		}
-		console.Verbose("Session token: %s", sessionToken)
+
+		console.Verbose("Received request to auth webhook")
+
+		// Parse request body
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			console.Error("Failed to read request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Parse request body
+		var data models.AuthWebhookRequest
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			console.Error("Failed to parse request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		console.Verbose("Session token: %s", data.SessionToken)
 
 		// Update config with auth data
 		console.Verbose("Updating config file with new session...")
-		config.I.Auth.SessionToken = sessionToken
+		config.I.Auth.SessionToken = data.SessionToken
 
 		newConfig := config.I
 		config.OmitInternalConfig(&newConfig)
@@ -55,20 +78,11 @@ func LogIn(c *cli.Context) error {
 			console.Fatal("Error while writing config: %v", err)
 		}
 
-		// Write HTML response
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w,
-			`<html>
-				<head>
-					<meta http-equiv="refresh" content="0; url=%s/login/external/success">
-					<title>Redirecting...</title>
-				</head>
-			</html>`, config.I.WebsiteURL,
-		)
-
+		w.WriteHeader(http.StatusOK)
 		console.Success("Authenticated")
+		os.Exit(0)
 	})
-	go http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	go http.ListenAndServe(fmt.Sprintf(":%d", port), corsMiddleware.Handler(handler))
 
 	// Timeout after 3 minutes
 	time.Sleep(time.Second * 180)

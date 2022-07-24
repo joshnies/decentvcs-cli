@@ -10,3 +10,8 @@ type AuthenticateRequest struct {
 type AuthenticateResponse struct {
 	SessionToken string `json:"session_token"`
 }
+
+// Request body for the CLI's authentication webhook
+type AuthWebhookRequest struct {
+	SessionToken string `json:"session_token" validate:"required"`
+}
