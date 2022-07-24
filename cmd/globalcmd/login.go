@@ -24,8 +24,8 @@ func LogIn(c *cli.Context) error {
 	// Open login link in browser
 	// NOTE: Only OAuth (social login) is supported for the CLI due to PKCE.
 	port := 4242
-	redirectUri := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
-	authUrl := fmt.Sprintf("%s/login?require=true&redirect_url=%s", config.I.WebsiteURL, redirectUri)
+	webhookURL := url.QueryEscape(fmt.Sprintf("http://localhost:%d", port))
+	authUrl := fmt.Sprintf("%s/login?require=true&webhook=%s", config.I.WebsiteURL, webhookURL)
 	console.Info("Opening browser to log you in...")
 	console.Info("You can also open this URL:")
 	fmt.Println(authUrl + "\n")
