@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joshnies/decent/config"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/system"
@@ -36,11 +37,6 @@ func LogIn(c *cli.Context) error {
 		AllowedMethods: []string{"POST"},
 	})
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
 		console.Verbose("Received request to auth webhook")
 
 		// Parse request body
@@ -57,6 +53,14 @@ func LogIn(c *cli.Context) error {
 		if err != nil {
 			console.Error("Failed to parse request body: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Validate request body
+		validate := validator.New()
+		if err := validate.Struct(data); err != nil {
+			console.Error(err.Error())
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
