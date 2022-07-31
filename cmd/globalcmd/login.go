@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joshnies/decent/config"
+	"github.com/joshnies/decent/constants"
 	"github.com/joshnies/decent/lib/console"
 	"github.com/joshnies/decent/lib/system"
 	"github.com/joshnies/decent/models"
@@ -80,6 +81,15 @@ func LogIn(c *cli.Context) error {
 		err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)
 		if err != nil {
 			console.Fatal("Error while writing config: %v", err)
+		}
+
+		// Init user
+		httpClient := http.Client{}
+		req, _ := http.NewRequest("POST", config.I.VCS.ServerHost+"/init", nil)
+		req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+		_, err = httpClient.Do(req)
+		if err != nil {
+			console.Fatal("Error while initializing user: %v", err)
 		}
 
 		w.WriteHeader(http.StatusOK)
