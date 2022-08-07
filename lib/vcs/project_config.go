@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/joshnies/decent/constants"
-	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/models"
+	"github.com/joshnies/dvcs/constants"
+	"github.com/joshnies/dvcs/lib/console"
+	"github.com/joshnies/dvcs/models"
 	"gopkg.in/yaml.v3"
 )
 

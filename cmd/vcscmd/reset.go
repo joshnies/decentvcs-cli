@@ -1,8 +1,8 @@
 package vcscmd
 
 import (
-	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/vcs"
+	"github.com/joshnies/dvcs/lib/auth"
+	"github.com/joshnies/dvcs/lib/vcs"
 	"github.com/urfave/cli/v2"
 )
 

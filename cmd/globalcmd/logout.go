@@ -4,11 +4,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/joshnies/decent/config"
-	"github.com/joshnies/decent/constants"
-	"github.com/joshnies/decent/lib/auth"
-	"github.com/joshnies/decent/lib/console"
-	"github.com/joshnies/decent/lib/httpvalidation"
+	"github.com/joshnies/dvcs/config"
+	"github.com/joshnies/dvcs/constants"
+	"github.com/joshnies/dvcs/lib/auth"
+	"github.com/joshnies/dvcs/lib/console"
+	"github.com/joshnies/dvcs/lib/httpvalidation"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )

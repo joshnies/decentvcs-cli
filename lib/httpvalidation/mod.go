@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/joshnies/decent/lib/console"
+	"github.com/joshnies/dvcs/lib/console"
 )
 
 // Validate HTTP response.

@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joshnies/decent/constants"
-	"github.com/joshnies/decent/lib/system"
+	"github.com/joshnies/dvcs/constants"
+	"github.com/joshnies/dvcs/lib/system"
 )
 
 // Returns file patterns from the closest DecentVCS ignore file (using an upwards file search).

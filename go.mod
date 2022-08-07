@@ -1,4 +1,4 @@
-module github.com/joshnies/decent
+module github.com/joshnies/dvcs
 
 go 1.18
 

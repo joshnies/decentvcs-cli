@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/decent/constants"
+	"github.com/joshnies/dvcs/constants"
 )
 
 type LogLevel int64

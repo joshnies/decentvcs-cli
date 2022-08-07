@@ -3,7 +3,7 @@ package auth
 import (
 	"log"
 
-	"github.com/joshnies/decent/config"
+	"github.com/joshnies/dvcs/config"
 )
 
 // Logs a fatal error if the user not not have an existing auth token for DecentVCS.
