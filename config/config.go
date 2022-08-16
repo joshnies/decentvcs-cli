@@ -69,16 +69,16 @@ func GetConfigPath() string {
 	return filepath.Join(homeDir, ".decent/config.yml")
 }
 
-// Returns the website URL based on the CLI environment.
-func getWebsiteURL(env Env) string {
+// Returns the dashboard URL based on the CLI environment.
+func getDashURL(env Env) string {
 	switch env {
 	case EnvDev:
-		return "http://dev.decentvcs.com"
+		return "http://dev.app.decentvcs.com"
 	case EnvLcl:
-		return "http://localhost:3000"
+		return "http://localhost:3001"
 	default:
 		// Production is the default
-		return "https://decentvcs.com"
+		return "https://app.decentvcs.com"
 	}
 }
 
@@ -188,7 +188,7 @@ func SetInternalConfigFields(config *Config) {
 	}
 
 	// Set internal config fields
-	config.WebsiteURL = getWebsiteURL(config.Env)
+	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
 }
 
