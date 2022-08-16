@@ -1,24 +1,30 @@
-package vcscmd
+package cmd
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/TwiN/go-color"
 	"github.com/joshnies/dvcs/config"
 	"github.com/joshnies/dvcs/constants"
 	"github.com/joshnies/dvcs/lib/auth"
-	"github.com/joshnies/dvcs/lib/console"
 	"github.com/joshnies/dvcs/lib/httpvalidation"
 	"github.com/joshnies/dvcs/lib/vcs"
 	"github.com/joshnies/dvcs/models"
 	"github.com/urfave/cli/v2"
 )
 
-// List all branches in project.
-func ListBranches(c *cli.Context) error {
+// Print commit history
+func PrintHistory(c *cli.Context) error {
 	auth.HasToken()
+
+	// Parse args
+	limit := c.Int("limit")
+	if limit <= 0 {
+		limit = 10
+	}
 
 	// Get project config
 	projectConfig, err := vcs.GetProjectConfig()
@@ -26,9 +32,9 @@ func ListBranches(c *cli.Context) error {
 		return err
 	}
 
-	// Get all branches in project
+	// Get commits up to limit
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
+	reqUrl := fmt.Sprintf("%s/projects/%s/commits?limit=%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, limit)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -43,25 +49,17 @@ func ListBranches(c *cli.Context) error {
 	}
 	defer res.Body.Close()
 
-	// Parse branches
-	var branches []models.BranchWithCommit
-	err = json.NewDecoder(res.Body).Decode(&branches)
+	// Parse response
+	var commits []models.CommitWithBranch
+	err = json.NewDecoder(res.Body).Decode(&commits)
 	if err != nil {
-		return console.Error(constants.ErrInternal)
+		return err
 	}
 
-	// Print branches
-	for _, branch := range branches {
-		isCurrentBranch := projectConfig.CurrentBranchName == branch.Name
-
-		branchNameFmt := branch.Name + ":"
-		if isCurrentBranch {
-			branchNameFmt = color.InBold(color.InCyan(fmt.Sprintf("%s (current)", branchNameFmt)))
-		} else {
-			branchNameFmt = color.InCyan(branchNameFmt)
-		}
-
-		fmt.Printf(branchNameFmt+" commit #%d\n", branch.Commit.Index)
+	// Print commits
+	for _, c := range commits {
+		createdAt := c.CreatedAt.Format(time.RFC1123)
+		fmt.Printf("%s "+color.InCyan(color.InBold("[%s; #%d]"))+" %s\n", createdAt, c.Branch.Name, c.Index, c.Message)
 	}
 
 	return nil

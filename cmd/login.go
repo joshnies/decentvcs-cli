@@ -1,4 +1,4 @@
-package globalcmd
+package cmd
 
 import (
 	"encoding/json"

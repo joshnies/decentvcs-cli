@@ -1,4 +1,4 @@
-package vcscmd
+package cmd
 
 import (
 	"github.com/joshnies/dvcs/lib/auth"

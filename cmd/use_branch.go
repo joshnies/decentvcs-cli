@@ -1,10 +1,12 @@
-package vcscmd
+package cmd
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
+	"github.com/TwiN/go-color"
 	"github.com/joshnies/dvcs/config"
 	"github.com/joshnies/dvcs/constants"
 	"github.com/joshnies/dvcs/lib/auth"
@@ -15,15 +17,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Soft-delete the specified branch.
-// Does NOT effect the branch's commits.
-func DeleteBranch(c *cli.Context) error {
+// Switch to the specified branch.
+// This will also sync to the latest commit on that branch.
+func UseBranch(c *cli.Context) error {
 	auth.HasToken()
 
 	// Get the branch name
 	branchName := c.Args().First()
 	if branchName == "" {
-		return console.Error("You must specify a branch name")
+		return cli.Exit("You must specify a branch name", 1)
 	}
 
 	// Get project config
@@ -39,7 +41,7 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
 	if err != nil {
 		return err
@@ -47,7 +49,6 @@ func DeleteBranch(c *cli.Context) error {
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		return err
 	}
-	defer res.Body.Close()
 
 	// Parse response
 	var branch models.BranchWithCommit
@@ -55,34 +56,36 @@ func DeleteBranch(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	// Prevent deletion of current branch
-	if branch.ID == projectConfig.CurrentBranchName {
-		return console.Error("You cannot delete the current branch. Please switch to another branch first.")
-	}
-
-	// Ask for confirmation
-	if !c.Bool("no-confirm") {
-		console.Warning("Are you sure you want to delete the branch \"%s\"?", branchName)
-		var answer string
-		fmt.Scanln(&answer)
-	}
-
-	// Soft-delete branch
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
-	req, err = http.NewRequest("DELETE", reqUrl, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	res, err = httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		return err
-	}
 	res.Body.Close()
-	console.Success("Branch deleted")
+
+	// Set the current branch in project config
+	projectConfig.CurrentBranchName = branch.Name
+	projectConfigPath, err := vcs.GetProjectConfigPath()
+	if err != nil {
+		return err
+	}
+
+	if _, err = vcs.SaveProjectConfig(filepath.Dir(projectConfigPath), projectConfig); err != nil {
+		return err
+	}
+
+	// Reset local changes if specified branch points to a different commit than current
+	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
+		// Reset local changes
+		err = vcs.ResetChanges(!c.Bool("no-confirm"))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Sync
+	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
+		err = vcs.SyncToCommit(projectConfig, branch.Commit.Index, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	console.Info("Switched to branch %s", color.InBold(branchName))
 	return nil
 }

@@ -1,7 +1,6 @@
-package vcscmd
+package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,9 +15,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Set default branch for project.
-func SetDefaultBranch(c *cli.Context) error {
+// Soft-delete the specified branch.
+// Does NOT effect the branch's commits.
+func DeleteBranch(c *cli.Context) error {
 	auth.HasToken()
+
+	// Get the branch name
+	branchName := c.Args().First()
+	if branchName == "" {
+		return console.Error("You must specify a branch name")
+	}
 
 	// Get project config
 	projectConfig, err := vcs.GetProjectConfig()
@@ -26,12 +32,9 @@ func SetDefaultBranch(c *cli.Context) error {
 		return err
 	}
 
-	// Get branch name from args
-	branchName := c.Args().Get(0)
-
-	// Get branch
+	// Get specified branch
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
+	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -46,30 +49,32 @@ func SetDefaultBranch(c *cli.Context) error {
 	}
 	defer res.Body.Close()
 
-	// Parse branch
-	branch := models.Branch{}
+	// Parse response
+	var branch models.BranchWithCommit
 	err = json.NewDecoder(res.Body).Decode(&branch)
 	if err != nil {
-		console.Verbose("Failed to parse branch \"%s\": %s", branchName, err)
-		return console.Error(constants.ErrInternal)
+		return err
 	}
 
-	// Update project with default branch
-	bodyData := models.Project{
-		DefaultBranchID: branch.ID,
+	// Prevent deletion of current branch
+	if branch.ID == projectConfig.CurrentBranchName {
+		return console.Error("You cannot delete the current branch. Please switch to another branch first.")
 	}
-	bodyJson, err := json.Marshal(bodyData)
-	if err != nil {
-		console.Verbose("Failed to convert project DTO to JSON: %s", err)
-		return console.Error(constants.ErrInternal)
+
+	// Ask for confirmation
+	if !c.Bool("no-confirm") {
+		console.Warning("Are you sure you want to delete the branch \"%s\"?", branchName)
+		var answer string
+		fmt.Scanln(&answer)
 	}
-	reqUrl = fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
-	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+
+	// Soft-delete branch
+	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s", config.I.VCS.ServerHost, projectConfig.ProjectSlug, branchName)
+	req, err = http.NewRequest("DELETE", reqUrl, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	req.Header.Set("Content-Type", "application/json")
 	res, err = httpClient.Do(req)
 	if err != nil {
 		return err
@@ -78,6 +83,6 @@ func SetDefaultBranch(c *cli.Context) error {
 		return err
 	}
 	res.Body.Close()
-	console.Info("Default branch set to \"%s\"", branchName)
+	console.Success("Branch deleted")
 	return nil
 }

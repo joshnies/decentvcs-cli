@@ -4,8 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/joshnies/dvcs/cmd/globalcmd"
-	"github.com/joshnies/dvcs/cmd/vcscmd"
+	"github.com/joshnies/dvcs/cmd"
 	"github.com/joshnies/dvcs/config"
 	"github.com/urfave/cli/v2"
 )
@@ -30,19 +29,19 @@ func main() {
 			{
 				Name:   "login",
 				Usage:  "Log in (required to use other commands)",
-				Action: globalcmd.LogIn,
+				Action: cmd.LogIn,
 			},
 			{
 				Name:   "logout",
 				Usage:  "Log out",
-				Action: globalcmd.LogOut,
+				Action: cmd.LogOut,
 			},
 			{
 				Name:      "init",
 				Usage:     "Initialize a new project",
 				ArgsUsage: "[path]",
 				Aliases:   []string{"i"},
-				Action:    vcscmd.Init,
+				Action:    cmd.Init,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "name",
@@ -55,7 +54,7 @@ func main() {
 				Name:      "clone",
 				Usage:     "Clone a project to your local machine",
 				ArgsUsage: "[blob]",
-				Action:    vcscmd.CloneProject,
+				Action:    cmd.CloneProject,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "path",
@@ -74,7 +73,7 @@ func main() {
 				Name:    "changes",
 				Usage:   "Print current changes",
 				Aliases: []string{"c"},
-				Action:  vcscmd.GetChanges,
+				Action:  cmd.GetChanges,
 			},
 			{
 				Name:      "push",
@@ -82,7 +81,7 @@ func main() {
 				ArgsUsage: "[message?]",
 				Aliases:   []string{"p"},
 				Action: func(c *cli.Context) error {
-					return vcscmd.Push(c)
+					return cmd.Push(c)
 				},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -107,7 +106,7 @@ func main() {
 				Usage:     "Sync to commit, downloading changes from remote",
 				ArgsUsage: "[commit_index?]",
 				Aliases:   []string{"to", "s"},
-				Action:    vcscmd.Sync,
+				Action:    cmd.Sync,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -120,7 +119,7 @@ func main() {
 				Name:    "reset",
 				Usage:   "Reset all local changes",
 				Aliases: []string{"r"},
-				Action:  vcscmd.Reset,
+				Action:  cmd.Reset,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -132,7 +131,7 @@ func main() {
 			{
 				Name:   "revert",
 				Usage:  "Reset all local changes and sync to last commit",
-				Action: vcscmd.Revert,
+				Action: cmd.Revert,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "no-confirm",
@@ -144,7 +143,7 @@ func main() {
 			{
 				Name:   "status",
 				Usage:  "Print local project status",
-				Action: vcscmd.PrintStatus,
+				Action: cmd.PrintStatus,
 			},
 			{
 				Name:    "branch",
@@ -155,14 +154,14 @@ func main() {
 						Aliases:   []string{"n"},
 						Usage:     "Create a new branch",
 						ArgsUsage: "[name]",
-						Action:    vcscmd.NewBranch,
+						Action:    cmd.NewBranch,
 					},
 					{
 						Name:      "use",
 						Aliases:   []string{"u"},
 						Usage:     "Switch to a different branch, syncing to its latest commit",
 						ArgsUsage: "[name]",
-						Action:    vcscmd.UseBranch,
+						Action:    cmd.UseBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "no-confirm",
@@ -176,7 +175,7 @@ func main() {
 						Aliases:   []string{"d"},
 						Usage:     "Delete a branch",
 						ArgsUsage: "[name]",
-						Action:    vcscmd.DeleteBranch,
+						Action:    cmd.DeleteBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
 								Name:    "no-confirm",
@@ -190,20 +189,20 @@ func main() {
 						Aliases:   []string{"sd"},
 						Usage:     "Set the default branch",
 						ArgsUsage: "[name]",
-						Action:    vcscmd.SetDefaultBranch,
+						Action:    cmd.SetDefaultBranch,
 					},
 					{
 						Name:      "rename",
 						Usage:     "Rename a branch",
 						ArgsUsage: "[old_name] [new_name]",
-						Action:    vcscmd.RenameBranch,
+						Action:    cmd.RenameBranch,
 					},
 				},
 			},
 			{
 				Name:   "branches",
 				Usage:  "List all branches in the project",
-				Action: vcscmd.ListBranches,
+				Action: cmd.ListBranches,
 			},
 			{
 				Name:      "merge",
@@ -221,12 +220,12 @@ func main() {
 						Usage:   "Push changes after merging",
 					},
 				},
-				Action: vcscmd.Merge,
+				Action: cmd.Merge,
 			},
 			{
 				Name:   "history",
 				Usage:  "List commit history",
-				Action: vcscmd.PrintHistory,
+				Action: cmd.PrintHistory,
 				Flags: []cli.Flag{
 					&cli.IntFlag{
 						Name:    "limit",
@@ -240,19 +239,19 @@ func main() {
 				Name:      "invite",
 				Usage:     "Invite a user to collaborate on the project",
 				ArgsUsage: "[emails...]",
-				Action:    vcscmd.Invite,
+				Action:    cmd.Invite,
 			},
 			{
 				Name:      "lock",
 				Usage:     "Lock one or many files or directories from being modified by others",
 				ArgsUsage: "[paths...]",
-				Action:    vcscmd.Lock,
+				Action:    cmd.Lock,
 			},
 			{
 				Name:      "unlock",
 				Usage:     "Unlock one or many files or directories, allowing other users to modify them again",
 				ArgsUsage: "[paths...]",
-				Action:    vcscmd.Unlock,
+				Action:    cmd.Unlock,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "force",
@@ -264,7 +263,7 @@ func main() {
 			{
 				Name:   "locks",
 				Usage:  "List all files and directories that are locked from modification",
-				Action: vcscmd.ListLocks,
+				Action: cmd.ListLocks,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "branch",

@@ -1,4 +1,4 @@
-package vcscmd
+package cmd
 
 import (
 	"encoding/json"
