@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/joshnies/dvcs/lib/console"
+	"github.com/decentvcs/cli/lib/console"
 )
 
 // Validate HTTP response.
@@ -13,7 +13,6 @@ import (
 // @param res - HTTP response
 //
 // Returns any error that occurred.
-//
 func ValidateResponse(res *http.Response) error {
 	var msg string
 

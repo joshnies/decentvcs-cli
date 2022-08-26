@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshnies/dvcs/lib/console"
+	"github.com/decentvcs/cli/lib/console"
 	"gopkg.in/yaml.v3"
 )
 

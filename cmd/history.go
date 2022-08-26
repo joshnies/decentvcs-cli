@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/TwiN/go-color"
-	"github.com/joshnies/dvcs/config"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/auth"
-	"github.com/joshnies/dvcs/lib/httpvalidation"
-	"github.com/joshnies/dvcs/lib/vcs"
-	"github.com/joshnies/dvcs/models"
+	"github.com/decentvcs/cli/config"
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/auth"
+	"github.com/decentvcs/cli/lib/httpvalidation"
+	"github.com/decentvcs/cli/lib/vcs"
+	"github.com/decentvcs/cli/models"
 	"github.com/urfave/cli/v2"
 )
 

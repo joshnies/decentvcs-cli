@@ -3,9 +3,9 @@ package cmd
 import (
 	"strconv"
 
-	"github.com/joshnies/dvcs/lib/auth"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/lib/vcs"
+	"github.com/decentvcs/cli/lib/auth"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/vcs"
 	"github.com/urfave/cli/v2"
 )
 

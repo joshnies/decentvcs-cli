@@ -1,4 +1,4 @@
-module github.com/joshnies/dvcs
+module github.com/decentvcs/cli
 
 go 1.19
 

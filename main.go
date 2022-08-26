@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/joshnies/dvcs/cmd"
-	"github.com/joshnies/dvcs/config"
+	"github.com/decentvcs/cli/cmd"
+	"github.com/decentvcs/cli/config"
 	"github.com/urfave/cli/v2"
 )
 

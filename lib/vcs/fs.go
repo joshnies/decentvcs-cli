@@ -15,13 +15,13 @@ import (
 
 	"github.com/TwiN/go-color"
 	"github.com/cespare/xxhash/v2"
-	"github.com/joshnies/dvcs/config"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/lib/httpvalidation"
-	"github.com/joshnies/dvcs/lib/storage"
-	"github.com/joshnies/dvcs/lib/util"
-	"github.com/joshnies/dvcs/models"
+	"github.com/decentvcs/cli/config"
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/httpvalidation"
+	"github.com/decentvcs/cli/lib/storage"
+	"github.com/decentvcs/cli/lib/util"
+	"github.com/decentvcs/cli/models"
 	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 )
@@ -53,7 +53,6 @@ func GetFileHash(path string) (string, error) {
 // @param rootPath - Root directory path for where to start the calculation.
 //
 // @returns Map of file paths to hashes.
-//
 func CalculateHashes(rootPath string) (map[string]string, error) {
 	console.Verbose("Calculating hashes...")
 
@@ -129,7 +128,6 @@ type FileChangeDetectionResult struct {
 // Detect file changes.
 //
 // @param currentHashMap - Hash map of current commit fetched from remote
-//
 func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionResult, error) {
 	console.Info("Checking for changes...")
 
@@ -264,7 +262,6 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 // - Recreate all deleted files
 //
 // @param confirm Whether to prompt user for confirmation before resetting
-//
 func ResetChanges(confirm bool) error {
 	// Get project config
 	projectConfig, err := GetProjectConfig()

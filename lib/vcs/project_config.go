@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/models"
 	"github.com/go-playground/validator/v10"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/models"
 	"gopkg.in/yaml.v3"
 )
 

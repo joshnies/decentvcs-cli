@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/joshnies/dvcs/config"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/lib/httpvalidation"
-	"github.com/joshnies/dvcs/lib/storage"
-	"github.com/joshnies/dvcs/models"
+	"github.com/decentvcs/cli/config"
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/httpvalidation"
+	"github.com/decentvcs/cli/lib/storage"
+	"github.com/decentvcs/cli/models"
 	"golang.org/x/exp/maps"
 )
 

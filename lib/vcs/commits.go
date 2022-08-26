@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/joshnies/dvcs/config"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/lib/httpvalidation"
-	"github.com/joshnies/dvcs/models"
+	"github.com/decentvcs/cli/config"
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/httpvalidation"
+	"github.com/decentvcs/cli/models"
 )
 
 // Delete all commits ahead of the given index for the specified branch.

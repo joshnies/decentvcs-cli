@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/joshnies/dvcs/config"
-	"github.com/joshnies/dvcs/constants"
-	"github.com/joshnies/dvcs/lib/auth"
-	"github.com/joshnies/dvcs/lib/console"
-	"github.com/joshnies/dvcs/lib/httpvalidation"
-	"github.com/joshnies/dvcs/lib/vcs"
+	"github.com/decentvcs/cli/config"
+	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/auth"
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/httpvalidation"
+	"github.com/decentvcs/cli/lib/vcs"
 	"github.com/urfave/cli/v2"
 )
 

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/joshnies/dvcs/lib/auth"
-	"github.com/joshnies/dvcs/lib/vcs"
+	"github.com/decentvcs/cli/lib/auth"
+	"github.com/decentvcs/cli/lib/vcs"
 	"github.com/urfave/cli/v2"
 )
 
