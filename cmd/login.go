@@ -3,7 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -40,7 +40,7 @@ func LogIn(c *cli.Context) error {
 		console.Verbose("Received request to auth webhook")
 
 		// Parse request body
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			console.Error("Failed to read request body: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -77,7 +77,7 @@ func LogIn(c *cli.Context) error {
 		if err != nil {
 			console.Fatal("Error while marshalling config: %v", err)
 		}
-		err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)
+		err = os.WriteFile(config.GetConfigPath(), cYaml, 0644)
 		if err != nil {
 			console.Fatal("Error while writing config: %v", err)
 		}

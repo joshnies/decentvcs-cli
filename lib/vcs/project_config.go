@@ -2,7 +2,6 @@ package vcs
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -56,7 +55,7 @@ func GetProjectConfig() (models.ProjectConfig, error) {
 	}
 
 	// Read file
-	configBytes, err := ioutil.ReadFile(configPath)
+	configBytes, err := os.ReadFile(configPath)
 	if err != nil {
 		return models.ProjectConfig{}, err
 	}
@@ -84,7 +83,7 @@ func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfi
 	// Read existing project file (if it exists)
 	newConfig := c
 	if _, err := os.Stat(configPath); err == nil {
-		exBytes, err := ioutil.ReadFile(configPath)
+		exBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return models.ProjectConfig{}, err
 		}
@@ -105,7 +104,7 @@ func SaveProjectConfig(path string, c models.ProjectConfig) (models.ProjectConfi
 		return models.ProjectConfig{}, err
 	}
 
-	err = ioutil.WriteFile(configPath, newConfigBytes, os.ModePerm)
+	err = os.WriteFile(configPath, newConfigBytes, os.ModePerm)
 	return newConfig, err
 }
 

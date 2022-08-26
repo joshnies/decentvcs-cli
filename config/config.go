@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -124,7 +123,7 @@ func InitConfig() Config {
 			log.Fatal(err)
 		}
 
-		err = ioutil.WriteFile(cpath, cYaml, 0644)
+		err = os.WriteFile(cpath, cYaml, 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -133,7 +132,7 @@ func InitConfig() Config {
 		SetInternalConfigFields(&I)
 	} else {
 		// Open file
-		gcBytes, err := ioutil.ReadFile(cpath)
+		gcBytes, err := os.ReadFile(cpath)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"os"
@@ -34,7 +33,6 @@ import (
 // - projectSlug: Project slug (<team_name>/<project_name>)
 //
 // - hashMap: Map of local file paths to file hashes (which are used as object keys)
-//
 func UploadMany(projectSlug string, hashMap map[string]string) error {
 	auth.HasToken()
 
@@ -108,7 +106,7 @@ func upload(ctx context.Context, params uploadParams) {
 		// NON-MULTIPART
 		//
 		// Read file into byte array
-		fileBytes, err := ioutil.ReadAll(file)
+		fileBytes, err := io.ReadAll(file)
 		if err != nil {
 			panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
 		}
@@ -133,7 +131,7 @@ func upload(ctx context.Context, params uploadParams) {
 		defer tempFile.Close()
 
 		// Read compressed file into byte array
-		fileBytes, err := ioutil.ReadFile(tempFilePath)
+		fileBytes, err := os.ReadFile(tempFilePath)
 		if err != nil {
 			panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
 		}
@@ -383,7 +381,6 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 // - hashMap: Map of local file paths to file hashes
 //
 // Returns map of object keys to data.
-//
 func DownloadMany(projectSlug string, dest string, hashMap map[string]string) error {
 	auth.HasToken()
 
@@ -495,7 +492,7 @@ func download(ctx context.Context, params downloadParams) {
 	}
 
 	// Read downloaded file
-	dData, err := ioutil.ReadFile(path)
+	dData, err := os.ReadFile(path)
 	if err != nil {
 		panic(console.Error("Failed to read downloaded file \"%s\": %v", path, err))
 	}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -174,7 +173,7 @@ func Merge(c *cli.Context) error {
 
 	// Create empty base file for three-way merge
 	baseFilePath := filepath.Join(tempDirPath, "empty")
-	err = ioutil.WriteFile(baseFilePath, []byte{}, 0644)
+	err = os.WriteFile(baseFilePath, []byte{}, 0644)
 	if err != nil {
 		return console.Error("Failed to create base file: %s", err)
 	}

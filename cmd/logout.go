@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/joshnies/dvcs/config"
 	"github.com/joshnies/dvcs/constants"
@@ -41,7 +41,7 @@ func LogOut(c *cli.Context) error {
 		return console.Error(constants.ErrInternal)
 	}
 
-	err = ioutil.WriteFile(config.GetConfigPath(), cYaml, 0644)
+	err = os.WriteFile(config.GetConfigPath(), cYaml, 0644)
 	if err != nil {
 		return err
 	}
