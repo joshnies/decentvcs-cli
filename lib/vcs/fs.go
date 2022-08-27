@@ -185,15 +185,16 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 		}
 
 		relPath, _ := filepath.Rel(projectPath, path)
+		remoteFileData := files[relPath]
 
-		// Determine new version
+		// Determine remote file version
 		var version uint8 = 1
-		if remoteFD, ok := files[relPath]; ok {
-			version = remoteFD.Version + 1
+		if remoteFileData.Version > 1 {
+			version = remoteFileData.Version
 		}
 
 		// Update new file data map
-		newFileDataMap[relPath] = models.FileData{
+		newFileData := models.FileData{
 			Hash:    newHash,
 			Version: version,
 		}
@@ -204,6 +205,9 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 			if oldFileData.Hash != newHash {
 				// File was modified
 				modifiedFilePaths = append(modifiedFilePaths, relPath)
+
+				// Increment file version
+				newFileData.Version++
 			}
 		} else {
 			// File is new
@@ -214,6 +218,9 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 		remainingPaths = lo.Filter(remainingPaths, func(p string, _ int) bool {
 			return p != relPath
 		})
+
+		// Update new file data map
+		newFileDataMap[relPath] = newFileData
 
 		return nil
 	})
