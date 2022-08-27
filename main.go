@@ -48,6 +48,11 @@ func main() {
 						Aliases: []string{"n"},
 						Usage:   "Name of the project",
 					},
+					&cli.BoolFlag{
+						Name:    "patch",
+						Aliases: []string{"p"},
+						Usage:   "Enable patch revisions",
+					},
 				},
 			},
 			{

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -62,10 +63,15 @@ func Init(c *cli.Context) error {
 	// Create project in API
 	httpClient := http.Client{}
 	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, slug)
-	req, err := http.NewRequest("POST", reqUrl, nil)
+	reqData := models.CreateProjectRequest{
+		EnablePatchRevisions: c.Bool("patch"),
+	}
+	reqJSON, _ := json.Marshal(reqData)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	res, err := httpClient.Do(req)
 	if err != nil {
