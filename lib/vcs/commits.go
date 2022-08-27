@@ -43,3 +43,12 @@ func DeleteCommitsAheadOfIndex(projectConfig models.ProjectConfig, branchID stri
 
 	return nil
 }
+
+func FileMapToHashMap(fileMap map[string]models.FileData) map[string]string {
+	hashMap := make(map[string]string)
+	for path, file := range fileMap {
+		hashMap[path] = file.Hash
+	}
+
+	return hashMap
+}

@@ -114,7 +114,7 @@ func CloneProject(c *cli.Context) error {
 		}
 	}
 
-	if len(maps.Values(branch.Commit.HashMap)) == 0 {
+	if len(maps.Values(branch.Commit.Files)) == 0 {
 		return console.Error("No committed files found for branch \"%s\"", branch.Name)
 	}
 
@@ -142,7 +142,8 @@ func CloneProject(c *cli.Context) error {
 	console.Verbose("Project config file created")
 
 	// Download all files
-	err = storage.DownloadMany(projectConfig.ProjectSlug, clonePath, branch.Commit.HashMap)
+	hashMap := vcs.FileMapToHashMap(branch.Commit.Files)
+	err = storage.DownloadMany(projectConfig.ProjectSlug, clonePath, hashMap)
 	if err != nil {
 		return err
 	}

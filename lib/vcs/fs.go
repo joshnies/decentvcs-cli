@@ -121,22 +121,21 @@ type FileChangeDetectionResult struct {
 	CreatedFilePaths  []string
 	ModifiedFilePaths []string
 	DeletedFilePaths  []string
-	// Map of file path to hash
-	HashMap map[string]string
+	FileDataMap       map[string]models.FileData
 }
 
 // Detect file changes.
 //
 // @param currentHashMap - Hash map of current commit fetched from remote
-func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionResult, error) {
+func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionResult, error) {
 	console.Info("Checking for changes...")
 
 	// Get known file paths in current commit
-	remainingPaths := maps.Keys(currentHashMap)
+	remainingPaths := maps.Keys(files)
 
 	createdFilePaths := []string{}
 	modifiedFilePaths := []string{}
-	newHashMap := make(map[string]string)
+	newFileDataMap := make(map[string]models.FileData)
 	fileInfoMap := make(map[string]os.FileInfo)
 
 	createdFileSizeTotal := int64(0)
@@ -186,12 +185,23 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 		}
 
 		relPath, _ := filepath.Rel(projectPath, path)
-		newHashMap[relPath] = newHash
+
+		// Determine new version
+		var version uint8 = 1
+		if remoteFD, ok := files[relPath]; ok {
+			version = remoteFD.Version + 1
+		}
+
+		// Update new file data map
+		newFileDataMap[relPath] = models.FileData{
+			Hash:    newHash,
+			Version: version,
+		}
 		fileInfoMap[relPath] = info
 
 		// Detect changes
-		if oldHash, ok := currentHashMap[relPath]; ok {
-			if oldHash != newHash {
+		if oldFileData, ok := files[relPath]; ok {
+			if oldFileData.Hash != newHash {
 				// File was modified
 				modifiedFilePaths = append(modifiedFilePaths, relPath)
 			}
@@ -246,7 +256,7 @@ func DetectFileChanges(currentHashMap map[string]string) (FileChangeDetectionRes
 		CreatedFilePaths:  createdFilePaths,
 		ModifiedFilePaths: modifiedFilePaths,
 		DeletedFilePaths:  remainingPaths,
-		HashMap:           newHashMap,
+		FileDataMap:       newFileDataMap,
 	}
 
 	return res, nil
@@ -294,7 +304,7 @@ func ResetChanges(confirm bool) error {
 	}
 
 	// Detect file changes
-	fc, err := DetectFileChanges(commit.HashMap)
+	fc, err := DetectFileChanges(commit.Files)
 	if err != nil {
 		return err
 	}
@@ -328,11 +338,11 @@ func ResetChanges(confirm bool) error {
 		}
 	}
 
-	// Build hash map for overridden files (modified + deleted)
+	// Build file data map for overridden files (modified + deleted)
 	overrideHashMap := make(map[string]string)
 	overrideFilePaths := append(fc.ModifiedFilePaths, fc.DeletedFilePaths...)
 	for _, path := range overrideFilePaths {
-		hash := commit.HashMap[path]
+		hash := commit.Files[path].Hash
 		overrideHashMap[path] = hash
 	}
 

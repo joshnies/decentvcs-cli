@@ -9,4 +9,7 @@ fi
 # Install CLI
 go build && go install
 
+# Rename binary
+mv ~/go/bin/cli ~/go/bin/dvcs
+
 echo "Installed"

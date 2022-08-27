@@ -74,7 +74,7 @@ func getDashURL(env Env) string {
 	case EnvDev:
 		return "http://dev.app.decentvcs.com"
 	case EnvLcl:
-		return "http://localhost:3001"
+		return "http://localhost:3000"
 	default:
 		// Production is the default
 		return "https://app.decentvcs.com"

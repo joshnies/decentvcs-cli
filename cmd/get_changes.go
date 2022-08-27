@@ -50,7 +50,7 @@ func GetChanges(c *cli.Context) error {
 	}
 
 	// Detect local changes
-	fc, err := vcs.DetectFileChanges(currentBranch.Commit.HashMap)
+	fc, err := vcs.DetectFileChanges(currentBranch.Commit.Files)
 	if err != nil {
 		return err
 	}

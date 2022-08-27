@@ -110,18 +110,18 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	}
 
 	// Get keys for new files by comparing hash maps
-	console.Verbose("\n\"to\" commit hash map:\n%v", toCommit.HashMap)
-	console.Verbose("\nCurrent commit hash map:\n%v\n", currentCommit.HashMap)
+	console.Verbose("\n\"to\" commit hash map:\n%v", toCommit.Files)
+	console.Verbose("\nCurrent commit hash map:\n%v\n", currentCommit.Files)
 
 	downloadMap := make(map[string]string)
 	filesToOverride := []string{}
-	for key, hash := range toCommit.HashMap {
-		if curHash, ok := currentCommit.HashMap[key]; ok {
+	for toFilePath, toFileData := range toCommit.Files {
+		if curFileData, ok := currentCommit.Files[toFilePath]; ok {
 			// File exists in both commits
 			//
 			// If file is modified, add to download map
-			if hash != curHash {
-				downloadMap[key] = hash
+			if toFileData.Hash != curFileData.Hash {
+				downloadMap[toFilePath] = toFileData.Hash
 			}
 			continue
 		}
@@ -129,12 +129,12 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 		// File is new from last commit
 		//
 		// Add to override list if it exists in local changes
-		if _, err := os.Stat(key); err == nil {
-			filesToOverride = append(filesToOverride, key)
+		if _, err := os.Stat(toFilePath); err == nil {
+			filesToOverride = append(filesToOverride, toFilePath)
 		}
 
 		// Add new file to download map
-		downloadMap[key] = hash
+		downloadMap[toFilePath] = toFileData.Hash
 	}
 
 	confirmed := false
@@ -161,16 +161,16 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 
 	// Get keys for deleted files by comparing hash maps
 	filesToDelete := []string{}
-	for key, hash := range currentCommit.HashMap {
-		if _, ok := toCommit.HashMap[key]; !ok {
-			// File is deleted from last commit. Add to list of files to delete if it doesn't exist in current changes
-			curHash, err := GetFileHash(key)
+	for filePath, fileData := range currentCommit.Files {
+		if _, ok := toCommit.Files[filePath]; !ok {
+			// File is deleted from last commit; calculate local file hash to check if changed
+			lclHash, err := GetFileHash(filePath)
 			if err != nil {
 				return err
 			}
-			if curHash == hash {
+			if lclHash == fileData.Hash {
 				// File is unchanged from current commit remote, add to list of files to delete
-				filesToDelete = append(filesToDelete, key)
+				filesToDelete = append(filesToDelete, filePath)
 			}
 		}
 	}

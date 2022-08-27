@@ -131,7 +131,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Detect local changes
 	startTime := time.Now()
-	fc, err := vcs.DetectFileChanges(currentCommit.HashMap)
+	fc, err := vcs.DetectFileChanges(currentCommit.Files)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
 	filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
 	for _, path := range filesToUpload {
-		uploadHashMap[path] = fc.HashMap[path]
+		uploadHashMap[path] = fc.FileDataMap[path].Hash
 	}
 
 	if len(filesToUpload) > 0 {
@@ -189,7 +189,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": fc.ModifiedFilePaths,
 		"deleted_files":  fc.DeletedFilePaths,
-		"hash_map":       fc.HashMap,
+		"files":          fc.FileDataMap,
 	})
 	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s/commit", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))

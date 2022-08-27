@@ -101,16 +101,16 @@ func Merge(c *cli.Context) error {
 	// Detect movable files, which will simply be moved to the local project, overriding the current
 	// versions.
 	mvHashMap := make(map[string]string)
-	for path, hash := range branchToMerge.Commit.HashMap {
+	for path, f := range branchToMerge.Commit.Files {
 		if _, ok := localHashMap[path]; !ok {
-			mvHashMap[path] = hash
+			mvHashMap[path] = f.Hash
 		}
 	}
 
 	// Detect mergable files
 	mergeHashMap := make(map[string]string)
 	for path, hash := range localHashMap {
-		newHash := branchToMerge.Commit.HashMap[path]
+		newHash := branchToMerge.Commit.Files[path].Hash
 		if hash != newHash {
 			// Check if file is binary data
 			isBinary, err := binary.File(path)
