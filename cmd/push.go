@@ -286,7 +286,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	bodyJson, _ := json.Marshal(map[string]interface{}{
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
-		"modified_files": modifiedFilePaths,
+		"modified_files": fc.ModifiedFilePaths,
 		"deleted_files":  fc.DeletedFilePaths,
 		"files":          fileDataMap,
 	})
