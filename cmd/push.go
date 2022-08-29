@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -208,6 +209,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	startTime = time.Now()
 
+	fileDataMap := fc.FileDataMap
 	var patchFilePaths []string
 	if project.EnablePatchRevisions && len(fc.ModifiedFilePaths) > 0 {
 		// Download modified files from storage
@@ -216,9 +218,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		for _, filePath := range fc.ModifiedFilePaths {
 			modifiedFileHashMap[filePath] = currentCommit.Files[filePath].Hash
 		}
-
-		fmt.Printf("Temp dir path: %s\n", tempDirPath)                  // DEBUG
-		fmt.Printf("Modified file hash map: %v\n", modifiedFileHashMap) // DEBUG
 
 		err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, modifiedFileHashMap)
 		if err != nil {
@@ -234,6 +233,26 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 			err := vcs.GenPatchFile(oldFilePath, modFilePath, patchPath)
 			if err != nil {
 				return err
+			}
+
+			// Get patch file hash
+			patchHash, err := vcs.GetFileHash(patchPath)
+			if err != nil {
+				return err
+			}
+
+			if entry, ok := fileDataMap[modFilePath]; ok {
+				if entry.PatchHashes == nil {
+					// first patch
+					entry.PatchHashes = []string{patchHash}
+				} else {
+					// nth patch
+					entry.PatchHashes = append(entry.PatchHashes, patchHash)
+				}
+
+				fileDataMap[modFilePath] = entry
+			} else {
+				return errors.New("modified file not found in file data map")
 			}
 		}
 	}
@@ -269,7 +288,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		"created_files":  fc.CreatedFilePaths,
 		"modified_files": modifiedFilePaths,
 		"deleted_files":  fc.DeletedFilePaths,
-		"files":          fc.FileDataMap,
+		"files":          fileDataMap,
 	})
 	reqUrl = fmt.Sprintf(
 		"%s/projects/%s/branches/%s/commit",
