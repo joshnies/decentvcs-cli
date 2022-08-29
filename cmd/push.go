@@ -258,19 +258,18 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Gather file paths for upload
-	modifiedFilePaths := fc.ModifiedFilePaths
-	if project.EnablePatchRevisions {
-		modifiedFilePaths = patchFilePaths
-	}
-
 	filesToUpload := []string{}
 	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
-	filesToUpload = append(filesToUpload, modifiedFilePaths...)
+	if project.EnablePatchRevisions {
+		filesToUpload = append(filesToUpload, patchFilePaths...)
+	} else {
+		filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
+	}
 
 	uploadHashMap := make(map[string]string)
 
 	for _, path := range filesToUpload {
-		uploadHashMap[path] = fc.FileDataMap[path].Hash
+		uploadHashMap[path] = fileDataMap[path].Hash
 	}
 
 	// Upload files to storage
