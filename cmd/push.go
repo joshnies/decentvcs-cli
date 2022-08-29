@@ -62,7 +62,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Get current branch w/ latest commit
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/branches/%s?join_commit=true", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
+	reqUrl := fmt.Sprintf(
+		"%s/projects/%s/branches/%s?join_commit=true",
+		config.I.VCS.ServerHost,
+		projectConfig.ProjectSlug,
+		projectConfig.CurrentBranchName,
+	)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -85,7 +90,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Get current commit
-	reqUrl = fmt.Sprintf("%s/projects/%s/commits/%d", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentCommitIndex)
+	reqUrl = fmt.Sprintf(
+		"%s/projects/%s/commits/%d",
+		config.I.VCS.ServerHost,
+		projectConfig.ProjectSlug,
+		projectConfig.CurrentCommitIndex,
+	)
 	req, err = http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
@@ -114,7 +124,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if currentBranch.Commit.Index != projectConfig.CurrentCommitIndex {
 		if force {
 			console.Warning("You're about to force push!")
-			console.Warning("This will permanently delete all commits and new files ahead of your current commit (#%d) on this branch (%s).", projectConfig.CurrentCommitIndex, currentBranch.Name)
+			console.Warning(
+				"This will permanently delete all commits and new files ahead of your current commit (#%d) on this "+
+					"branch (%s).",
+				projectConfig.CurrentCommitIndex,
+				currentBranch.Name,
+			)
 			console.Warning("Continue? (y/n)")
 
 			var answer string
@@ -124,7 +139,11 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 				return nil
 			}
 		} else {
-			console.ErrorPrint("Your are on commit #%d, but the remote branch points to commit #%d.", projectConfig.CurrentCommitIndex, currentCommit.Index)
+			console.ErrorPrint(
+				"Your are on commit #%d, but the remote branch points to commit #%d.",
+				projectConfig.CurrentCommitIndex,
+				currentCommit.Index,
+			)
 			return console.Error("You can forcefully push your changes by using the --force flag.")
 		}
 	}
@@ -191,7 +210,12 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		"deleted_files":  fc.DeletedFilePaths,
 		"files":          fc.FileDataMap,
 	})
-	reqUrl = fmt.Sprintf("%s/projects/%s/branches/%s/commit", config.I.VCS.ServerHost, projectConfig.ProjectSlug, projectConfig.CurrentBranchName)
+	reqUrl = fmt.Sprintf(
+		"%s/projects/%s/branches/%s/commit",
+		config.I.VCS.ServerHost,
+		projectConfig.ProjectSlug,
+		projectConfig.CurrentBranchName,
+	)
 	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
