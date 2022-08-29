@@ -14,6 +14,7 @@ import (
 	"github.com/decentvcs/cli/lib/console"
 	"github.com/decentvcs/cli/lib/httpvalidation"
 	"github.com/decentvcs/cli/lib/storage"
+	"github.com/decentvcs/cli/lib/system"
 	"github.com/decentvcs/cli/lib/vcs"
 	"github.com/decentvcs/cli/models"
 	"github.com/urfave/cli/v2"
@@ -175,6 +176,28 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
+	// Get project for later
+	reqUrl = fmt.Sprintf(
+		"%s/projects/%s",
+		config.I.VCS.ServerHost,
+		projectConfig.ProjectSlug,
+	)
+	req, err = http.NewRequest("GET", reqUrl, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	var project models.Project
+	err = json.NewDecoder(res.Body).Decode(&project)
+	if err != nil {
+		return err
+	}
+
 	if force {
 		// User is force pushing.
 		// Delete commits ahead of current commit.
@@ -185,11 +208,43 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	startTime = time.Now()
 
-	// Upload snapshots of created and modified files to storage
+	// Download modified files from storage
+	tempDirPath := system.GetTempDir()
+	modifiedFileHashMap := make(map[string]string)
+	for _, filePath := range fc.ModifiedFilePaths {
+		modifiedFileHashMap[filePath] = fc.FileDataMap[filePath].Hash
+	}
+	err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, modifiedFileHashMap)
+	if err != nil {
+		return err
+	}
+
+	// Generate patches for modified files
+	var patchFilePaths []string
+	for _, modFilePath := range fc.ModifiedFilePaths {
+		oldFilePath := filepath.Join(tempDirPath, modFilePath) // same as mod file, just in temp dir from download above
+		patchPath := filepath.Join(tempDirPath, modFilePath+".patch")
+		patchFilePaths = append(patchFilePaths, patchPath)
+
+		err := vcs.GenPatchFile(oldFilePath, modFilePath, patchPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Upload snapshots to storage
 	uploadHashMap := make(map[string]string)
 	filesToUpload := []string{}
 	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
-	filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
+
+	if project.EnablePatchRevisions {
+		// Upload modified files as patches
+		filesToUpload = append(filesToUpload, patchFilePaths...)
+	} else {
+		// Upload modified files as snapshots
+		filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
+	}
+
 	for _, path := range filesToUpload {
 		uploadHashMap[path] = fc.FileDataMap[path].Hash
 	}
