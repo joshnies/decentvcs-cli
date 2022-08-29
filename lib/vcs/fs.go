@@ -195,8 +195,9 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 
 		// Update new file data map
 		newFileData := models.FileData{
-			Hash:    newHash,
-			Version: version,
+			Hash:        newHash,
+			PatchHashes: files[relPath].PatchHashes,
+			Version:     version,
 		}
 		fileInfoMap[relPath] = info
 
