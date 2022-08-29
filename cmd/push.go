@@ -209,13 +209,17 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	startTime = time.Now()
 
 	var patchFilePaths []string
-	if project.EnablePatchRevisions {
+	if project.EnablePatchRevisions && len(fc.ModifiedFilePaths) > 0 {
 		// Download modified files from storage
 		tempDirPath := system.GetTempDir()
 		modifiedFileHashMap := make(map[string]string)
 		for _, filePath := range fc.ModifiedFilePaths {
-			modifiedFileHashMap[filePath] = fc.FileDataMap[filePath].Hash
+			modifiedFileHashMap[filePath] = currentCommit.Files[filePath].Hash
 		}
+
+		fmt.Printf("Temp dir path: %s\n", tempDirPath)                  // DEBUG
+		fmt.Printf("Modified file hash map: %v\n", modifiedFileHashMap) // DEBUG
+
 		err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, modifiedFileHashMap)
 		if err != nil {
 			return err
