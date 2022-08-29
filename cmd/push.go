@@ -16,6 +16,7 @@ import (
 	"github.com/decentvcs/cli/lib/httpvalidation"
 	"github.com/decentvcs/cli/lib/storage"
 	"github.com/decentvcs/cli/lib/system"
+	"github.com/decentvcs/cli/lib/util"
 	"github.com/decentvcs/cli/lib/vcs"
 	"github.com/decentvcs/cli/models"
 	"github.com/urfave/cli/v2"
@@ -210,7 +211,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	startTime = time.Now()
 
 	fileDataMap := fc.FileDataMap
-	var patchFilePaths []string
+	patchHashMap := make(map[string]string)
 	if project.EnablePatchRevisions && len(fc.ModifiedFilePaths) > 0 {
 		// Download modified files from storage
 		tempDirPath := system.GetTempDir()
@@ -228,7 +229,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		for _, modFilePath := range fc.ModifiedFilePaths {
 			oldFilePath := filepath.Join(tempDirPath, modFilePath) // same as mod file, just in temp dir from download above
 			patchPath := filepath.Join(tempDirPath, modFilePath+".patch")
-			patchFilePaths = append(patchFilePaths, patchPath)
 
 			err := vcs.GenPatchFile(oldFilePath, modFilePath, patchPath)
 			if err != nil {
@@ -240,6 +240,8 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 			if err != nil {
 				return err
 			}
+
+			patchHashMap[patchPath] = patchHash
 
 			if entry, ok := fileDataMap[modFilePath]; ok {
 				if entry.PatchHashes == nil {
@@ -260,9 +262,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	// Gather file paths for upload
 	filesToUpload := []string{}
 	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
-	if project.EnablePatchRevisions {
-		filesToUpload = append(filesToUpload, patchFilePaths...)
-	} else {
+	if !project.EnablePatchRevisions {
 		filesToUpload = append(filesToUpload, fc.ModifiedFilePaths...)
 	}
 
@@ -272,8 +272,13 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		uploadHashMap[path] = fileDataMap[path].Hash
 	}
 
+	if project.EnablePatchRevisions {
+		// Add patch hashes to upload hash map
+		uploadHashMap = util.MergeMaps(uploadHashMap, patchHashMap)
+	}
+
 	// Upload files to storage
-	if len(filesToUpload) > 0 {
+	if len(uploadHashMap) > 0 {
 		err = storage.UploadMany(projectConfig.ProjectSlug, uploadHashMap)
 		if err != nil {
 			return err
