@@ -6,8 +6,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/decentvcs/cli/lib/console"
+	"golang.org/x/time/rate"
 	"gopkg.in/yaml.v3"
 )
 
@@ -49,10 +51,16 @@ type Config struct {
 	Env Env `yaml:",omitempty"`
 	// Whether or not to print verbose output.
 	Verbose bool
-	// [Internal] Decent website URL.
+	//
+	// [Internal]
+	//
+	// Decent website URL.
 	WebsiteURL string `yaml:",omitempty"`
 	Auth       AuthConfig
 	VCS        VCSConfig
+	// Rate limiter for uploading/downloading files to or from storage.
+	// Required to abide by rate limits set by storage providers.
+	RateLimiter *rate.Limiter
 }
 
 // Singleton CLI config instance.
@@ -111,7 +119,7 @@ func InitConfig() Config {
 				MaxFileSizeForDiff: 1 * 1024 * 1024, // 1 MB
 				Storage: VCSStorageConfig{
 					PartSize:         64 * 1024 * 1024, // 64 MB
-					UploadPoolSize:   128,
+					UploadPoolSize:   32,
 					DownloadPoolSize: 32,
 				},
 			},
@@ -189,6 +197,7 @@ func SetInternalConfigFields(config *Config) {
 	// Set internal config fields
 	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
+	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second), 100) // 100 RPS
 }
 
 // Omit internal config fields from a config object.

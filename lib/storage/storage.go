@@ -152,6 +152,12 @@ func upload(ctx context.Context, params uploadParams) {
 // Upload object in full to storage.
 // Intended to be called as a goroutine.
 func uploadSingle(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
+	// Wait until rate limiter frees up before uploading to storage
+	err := config.I.RateLimiter.Wait(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	// Presign object
 	bodyData := models.PresignOneRequestBody{
 		Key:         params.Hash,
@@ -218,6 +224,12 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 // Upload a file in chunks to storage.
 // Intended to be called as a goroutine.
 func uploadMultipart(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
+	// Wait until rate limiter frees up before uploading to storage
+	err := config.I.RateLimiter.Wait(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	// Presign object
 	console.Verbose("[%s] Presigning...", params.Hash)
 	bodyData := models.PresignOneRequestBody{
@@ -275,7 +287,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	}
 
 	// Upload parts in sequence.
-	// This is not done in parallel due to rate limiting and threading concerns.
+	// This is not done in parallel due to threading concerns.
 	parts := []models.MultipartUploadPart{}
 	totalParts := len(chunks)
 	for i, url := range presignRes.URLs {
@@ -339,6 +351,12 @@ type uploadPartParams struct {
 // Must be called as a goroutine.
 func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartUploadPart, error) {
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
+
+	// Wait until rate limiter frees up before uploading to storage
+	err := config.I.RateLimiter.Wait(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	// Upload part
 	httpClient := http.Client{}
