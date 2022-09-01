@@ -156,13 +156,13 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 	}
 
 	// Walk project directory
-	err = filepath.Walk(projectPath, func(path string, info fs.FileInfo, err error) error {
+	err = filepath.WalkDir(projectPath, func(path string, dir fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip directories and project file
-		if info.IsDir() || filepath.Base(path) == constants.ProjectFileName {
+		// Skip directories and the project file
+		if dir.IsDir() || filepath.Base(path) == constants.ProjectFileName {
 			return nil
 		}
 
@@ -184,6 +184,12 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 			return err
 		}
 
+		// Get file info (mainly for getting the size)
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+
 		relPath, _ := filepath.Rel(projectPath, path)
 		remoteFileData := files[relPath]
 
@@ -199,7 +205,7 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 			PatchHashes: files[relPath].PatchHashes,
 			Version:     version,
 		}
-		fileInfoMap[relPath] = info
+		fileInfoMap[relPath] = fileInfo
 
 		// Detect changes
 		if oldFileData, ok := files[relPath]; ok {
