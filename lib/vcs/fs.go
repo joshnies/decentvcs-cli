@@ -150,10 +150,8 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 	projectPath := filepath.Dir(projectConfigPath)
 
 	// Get ignore file patterns
-	ignoredFilePatterns, err := GetIgnoredFilePatterns()
-	if err != nil {
-		return FileChangeDetectionResult{}, err
-	}
+	// (error is ignored since the ignore file is optional)
+	ignoredFilePatterns, _ := GetIgnoredFilePatterns()
 
 	// Walk project directory
 	err = filepath.WalkDir(projectPath, func(path string, dir fs.DirEntry, err error) error {
