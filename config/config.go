@@ -197,7 +197,7 @@ func SetInternalConfigFields(config *Config) {
 	// Set internal config fields
 	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
-	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second), 100) // 100 RPS
+	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/100), 1)
 }
 
 // Omit internal config fields from a config object.
