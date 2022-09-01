@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/decentvcs/cli/config"
@@ -43,22 +44,20 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Upload objects in parallel
-	pool := workerpool.New(config.I.VCS.Storage.UploadPoolSize)
+	var wg sync.WaitGroup
 	for path, hash := range hashMap {
-		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
-		params := uploadParams{
+		wg.Add(1)
+		go upload(ctx, uploadParams{
 			ProjectSlug: projectSlug,
 			FilePath:    path,
 			Hash:        hash,
 			Bar:         bar,
-		}
-		pool.Submit(func() {
-			upload(ctx, params)
+			WG:          &wg,
 		})
 	}
 
-	// Wait for uploads to finish
-	pool.StopWait()
+	// Wait for all uploads to finish
+	wg.Wait()
 
 	endTime := time.Now()
 	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
@@ -70,11 +69,13 @@ type uploadParams struct {
 	FilePath    string
 	Hash        string
 	Bar         *progressbar.ProgressBar
+	WG          *sync.WaitGroup
 }
 
 // Upload object to storage. Can be multipart or in full.
 // Intended to be called as a goroutine.
 func upload(ctx context.Context, params uploadParams) {
+	defer params.WG.Done()
 	defer params.Bar.Add(1)
 
 	// Open local file
@@ -287,12 +288,14 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	}
 
 	// Upload parts in sequence.
-	// This is not done in parallel due to threading concerns.
+	var wg sync.WaitGroup
+	ch := make(chan models.MultipartUploadPart)
 	parts := []models.MultipartUploadPart{}
 	totalParts := len(chunks)
 	for i, url := range presignRes.URLs {
+		wg.Add(1)
 		partNum := i + 1
-		p, err := uploadPart(ctx, uploadPartParams{
+		go uploadPart(ctx, uploadPartParams{
 			ProjectID:   params.ProjectSlug,
 			URL:         url,
 			Hash:        params.Hash,
@@ -300,12 +303,17 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 			PartNumber:  partNum,
 			PartData:    chunks[i],
 			TotalParts:  totalParts,
+			WG:          &wg,
+			Channel:     ch,
 		})
 		if err != nil {
 			panic(console.Error("Error uploading part %d of file \"%s\": %v", partNum, params.FilePath, err))
 		}
+		p := <-ch
 		parts = append(parts, p)
 	}
+
+	wg.Wait()
 
 	// Complete multipart upload
 	console.Verbose("[%s] Completing...", params.Hash)
@@ -345,11 +353,14 @@ type uploadPartParams struct {
 	PartNumber  int
 	PartData    []byte
 	TotalParts  int
+	WG          *sync.WaitGroup
+	Channel     chan models.MultipartUploadPart
 }
 
 // Upload part to storage for a multipart upload.
-// Must be called as a goroutine.
-func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartUploadPart, error) {
+func uploadPart(ctx context.Context, params uploadPartParams) {
+	defer params.WG.Done()
+
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
 	// Wait until rate limiter frees up before uploading to storage
@@ -362,30 +373,30 @@ func uploadPart(ctx context.Context, params uploadPartParams) (models.MultipartU
 	httpClient := http.Client{}
 	req, err := http.NewRequest("PUT", params.URL, bytes.NewReader(params.PartData))
 	if err != nil {
-		return models.MultipartUploadPart{}, err
+		panic(err)
 	}
 	req.Header.Add("Content-Type", params.ContentType)
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return models.MultipartUploadPart{}, console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err)
+		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
 	}
 	if err = httpvalidation.ValidateResponse(res); err != nil {
-		return models.MultipartUploadPart{}, console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err)
+		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
 	}
 	defer res.Body.Close()
 
 	// Validate response headers
 	etag := res.Header.Get("etag")
 	if etag == "" {
-		return models.MultipartUploadPart{}, console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber)
+		panic(console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber))
 	}
 	console.Verbose("[%s] (Part %d/%d) Uploaded; ETag: %s", params.Hash, params.PartNumber, params.TotalParts, etag)
 
 	// Send part to channel
-	return models.MultipartUploadPart{
+	params.Channel <- models.MultipartUploadPart{
 		PartNumber: int32(params.PartNumber),
 		ETag:       strings.ReplaceAll(etag, "\"", ""),
-	}, nil
+	}
 }
 
 // Download many objects from storage to local file system.
