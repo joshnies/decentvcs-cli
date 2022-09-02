@@ -43,17 +43,24 @@ type AdditionalPresignData struct {
 func UploadMany(projectSlug string, hashMap map[string]string) error {
 	auth.HasToken()
 
+	console.Verbose("[UploadMany] Authenticated")
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Presign objects in chunks
 	// This is done in chunks to avoid Stytch rate limiting due to the sheer amount of authentication requests
+	console.Verbose("Hash map: %+v", hashMap)
+	console.Verbose("Chunking hash map...")
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
+	console.Verbose("Hash map chunked: %+v", hashMapChunked)
 	presignResponses := []models.PresignResponse{}
 	additionalData := make(map[string]AdditionalPresignData) // map of file path to additional data
-	for _, hashMapChunk := range hashMapChunked {
+	for chunkIdx, hashMapChunk := range hashMapChunked {
+		console.Verbose("Presigning chunk %d/%d...", chunkIdx+1, len(hashMapChunked))
 		bodyData := make(map[string]models.PresignOneRequestBody) // map of file path to req body data
 
+		console.Verbose("  Building PresignMany request body...")
 		for filePath, hash := range hashMapChunk {
 			// Get file size
 			fileInfo, err := os.Stat(filePath)
@@ -92,6 +99,9 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 			}
 		}
 
+		console.Verbose("  Request body built")
+		console.Verbose("  Sending request...")
+
 		bodyJson, err := json.Marshal(bodyData)
 		if err != nil {
 			panic(console.Error("Error marshalling presign request body: %v", err))
@@ -122,6 +132,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 		}
 
 		presignResponses = append(presignResponses, newResponses...)
+		console.Verbose("  Chunk presigned successfully")
 	}
 
 	startTime := time.Now()

@@ -123,7 +123,6 @@ func InitConfig() Config {
 					PartSize:         64 * 1024 * 1024, // 64 MB
 					UploadPoolSize:   32,
 					DownloadPoolSize: 32,
-					PresignChunkSize: 1024,
 				},
 			},
 		}
@@ -200,6 +199,7 @@ func SetInternalConfigFields(config *Config) {
 	// Set internal config fields
 	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
+	config.VCS.Storage.PresignChunkSize = 1024
 	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/100), 1)
 }
 
@@ -208,5 +208,7 @@ func SetInternalConfigFields(config *Config) {
 func OmitInternalConfig(config *Config) {
 	// Remove internal config fields
 	config.WebsiteURL = ""
+	config.VCS.Storage.PresignChunkSize = 0
 	config.VCS.ServerHost = ""
+	config.RateLimiter = nil
 }

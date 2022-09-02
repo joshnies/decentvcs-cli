@@ -259,6 +259,8 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 	}
 
+	console.Verbose("[push cmd] Gathering file paths...")
+
 	// Gather file paths for upload
 	filesToUpload := []string{}
 	filesToUpload = append(filesToUpload, fc.CreatedFilePaths...)
@@ -279,6 +281,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 
 	// Upload files to storage
 	if len(uploadHashMap) > 0 {
+		console.Verbose("[push cmd] Uploading files...")
 		err = storage.UploadMany(projectConfig.ProjectSlug, uploadHashMap)
 		if err != nil {
 			return err
