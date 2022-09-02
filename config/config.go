@@ -31,6 +31,8 @@ type VCSStorageConfig struct {
 	UploadPoolSize int `yaml:"upload_pool_size"`
 	// Workerpool size for parallel file downloads.
 	DownloadPoolSize int `yaml:"download_pool_size"`
+	// Amount of objects in a single chunk to presign in parallel.
+	PresignChunkSize int `yaml:"presign_chunk_size"`
 }
 
 type VCSConfig struct {
@@ -121,6 +123,7 @@ func InitConfig() Config {
 					PartSize:         64 * 1024 * 1024, // 64 MB
 					UploadPoolSize:   32,
 					DownloadPoolSize: 32,
+					PresignChunkSize: 1024,
 				},
 			},
 		}

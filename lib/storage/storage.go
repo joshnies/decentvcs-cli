@@ -23,9 +23,15 @@ import (
 	"github.com/decentvcs/cli/lib/util"
 	"github.com/decentvcs/cli/models"
 	"github.com/gammazero/workerpool"
+	"github.com/samber/lo"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/exp/maps"
 )
+
+type AdditionalPresignData struct {
+	FileSize    int64
+	ContentType string
+}
 
 // Upload many objects to storage.
 //
@@ -40,16 +46,100 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Presign objects in chunks
+	// This is done in chunks to avoid Stytch rate limiting due to the sheer amount of authentication requests
+	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
+	presignResponses := []models.PresignResponse{}
+	additionalData := make(map[string]AdditionalPresignData) // map of file path to additional data
+	for _, hashMapChunk := range hashMapChunked {
+		bodyData := make(map[string]models.PresignOneRequestBody) // map of file path to req body data
+
+		for filePath, hash := range hashMapChunk {
+			// Get file size
+			fileInfo, err := os.Stat(filePath)
+			if err != nil {
+				panic(console.Error("Failed to get file info for file \"%s\": %v", filePath, err))
+			}
+			fileSize := fileInfo.Size()
+
+			// TODO: Detect MIME type
+			// Get MIME content type
+			// var contentType string
+			// mtype, err := mimetype.DetectReader(file)
+			// if err != nil {
+			// 	contentType = "application/octet-stream"
+			// 	console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
+			// } else {
+			// 	contentType = mtype.String()
+			// }
+
+			contentType := "application/octet-stream"
+
+			// Get presigned URL for uploading the object later
+			bodyData[filePath] = models.PresignOneRequestBody{
+				Method:      "PUT",
+				Key:         hash,
+				ContentType: contentType,
+				Multipart:   fileSize > config.I.VCS.Storage.PartSize,
+				Size:        fileSize,
+			}
+
+			// Save additional data calculated above
+			// This is used to prevent fetching this information again later (performance reasons)
+			additionalData[filePath] = AdditionalPresignData{
+				FileSize:    fileSize,
+				ContentType: contentType,
+			}
+		}
+
+		bodyJson, err := json.Marshal(bodyData)
+		if err != nil {
+			panic(console.Error("Error marshalling presign request body: %v", err))
+		}
+
+		httpClient := http.Client{}
+		reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectSlug)
+		req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+		if err != nil {
+			panic(err)
+		}
+		req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+		req.Header.Add("Content-Type", "application/json")
+		res, err := httpClient.Do(req)
+		if err != nil {
+			panic(console.Error("Error presigning files: %v", err))
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			panic(console.Error("Error presigning files: %v", err))
+		}
+		defer res.Body.Close()
+
+		// Parse response
+		var newResponses []models.PresignResponse
+		err = json.NewDecoder(res.Body).Decode(&newResponses)
+		if err != nil {
+			panic(console.Error("Error parsing presign response: %v", err))
+		}
+
+		presignResponses = append(presignResponses, newResponses...)
+	}
+
 	startTime := time.Now()
 	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Upload objects in parallel
 	var wg sync.WaitGroup
-	for path, hash := range hashMap {
+	for _, presignRes := range presignResponses {
 		wg.Add(1)
+		hash := presignRes.Key
+		path := util.ReverseLookup(hashMap, hash)
 		go upload(ctx, uploadParams{
+			UploadID:    presignRes.UploadID,
+			URLs:        presignRes.URLs,
 			ProjectSlug: projectSlug,
 			FilePath:    path,
+			ContentType: additionalData[path].ContentType,
+			Size:        additionalData[path].FileSize,
 			Hash:        hash,
 			Bar:         bar,
 			WG:          &wg,
@@ -65,8 +155,12 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 }
 
 type uploadParams struct {
+	UploadID    string
+	URLs        []string
 	ProjectSlug string
 	FilePath    string
+	ContentType string
+	Size        int64
 	Hash        string
 	Bar         *progressbar.ProgressBar
 	WG          *sync.WaitGroup
@@ -78,46 +172,27 @@ func upload(ctx context.Context, params uploadParams) {
 	defer params.WG.Done()
 	defer params.Bar.Add(1)
 
-	// Open local file
-	file, err := os.Open(params.FilePath)
-	if err != nil {
-		panic(console.Error("Failed to open file \"%s\": %v", params.FilePath, err))
-	}
-	defer file.Close()
-
-	// Get file size
-	fileInfo, err := file.Stat()
-	if err != nil {
-		panic(console.Error("Failed to get file info for file \"%s\": %v", params.FilePath, err))
-	}
-	fileSize := fileInfo.Size()
-
-	// Get MIME content type
-	// var contentType string
-	// mtype, err := mimetype.DetectReader(file)
-	// if err != nil {
-	// 	contentType = "application/octet-stream"
-	// 	console.Warning("Failed to detect MIME type for file \"%s\", using default \"%s\"", params.FilePath, contentType)
-	// } else {
-	// 	contentType = mtype.String()
-	// }
-	contentType := "application/octet-stream"
-
-	if fileSize < config.I.VCS.Storage.PartSize {
+	if params.Size < config.I.VCS.Storage.PartSize {
 		// NON-MULTIPART
 		//
 		// Read file into byte array
-		fileBytes, err := io.ReadAll(file)
+		fileBytes, err := os.ReadFile(params.FilePath)
 		if err != nil {
 			panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
 		}
 
 		// Upload file
 		console.Verbose("[%s] Uploading in full...", params.Hash)
-		uploadSingle(ctx, params, contentType, fileSize, fileBytes)
+		uploadSingle(ctx, params, params.ContentType, params.Size, fileBytes)
 	} else {
 		// MULTIPART
 		//
+		// Open file
+		file, err := os.Open(params.FilePath)
+		if err != nil {
+			panic(console.Error("Failed to open file \"%s\": %v", params.FilePath, err))
+		}
+
 		// Compress file
 		tempFile, err := os.CreateTemp(filepath.Dir(params.FilePath), filepath.Base(params.FilePath)+".tmp-")
 		if err != nil {
@@ -136,7 +211,7 @@ func upload(ctx context.Context, params uploadParams) {
 		if err != nil {
 			panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
 		}
-		fileSize = int64(len(fileBytes))
+		fileSize := int64(len(fileBytes))
 
 		// Delete compressed file
 		err = os.Remove(tempFilePath)
@@ -146,7 +221,7 @@ func upload(ctx context.Context, params uploadParams) {
 
 		// Upload multipart file
 		console.Verbose("[%s] Uploading in chunks...", params.Hash)
-		uploadMultipart(ctx, params, contentType, fileSize, fileBytes)
+		uploadMultipart(ctx, params, params.ContentType, fileSize, fileBytes)
 	}
 }
 
@@ -189,7 +264,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	defer res.Body.Close()
 
 	// Parse response
-	var presignRes models.PresignOneResponse
+	var presignRes models.PresignResponse
 	err = json.NewDecoder(res.Body).Decode(&presignRes)
 	if err != nil {
 		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
@@ -262,7 +337,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	defer res.Body.Close()
 
 	// Parse response
-	var presignRes models.PresignOneResponse
+	var presignRes models.PresignResponse
 	err = json.NewDecoder(res.Body).Decode(&presignRes)
 	if err != nil {
 		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
@@ -420,9 +495,12 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 
 	// Get presigned URLs
 	console.Verbose("Presigning all objects...")
-	bodyData := models.PresignManyRequestBody{
-		Keys: maps.Values(hashMap),
-	}
+	bodyData := lo.Map(maps.Values(hashMap), func(hash string, _ int) models.PresignOneRequestBody {
+		return models.PresignOneRequestBody{
+			Method: "GET",
+			Key:    hash,
+		}
+	})
 	bodyJson, err := json.Marshal(bodyData)
 	if err != nil {
 		return err
@@ -446,8 +524,8 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	defer res.Body.Close()
 
 	// Parse response
-	var hashUrlMap map[string]string
-	err = json.NewDecoder(res.Body).Decode(&hashUrlMap)
+	var presignResponses []models.PresignResponse
+	err = json.NewDecoder(res.Body).Decode(&presignResponses)
 	if err != nil {
 		return err
 	}
@@ -455,16 +533,16 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	// Download objects in parallel (limited to pool size)
 	pool := workerpool.New(config.I.VCS.Storage.DownloadPoolSize)
 	bar := progressbar.Default(int64(len(hashMap)))
-	for hash, url := range hashUrlMap {
+	for _, r := range presignResponses {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
-		path := util.ReverseLookup(hashMap, hash)
+		path := util.ReverseLookup(hashMap, r.Key)
 		if path == "" {
-			return console.Error("Unknown file hash \"%s\"", hash)
+			return console.Error("Unknown file hash \"%s\"", r.Key)
 		}
 		params := downloadParams{
 			Destination: dest,
 			FilePath:    path,
-			URL:         url,
+			URL:         r.URLs[0],
 			Bar:         bar,
 		}
 		pool.Submit(func() {
