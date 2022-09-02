@@ -54,7 +54,7 @@ type Config struct {
 	//
 	// [Internal]
 	//
-	// Decent website URL.
+	// DecentVCS website URL.
 	WebsiteURL string `yaml:",omitempty"`
 	Auth       AuthConfig
 	VCS        VCSConfig
@@ -66,7 +66,7 @@ type Config struct {
 // Singleton CLI config instance.
 var I Config
 
-// Returns path to the Decent global config file.
+// Returns path to the DecentVCS global config file.
 func GetConfigPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

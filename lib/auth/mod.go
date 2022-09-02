@@ -10,6 +10,6 @@ import (
 func HasToken() {
 	// Check if config has auth data
 	if config.I.Auth.SessionToken == "" {
-		log.Fatal("not authenticated, please run `decent login`")
+		log.Fatal("not authenticated, please run `dvcs login`")
 	}
 }

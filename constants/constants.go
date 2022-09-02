@@ -7,7 +7,7 @@ const DefaultConfigPath = ".decent/config.yml"
 // Error messages
 const ErrInternal = "An internal error occurred. If the issue persists, please contact us."
 const ErrAuthFailed = "Authentication failed."
-const ErrNotAuthenticated = "Please run `decent login` to authenticate."
+const ErrNotAuthenticated = "Please run `dvcs login` to authenticate."
 
 // Formatting
 const TimeFormat = "2006-01-02 @ 03:04:05pm"
