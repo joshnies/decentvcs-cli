@@ -190,6 +190,7 @@ func upload(ctx context.Context, params uploadParams) {
 	} else {
 		// MULTIPART
 		//
+		// TODO: Move this out and before presigning to send compressed file size to server
 		// Open file
 		file, err := os.Open(params.FilePath)
 		if err != nil {
@@ -274,7 +275,6 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	if presignRes.UploadID != "" {
-		console.Verbose("presignRes: %+v", presignRes)
 		panic(console.Error("Presigned upload returned with an upload ID for non-multipart upload of file \"%s\"", params.FilePath))
 	}
 
