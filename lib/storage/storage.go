@@ -133,9 +133,8 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 
 	// Upload objects in parallel
 	var wg sync.WaitGroup
-	for _, presignRes := range presignRes {
+	for hash, presignRes := range presignRes {
 		wg.Add(1)
-		hash := presignRes.Key
 		path := util.ReverseLookup(hashMap, hash)
 		go upload(ctx, uploadParams{
 			UploadID:    presignRes.UploadID,
