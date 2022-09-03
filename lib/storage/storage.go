@@ -278,12 +278,6 @@ func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
 // Upload a file in chunks to storage.
 // Intended to be called as a goroutine.
 func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte) {
-	// Wait until rate limiter frees up before uploading to storage
-	err := config.I.RateLimiter.Wait(ctx)
-	if err != nil {
-		panic(err)
-	}
-
 	// Split file into chunks
 	chunks := [][]byte{}
 	var start int64
@@ -314,9 +308,6 @@ func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte)
 			WG:          &wg,
 			Channel:     ch,
 		})
-		if err != nil {
-			panic(console.Error("Error uploading part %d of file \"%s\": %v", partNum, params.FilePath, err))
-		}
 		p := <-ch
 		parts = append(parts, p)
 	}
