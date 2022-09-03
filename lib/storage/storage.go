@@ -287,7 +287,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte)
 	// Split file into chunks
 	chunks := [][]byte{}
 	var start int64
-	remaining := params.Size
+	remaining := int64(len(fileBytes))
 	for remaining > 0 {
 		chunkSize := int64(math.Min(float64(remaining), float64(config.I.VCS.Storage.PartSize)))
 		chunks = append(chunks, fileBytes[start:start+chunkSize])
