@@ -238,144 +238,56 @@ func upload(ctx context.Context, params uploadParams) {
 
 		// Upload as multipart
 		console.Verbose("[%s] Uploading (multipart)...", params.Hash)
-		uploadMultipart(ctx, params, params.ContentType, params.Size, fileBytes)
+		uploadMultipart(ctx, params, fileBytes)
 	} else {
 		// Upload in full
 		console.Verbose("[%s] Uploading (single)...", params.Hash)
-		uploadSingle(ctx, params, params.ContentType, params.Size, fileBytes)
+		uploadSingle(ctx, params, fileBytes)
 	}
 }
 
 // Upload object in full to storage.
 // Intended to be called as a goroutine.
-func uploadSingle(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
+func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
 	// Wait until rate limiter frees up before uploading to storage
 	err := config.I.RateLimiter.Wait(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	// Presign object
-	bodyData := models.PresignOneRequest{
-		Key:         params.Hash,
-		Multipart:   false,
-		Size:        fileSize,
-		ContentType: contentType,
-	}
-	bodyJson, err := json.Marshal(bodyData)
-	if err != nil {
-		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
-	}
-
-	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectSlug)
-	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	req.Header.Add("Content-Type", "application/json")
-	res, err := httpClient.Do(req)
-	if err != nil {
-		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
-	}
-	defer res.Body.Close()
-
-	// Parse response
-	var presignRes models.PresignResponse
-	err = json.NewDecoder(res.Body).Decode(&presignRes)
-	if err != nil {
-		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
-	}
-
-	if presignRes.UploadID != "" {
-		panic(console.Error("Presigned upload returned with an upload ID for non-multipart upload of file \"%s\"", params.FilePath))
-	}
-
-	if len(presignRes.URLs) != 1 {
-		panic(console.Error("Presigned upload returned with %d URLs for non-multipart upload of file \"%s\"", len(presignRes.URLs), params.FilePath))
-	}
-
 	// Upload using presigned URL
 	console.Verbose("[%s] Uploading...", params.Hash)
-	url := presignRes.URLs[0]
-	req, err = http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
+	url := params.URLs[0]
+	var httpClient http.Client
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Add("Content-Type", contentType)
-	res, err = httpClient.Do(req)
+	req.Header.Add("Content-Type", params.ContentType)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
 	}
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
 	}
-	res.Body.Close()
+	res.Body.Close() // close immediately since we dont need it
 	console.Verbose("[%s] Uploaded", params.Hash)
 }
 
 // Upload a file in chunks to storage.
 // Intended to be called as a goroutine.
-func uploadMultipart(ctx context.Context, params uploadParams, contentType string, fileSize int64, fileBytes []byte) {
+func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte) {
 	// Wait until rate limiter frees up before uploading to storage
 	err := config.I.RateLimiter.Wait(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	// Presign object
-	console.Verbose("[%s] Presigning...", params.Hash)
-	bodyData := models.PresignOneRequest{
-		Key:         params.Hash,
-		Multipart:   true,
-		Size:        fileSize,
-		ContentType: contentType,
-	}
-	bodyJson, err := json.Marshal(bodyData)
-	if err != nil {
-		panic(console.Error("Error marshalling presign request body while presigning upload for file \"%s\": %v", params.FilePath, err))
-	}
-
-	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/put", config.I.VCS.ServerHost, params.ProjectSlug)
-	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	req.Header.Add("Content-Type", "application/json")
-	res, err := httpClient.Do(req)
-	if err != nil {
-		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		panic(console.Error("Error presigning file \"%s\": %v", params.FilePath, err))
-	}
-	defer res.Body.Close()
-
-	// Parse response
-	var presignRes models.PresignResponse
-	err = json.NewDecoder(res.Body).Decode(&presignRes)
-	if err != nil {
-		panic(console.Error("Error parsing presign response for file \"%s\": %v", params.FilePath, err))
-	}
-
-	if presignRes.UploadID == "" {
-		panic(console.Error("Presigned multipart upload returned with no upload ID for file \"%s\"", params.FilePath))
-	}
-
-	if len(presignRes.URLs) == 0 {
-		panic(console.Error("No URLs returned while presigning multipart upload for file \"%s\"", params.FilePath))
-	}
-
 	// Split file into chunks
 	chunks := [][]byte{}
 	var start int64
-	remaining := fileSize
+	remaining := params.Size
 	for remaining > 0 {
 		chunkSize := int64(math.Min(float64(remaining), float64(config.I.VCS.Storage.PartSize)))
 		chunks = append(chunks, fileBytes[start:start+chunkSize])
@@ -388,14 +300,14 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	ch := make(chan models.MultipartUploadPart)
 	parts := []models.MultipartUploadPart{}
 	totalParts := len(chunks)
-	for i, url := range presignRes.URLs {
+	for i, url := range params.URLs {
 		wg.Add(1)
 		partNum := i + 1
 		go uploadPart(ctx, uploadPartParams{
 			ProjectID:   params.ProjectSlug,
 			URL:         url,
 			Hash:        params.Hash,
-			ContentType: contentType,
+			ContentType: params.ContentType,
 			PartNumber:  partNum,
 			PartData:    chunks[i],
 			TotalParts:  totalParts,
@@ -414,7 +326,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 	// Complete multipart upload
 	console.Verbose("[%s] Completing...", params.Hash)
 	complBodyData := models.CompleteMultipartUploadRequestBody{
-		UploadId: presignRes.UploadID,
+		UploadId: params.UploadID,
 		Key:      params.Hash,
 		Parts:    parts,
 	}
@@ -423,21 +335,22 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 		panic(console.Error("Error marshalling \"complete multipart upload\" request body for file \"%s\": %v", params.FilePath, err))
 	}
 
-	reqUrl = fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectSlug)
-	req, err = http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
+	var httpClient http.Client
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectSlug)
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
-	res, err = httpClient.Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
 	}
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		panic(console.Error("Error completing multipart upload for file \"%s\": %v", params.FilePath, err))
 	}
-	res.Body.Close()
+	res.Body.Close() // close immediately since we dont need it
 	console.Verbose("[%s] Complete", params.Hash)
 }
 
@@ -479,7 +392,7 @@ func uploadPart(ctx context.Context, params uploadPartParams) {
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
 	}
-	defer res.Body.Close()
+	res.Body.Close() // close immediately since we dont need it
 
 	// Validate response headers
 	etag := res.Header.Get("etag")
