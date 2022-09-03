@@ -250,7 +250,7 @@ func upload(ctx context.Context, params uploadParams) {
 // Intended to be called as a goroutine.
 func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
 	// Wait until rate limiter frees up before uploading to storage
-	err := config.I.RateLimiter.Wait(ctx)
+	err := config.I.RateLimiter.Wait(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -364,7 +364,7 @@ func uploadPart(ctx context.Context, params uploadPartParams) {
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
 	// Wait until rate limiter frees up before uploading to storage
-	err := config.I.RateLimiter.Wait(ctx)
+	err := config.I.RateLimiter.Wait(context.Background())
 	if err != nil {
 		panic(err)
 	}
