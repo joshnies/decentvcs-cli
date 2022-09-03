@@ -29,8 +29,10 @@ import (
 )
 
 type AdditionalPresignData struct {
-	FileSize    int64
-	ContentType string
+	Multipart          bool
+	FileSize           int64
+	ContentType        string
+	CompressedFilePath string
 }
 
 // Upload many objects to storage.
@@ -56,12 +58,19 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 		bodyData := make(map[string]models.PresignOneRequest) // map of file path to req body data
 
 		for filePath, hash := range hashMapChunk {
+			// Open file
+			file, err := os.Open(filePath)
+			if err != nil {
+				panic(console.Error("Failed to open file \"%s\": %v", filePath, err))
+			}
+
 			// Get file size
-			fileInfo, err := os.Stat(filePath)
+			fileInfo, err := file.Stat()
 			if err != nil {
 				panic(console.Error("Failed to get file info for file \"%s\": %v", filePath, err))
 			}
 			fileSize := fileInfo.Size()
+			multipart := fileSize > config.I.VCS.Storage.PartSize
 
 			// TODO: Detect MIME type
 			// Get MIME content type
@@ -75,25 +84,51 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 			// }
 
 			contentType := "application/octet-stream"
+			var compressedFilePath string
+
+			if multipart {
+				// Compress file
+				compressedFile, err := os.CreateTemp(filepath.Dir(filePath), filepath.Base(filePath)+".tmp-")
+				if err != nil {
+					panic(console.Error("Failed to open temp file for compression: %v", err))
+				}
+				compressedFilePath := compressedFile.Name()
+				console.Verbose("[%s] Compressing; temp file: \"%s\"...", hash, compressedFilePath)
+				err = Compress(file, compressedFile)
+				if err != nil {
+					panic(console.Error("Failed to compress file \"%s\": %v", filePath, err))
+				}
+				defer compressedFile.Close()
+
+				compressedFilePath = compressedFile.Name()
+				console.Verbose("  [DEBUG] Compressed file path: \"%s\"", compressedFilePath)
+
+				// Stat compressed file
+				compressedFileInfo, err := compressedFile.Stat()
+				if err != nil {
+					panic(console.Error("Failed to get file info for file \"%s\": %v", filePath, err))
+				}
+				fileSize = compressedFileInfo.Size()
+			}
 
 			// Get presigned URL for uploading the object later
 			bodyData[filePath] = models.PresignOneRequest{
 				Method:      "PUT",
 				Key:         hash,
 				ContentType: contentType,
-				Multipart:   fileSize > config.I.VCS.Storage.PartSize,
+				Multipart:   multipart,
 				Size:        fileSize,
 			}
 
 			// Save additional data calculated above
 			// This is used to prevent fetching this information again later (performance reasons)
 			additionalData[filePath] = AdditionalPresignData{
-				FileSize:    fileSize,
-				ContentType: contentType,
+				Multipart:          multipart,
+				FileSize:           fileSize,
+				ContentType:        contentType,
+				CompressedFilePath: compressedFilePath,
 			}
 		}
-
-		console.Verbose("  Sending request...")
 
 		bodyJson, err := json.Marshal(maps.Values(bodyData))
 		if err != nil {
@@ -125,7 +160,6 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 		}
 
 		presignRes = util.MergeMaps(presignRes, newRes)
-		console.Verbose("  Presigning successful")
 	}
 
 	startTime := time.Now()
@@ -135,14 +169,27 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 	var wg sync.WaitGroup
 	for hash, presignRes := range presignRes {
 		wg.Add(1)
-		path := util.ReverseLookup(hashMap, hash)
+
+		uncompressedPath := util.ReverseLookup(hashMap, hash)
+		ad := additionalData[uncompressedPath]
+
+		// Determine whether to upload compressed or uncompressed file (single vs multipart)
+		var path string
+		if ad.CompressedFilePath == "" {
+			path = uncompressedPath
+		} else {
+			path = ad.CompressedFilePath
+		}
+
+		// Upload
 		go upload(ctx, uploadParams{
 			UploadID:    presignRes.UploadID,
 			URLs:        presignRes.URLs,
 			ProjectSlug: projectSlug,
 			FilePath:    path,
-			ContentType: additionalData[path].ContentType,
-			Size:        additionalData[path].FileSize,
+			ContentType: ad.ContentType,
+			Multipart:   ad.Multipart,
+			Size:        ad.FileSize,
 			Hash:        hash,
 			Bar:         bar,
 			WG:          &wg,
@@ -163,6 +210,7 @@ type uploadParams struct {
 	ProjectSlug string
 	FilePath    string
 	ContentType string
+	Multipart   bool
 	Size        int64
 	Hash        string
 	Bar         *progressbar.ProgressBar
@@ -175,57 +223,26 @@ func upload(ctx context.Context, params uploadParams) {
 	defer params.WG.Done()
 	defer params.Bar.Add(1)
 
-	if params.Size < config.I.VCS.Storage.PartSize {
-		// NON-MULTIPART
-		//
-		// Read file into byte array
-		fileBytes, err := os.ReadFile(params.FilePath)
+	// Read file into byte array
+	fileBytes, err := os.ReadFile(params.FilePath)
+	if err != nil {
+		panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+	}
+
+	if params.Multipart {
+		// Delete local compressed file since it's no longer needed
+		err = os.Remove(params.FilePath)
 		if err != nil {
-			panic(console.Error("Failed to read file \"%s\": %v", params.FilePath, err))
+			panic(console.Error("Failed to delete temp compressed file \"%s\": %v", params.FilePath, err))
 		}
 
-		// Upload file
-		console.Verbose("[%s] Uploading in full...", params.Hash)
-		uploadSingle(ctx, params, params.ContentType, params.Size, fileBytes)
+		// Upload as multipart
+		console.Verbose("[%s] Uploading (multipart)...", params.Hash)
+		uploadMultipart(ctx, params, params.ContentType, params.Size, fileBytes)
 	} else {
-		// MULTIPART
-		//
-		// TODO: Move this out and before presigning to send compressed file size to server
-		// Open file
-		file, err := os.Open(params.FilePath)
-		if err != nil {
-			panic(console.Error("Failed to open file \"%s\": %v", params.FilePath, err))
-		}
-
-		// Compress file
-		tempFile, err := os.CreateTemp(filepath.Dir(params.FilePath), filepath.Base(params.FilePath)+".tmp-")
-		if err != nil {
-			panic(console.Error("Failed to open temp file for compression: %v", err))
-		}
-		tempFilePath := tempFile.Name()
-		console.Verbose("[%s] Compressing; temp file: \"%s\"...", params.Hash, tempFilePath)
-		err = Compress(file, tempFile)
-		if err != nil {
-			panic(console.Error("Failed to compress file \"%s\": %v", params.FilePath, err))
-		}
-		defer tempFile.Close()
-
-		// Read compressed file into byte array
-		fileBytes, err := os.ReadFile(tempFilePath)
-		if err != nil {
-			panic(console.Error("Failed to read file \"%s\" after compression: %v", params.FilePath, err))
-		}
-		fileSize := int64(len(fileBytes))
-
-		// Delete compressed file
-		err = os.Remove(tempFilePath)
-		if err != nil {
-			panic(console.Error("Failed to delete compressed file \"%s\": %v", tempFilePath, err))
-		}
-
-		// Upload multipart file
-		console.Verbose("[%s] Uploading in chunks...", params.Hash)
-		uploadMultipart(ctx, params, params.ContentType, fileSize, fileBytes)
+		// Upload in full
+		console.Verbose("[%s] Uploading (single)...", params.Hash)
+		uploadSingle(ctx, params, params.ContentType, params.Size, fileBytes)
 	}
 }
 
