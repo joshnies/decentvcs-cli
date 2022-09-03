@@ -43,24 +43,18 @@ type AdditionalPresignData struct {
 func UploadMany(projectSlug string, hashMap map[string]string) error {
 	auth.HasToken()
 
-	console.Verbose("[UploadMany] Authenticated")
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// Presign objects in chunks
 	// This is done in chunks to avoid Stytch rate limiting due to the sheer amount of authentication requests
-	console.Verbose("Hash map: %+v", hashMap)
-	console.Verbose("Chunking hash map...")
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
-	console.Verbose("Hash map chunked: %+v", hashMapChunked)
-	presignResponses := []models.PresignResponse{}
+	presignRes := make(map[string]models.PresignResponse)    // map of file path to presign response
 	additionalData := make(map[string]AdditionalPresignData) // map of file path to additional data
 	for chunkIdx, hashMapChunk := range hashMapChunked {
 		console.Verbose("Presigning chunk %d/%d...", chunkIdx+1, len(hashMapChunked))
-		bodyData := make(map[string]models.PresignOneRequestBody) // map of file path to req body data
+		bodyData := make(map[string]models.PresignOneRequest) // map of file path to req body data
 
-		console.Verbose("  Building PresignMany request body...")
 		for filePath, hash := range hashMapChunk {
 			// Get file size
 			fileInfo, err := os.Stat(filePath)
@@ -83,7 +77,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 			contentType := "application/octet-stream"
 
 			// Get presigned URL for uploading the object later
-			bodyData[filePath] = models.PresignOneRequestBody{
+			bodyData[filePath] = models.PresignOneRequest{
 				Method:      "PUT",
 				Key:         hash,
 				ContentType: contentType,
@@ -99,10 +93,9 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 			}
 		}
 
-		console.Verbose("  Request body built")
 		console.Verbose("  Sending request...")
 
-		bodyJson, err := json.Marshal(bodyData)
+		bodyJson, err := json.Marshal(maps.Values(bodyData))
 		if err != nil {
 			panic(console.Error("Error marshalling presign request body: %v", err))
 		}
@@ -125,14 +118,14 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 		defer res.Body.Close()
 
 		// Parse response
-		var newResponses []models.PresignResponse
-		err = json.NewDecoder(res.Body).Decode(&newResponses)
+		var newRes map[string]models.PresignResponse
+		err = json.NewDecoder(res.Body).Decode(&newRes)
 		if err != nil {
 			panic(console.Error("Error parsing presign response: %v", err))
 		}
 
-		presignResponses = append(presignResponses, newResponses...)
-		console.Verbose("  Chunk presigned successfully")
+		presignRes = util.MergeMaps(presignRes, newRes)
+		console.Verbose("  Presigning successful")
 	}
 
 	startTime := time.Now()
@@ -140,7 +133,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 
 	// Upload objects in parallel
 	var wg sync.WaitGroup
-	for _, presignRes := range presignResponses {
+	for _, presignRes := range presignRes {
 		wg.Add(1)
 		hash := presignRes.Key
 		path := util.ReverseLookup(hashMap, hash)
@@ -246,7 +239,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	// Presign object
-	bodyData := models.PresignOneRequestBody{
+	bodyData := models.PresignOneRequest{
 		Key:         params.Hash,
 		Multipart:   false,
 		Size:        fileSize,
@@ -319,7 +312,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, contentType strin
 
 	// Presign object
 	console.Verbose("[%s] Presigning...", params.Hash)
-	bodyData := models.PresignOneRequestBody{
+	bodyData := models.PresignOneRequest{
 		Key:         params.Hash,
 		Multipart:   true,
 		Size:        fileSize,
@@ -506,8 +499,8 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 
 	// Get presigned URLs
 	console.Verbose("Presigning all objects...")
-	bodyData := lo.Map(maps.Values(hashMap), func(hash string, _ int) models.PresignOneRequestBody {
-		return models.PresignOneRequestBody{
+	bodyData := lo.Map(maps.Values(hashMap), func(hash string, _ int) models.PresignOneRequest {
+		return models.PresignOneRequest{
 			Method: "GET",
 			Key:    hash,
 		}
