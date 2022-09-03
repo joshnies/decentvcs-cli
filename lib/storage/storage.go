@@ -274,6 +274,7 @@ func uploadSingle(ctx context.Context, params uploadParams, contentType string, 
 	}
 
 	if presignRes.UploadID != "" {
+		console.Verbose("presignRes: %+v", presignRes)
 		panic(console.Error("Presigned upload returned with an upload ID for non-multipart upload of file \"%s\"", params.FilePath))
 	}
 
@@ -527,8 +528,8 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	defer res.Body.Close()
 
 	// Parse response
-	var presignResponses []models.PresignResponse
-	err = json.NewDecoder(res.Body).Decode(&presignResponses)
+	presignRes := make(map[string]models.PresignResponse)
+	err = json.NewDecoder(res.Body).Decode(&presignRes)
 	if err != nil {
 		return err
 	}
@@ -536,11 +537,11 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	// Download objects in parallel (limited to pool size)
 	pool := workerpool.New(config.I.VCS.Storage.DownloadPoolSize)
 	bar := progressbar.Default(int64(len(hashMap)))
-	for _, r := range presignResponses {
+	for key, r := range presignRes {
 		// NOTE: ARGUMENTS MUST BE OUTSIDE OF SUBMITTED FUNCTION
-		path := util.ReverseLookup(hashMap, r.Key)
+		path := util.ReverseLookup(hashMap, key)
 		if path == "" {
-			return console.Error("Unknown file hash \"%s\"", r.Key)
+			return console.Error("Unknown file hash \"%s\"", key)
 		}
 		params := downloadParams{
 			Destination: dest,

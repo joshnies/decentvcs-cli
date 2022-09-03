@@ -33,7 +33,6 @@ type PresignOneRequest struct {
 
 // Response body for presign routes.
 type PresignResponse struct {
-	Key      string   `json:"key"`
 	URLs     []string `json:"urls"`
 	UploadID string   `json:"upload_id"`
 }
