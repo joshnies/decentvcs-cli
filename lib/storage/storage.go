@@ -314,6 +314,12 @@ func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte)
 
 	wg.Wait()
 
+	// Wait until rate limiter frees up before completing the upload
+	err := config.I.RateLimiter.Wait(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
 	// Complete multipart upload
 	console.Verbose("[%s] Completing...", params.Hash)
 	complBodyData := models.CompleteMultipartUploadRequestBody{
