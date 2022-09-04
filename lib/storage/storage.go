@@ -50,6 +50,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 
 	// Presign objects in chunks
 	// This is done in chunks to avoid Stytch rate limiting due to the sheer amount of authentication requests
+	console.Info("Getting things ready...")
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
 	presignRes := make(map[string]models.PresignResponse)    // map of file path to presign response
 	additionalData := make(map[string]AdditionalPresignData) // map of file path to additional data
@@ -167,6 +168,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 	bar := progressbar.Default(int64(len(hashMap)))
 
 	// Upload objects in parallel
+	console.Info("Uploading...")
 	var wg sync.WaitGroup
 	for hash, presignRes := range presignRes {
 		wg.Add(1)
