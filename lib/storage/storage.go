@@ -88,7 +88,8 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 
 			if multipart {
 				// Compress file
-				compressedFile, err := os.CreateTemp(filepath.Dir(filePath), filepath.Base(filePath)+".tmp-")
+				tempDir := os.TempDir()
+				compressedFile, err := os.CreateTemp(tempDir, filepath.Base(filePath)+".tmp-")
 				if err != nil {
 					panic(console.Error("Failed to open temp file for compression: %v", err))
 				}
