@@ -2,6 +2,7 @@ package httpvalidation
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -48,7 +49,7 @@ func ValidateResponse(res *http.Response) error {
 			console.ErrorPrintV("Server response:\n%v", string(resBodyBytes))
 		}
 
-		return console.Error(msg)
+		return errors.New(msg)
 	}
 
 	return nil
