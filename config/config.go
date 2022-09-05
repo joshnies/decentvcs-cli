@@ -33,6 +33,10 @@ type VCSStorageConfig struct {
 	DownloadPoolSize int `yaml:"download_pool_size"`
 	// Amount of objects in a single chunk to presign in parallel.
 	PresignChunkSize int `yaml:"presign_chunk_size"`
+	// Max attempts at uploading a file or part of a file.
+	MaxUploadAttempts int `yaml:"max_upload_attempts"`
+	// Time in seconds to wait until retrying an upload.
+	RateLimitRetryDelay int `yaml:"rate_limit_retry_delay"`
 }
 
 type VCSConfig struct {
@@ -200,6 +204,8 @@ func SetInternalConfigFields(config *Config) {
 	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
 	config.VCS.Storage.PresignChunkSize = 1024
+	config.VCS.Storage.MaxUploadAttempts = 10
+	config.VCS.Storage.RateLimitRetryDelay = 1
 	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/100), 1)
 }
 

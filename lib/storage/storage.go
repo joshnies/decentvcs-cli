@@ -249,30 +249,47 @@ func upload(ctx context.Context, params uploadParams) {
 // Upload object in full to storage.
 // Intended to be called as a goroutine.
 func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
-	// Wait until rate limiter frees up before uploading to storage
-	err := config.I.RateLimiter.Wait(context.Background())
-	if err != nil {
-		panic(err)
-	}
+	attempt := 0
 
-	// Upload using presigned URL
-	console.Verbose("[%s] Uploading...", params.Hash)
-	url := params.URLs[0]
-	var httpClient http.Client
-	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
-	if err != nil {
-		panic(err)
+	for {
+		if attempt >= config.I.VCS.Storage.MaxUploadAttempts {
+			panic(console.Error("Failed to upload file \"%s\" after %d attempts", params.FilePath, attempt))
+		}
+
+		// Wait until rate limiter frees up before uploading to storage
+		err := config.I.RateLimiter.Wait(context.Background())
+		if err != nil {
+			panic(err)
+		}
+
+		// Upload using presigned URL
+		console.Verbose("[%s] Uploading...", params.Hash)
+		url := params.URLs[0]
+		var httpClient http.Client
+		req, err := http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
+		if err != nil {
+			panic(err)
+		}
+		req.Header.Add("Content-Type", params.ContentType)
+		res, err := httpClient.Do(req)
+		if err != nil {
+			panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
+		}
+		if res.StatusCode == http.StatusTooManyRequests || res.StatusCode == http.StatusServiceUnavailable || res.StatusCode == http.StatusForbidden {
+			// Rate limited by storage provider, retry after delay
+			console.Verbose("[%s] Rate limited; retrying after %ds...", params.Hash, config.I.VCS.Storage.RateLimitRetryDelay)
+			attempt++
+			time.Sleep(time.Duration(config.I.VCS.Storage.RateLimitRetryDelay) * time.Second)
+			continue
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
+		}
+		res.Body.Close() // close immediately since we dont need it
+
+		console.Verbose("[%s] Uploaded", params.Hash)
+		break
 	}
-	req.Header.Add("Content-Type", params.ContentType)
-	res, err := httpClient.Do(req)
-	if err != nil {
-		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
-	}
-	res.Body.Close() // close immediately since we dont need it
-	console.Verbose("[%s] Uploaded", params.Hash)
 }
 
 // Upload a file in chunks to storage.
@@ -369,39 +386,57 @@ func uploadPart(ctx context.Context, params uploadPartParams) {
 
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
 
-	// Wait until rate limiter frees up before uploading to storage
-	err := config.I.RateLimiter.Wait(context.Background())
-	if err != nil {
-		panic(err)
-	}
+	attempt := 0
 
-	// Upload part
-	httpClient := http.Client{}
-	req, err := http.NewRequest("PUT", params.URL, bytes.NewReader(params.PartData))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Add("Content-Type", params.ContentType)
-	res, err := httpClient.Do(req)
-	if err != nil {
-		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		panic(console.Error("[%s] Error uploading part %d: %v", params.Hash, params.PartNumber, err))
-	}
-	res.Body.Close() // close immediately since we dont need it
+	for {
+		if attempt >= config.I.VCS.Storage.MaxUploadAttempts {
+			panic(console.Error("Failed to upload part %d of file \"%s\" after %d attempts", params.PartNumber, params.Hash, attempt))
+		}
 
-	// Validate response headers
-	etag := res.Header.Get("etag")
-	if etag == "" {
-		panic(console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber))
-	}
-	console.Verbose("[%s] (Part %d/%d) Uploaded; ETag: %s", params.Hash, params.PartNumber, params.TotalParts, etag)
+		// Wait until rate limiter frees up before uploading to storage
+		err := config.I.RateLimiter.Wait(context.Background())
+		if err != nil {
+			panic(err)
+		}
 
-	// Send part to channel
-	params.Channel <- models.MultipartUploadPart{
-		PartNumber: int32(params.PartNumber),
-		ETag:       strings.ReplaceAll(etag, "\"", ""),
+		// Upload part
+		httpClient := http.Client{}
+		req, err := http.NewRequest("PUT", params.URL, bytes.NewReader(params.PartData))
+		if err != nil {
+			panic(err)
+		}
+		req.Header.Add("Content-Type", params.ContentType)
+		res, err := httpClient.Do(req)
+		if err != nil {
+			panic(console.Error("[%s] (Part %d/%d) Error uploading part: %v", params.Hash, params.PartNumber, params.TotalParts, err))
+		}
+		if res.StatusCode == http.StatusTooManyRequests || res.StatusCode == http.StatusServiceUnavailable || res.StatusCode == http.StatusForbidden {
+			// Rate limited by storage provider, retry after delay
+			console.Verbose("[%s] (Part %d/%d) Rate limited; retrying after %ds...", params.Hash, params.PartNumber, params.TotalParts, config.I.VCS.Storage.RateLimitRetryDelay)
+			attempt++
+			time.Sleep(time.Duration(config.I.VCS.Storage.RateLimitRetryDelay) * time.Second)
+			continue
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			panic(console.Error("[%s] (Part %d/%d) Error uploading part: %v", params.Hash, params.PartNumber, params.TotalParts, err))
+		}
+		res.Body.Close() // close immediately since we dont need it
+
+		// Validate response headers
+		etag := res.Header.Get("etag")
+		if etag == "" {
+			panic(console.Error("[%s] No \"etag\" header returned for part %d", params.Hash, params.PartNumber))
+		}
+
+		console.Verbose("[%s] (Part %d/%d) Uploaded; ETag: %s", params.Hash, params.PartNumber, params.TotalParts, etag)
+
+		// Send part to channel
+		params.Channel <- models.MultipartUploadPart{
+			PartNumber: int32(params.PartNumber),
+			ETag:       strings.ReplaceAll(etag, "\"", ""),
+		}
+
+		break
 	}
 }
 
