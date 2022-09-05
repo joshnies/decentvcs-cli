@@ -143,9 +143,9 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 			}
 		} else {
 			console.ErrorPrint(
-				"Your are on commit #%d, but the remote branch points to commit #%d.",
+				"You're on commit #%d, but the remote branch points to commit #%d.",
 				projectConfig.CurrentCommitIndex,
-				currentCommit.Index,
+				currentBranch.Commit.Index,
 			)
 			return console.Error("You can forcefully push your changes by using the --force flag.")
 		}
