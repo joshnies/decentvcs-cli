@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -214,9 +213,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	fileDataMap := fc.FileDataMap
 	patchHashMap := make(map[string]string)
 	if project.EnablePatchRevisions && len(fc.ModifiedFilePaths) > 0 {
-		// Wait for rate limiter to free up
-		config.I.RateLimiter.Wait(context.Background())
-
 		// Download modified files from storage
 		tempDirPath := system.GetTempDir()
 		modifiedFileHashMap := make(map[string]string)
