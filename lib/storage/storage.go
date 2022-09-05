@@ -200,7 +200,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 	wg.Wait()
 
 	endTime := time.Now()
-	console.Verbose("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+	console.Info("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
 	return nil
 }
 

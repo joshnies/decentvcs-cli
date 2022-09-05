@@ -289,7 +289,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	// Create commit (the team will be charged for any storage space used)
-	console.Verbose("Creating commit...")
+	console.Info("Committing...")
 	bodyJson, _ := json.Marshal(map[string]interface{}{
 		"message":        o.Message,
 		"created_files":  fc.CreatedFilePaths,
@@ -326,7 +326,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	console.Verbose("Commit #%d created successfully", commit.Index)
-	console.Verbose("Updating current commit index in project config...")
+	console.Info("Updating current commit index in project config...")
 
 	// Update current commit index in project config
 	projectConfig.CurrentCommitIndex = commit.Index
