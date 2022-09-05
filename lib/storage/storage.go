@@ -102,10 +102,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 				}
 				defer compressedFile.Close()
 
-				compressedFilePath = compressedFile.Name()
-				console.Verbose("  [DEBUG] Compressed file path: \"%s\"", compressedFilePath)
-
-				// Stat compressed file
+				// Stat compressed file to get file size
 				compressedFileInfo, err := compressedFile.Stat()
 				if err != nil {
 					panic(console.Error("Failed to get file info for file \"%s\": %v", filePath, err))
