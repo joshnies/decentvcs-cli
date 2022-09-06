@@ -226,6 +226,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 		}
 
 		// Generate patches for modified files
+		// TODO: Do this in parallel
 		for _, modFilePath := range fc.ModifiedFilePaths {
 			oldFilePath := filepath.Join(tempDirPath, modFilePath) // same as mod file, just in temp dir from download above
 			patchPath := filepath.Join(tempDirPath, modFilePath+".patch")
