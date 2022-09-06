@@ -316,20 +316,15 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	if err = httpvalidation.ValidateResponse(res); err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	res.Body.Close() // close immediately since we dont need it
 
-	// Parse commit
-	var commit models.Commit
-	err = json.NewDecoder(res.Body).Decode(&commit)
-	if err != nil {
-		return err
-	}
+	// Bump current commit index to reflect new commit
+	projectConfig.CurrentCommitIndex++
 
-	console.Verbose("Commit #%d created successfully", commit.Index)
+	console.Verbose("Commit #%d created successfully", projectConfig.CurrentCommitIndex)
 	console.Info("Updating current commit index in project config...")
 
 	// Update current commit index in project config
-	projectConfig.CurrentCommitIndex = commit.Index
 	projectConfigPath, err := vcs.GetProjectConfigPath()
 	if err != nil {
 		return err
@@ -340,6 +335,6 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	}
 
 	timeElapsed = time.Since(startTime).Truncate(time.Microsecond)
-	console.Success("Commit #%d pushed in %s", commit.Index, timeElapsed)
+	console.Success("Commit #%d pushed in %s", projectConfig.CurrentCommitIndex, timeElapsed)
 	return nil
 }
