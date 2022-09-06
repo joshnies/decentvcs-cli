@@ -18,7 +18,7 @@ func main() {
 		Name:      "dvcs",
 		Usage:     "DecentVCS CLI",
 		Version:   "0.0.1",
-		Copyright: "Copyright 2022 DecentVCS. All rights reserved.",
+		Copyright: "Copyright 2022 Decent, LLC. All rights reserved.",
 		Authors: []*cli.Author{
 			{
 				Name:  "Joshua Nies",
@@ -261,7 +261,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:    "force",
 						Aliases: []string{"f"},
-						Usage:   "Force unlock (must be a project admin or owner)",
+						Usage:   "Force unlock (must be a team admin or owner)",
 					},
 				},
 			},

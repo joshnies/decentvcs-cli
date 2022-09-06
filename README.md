@@ -50,7 +50,7 @@ dvcs [global options] command [command options] [arguments...]
 
 | Flag              | Description            |
 | ----------------- | ---------------------- |
-| `-y`              | Skip confirmation      |
+| `-y` or `--yes`   | Skip confirmation      |
 | `-l` or `--limit` | Limit returned results |
 
 ## Usage
