@@ -206,7 +206,7 @@ func SetInternalConfigFields(config *Config) {
 	config.VCS.Storage.PresignChunkSize = 1024
 	config.VCS.Storage.MaxUploadAttempts = 10
 	config.VCS.Storage.RateLimitRetryDelay = 1
-	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/100), 1)
+	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/500), 1)
 }
 
 // Omit internal config fields from a config object.
