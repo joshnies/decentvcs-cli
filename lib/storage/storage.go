@@ -266,14 +266,14 @@ func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
 		console.Verbose("[%s] Uploading...", params.Hash)
 		url := params.URLs[0]
 		var httpClient http.Client
-		req, err := http.NewRequest("PUT", url, bytes.NewBuffer(fileBytes))
+		req, err := http.NewRequest("PUT", url, bytes.NewReader(fileBytes))
 		if err != nil {
 			panic(err)
 		}
 		req.Header.Add("Content-Type", params.ContentType)
 		res, err := httpClient.Do(req)
 		if err != nil {
-			panic(console.Error("Error uploading file \"%s\": %v", params.FilePath, err))
+			panic(console.Error("Error uploading file \"%s\":\n%v", params.FilePath, err))
 		}
 		if res.StatusCode == http.StatusTooManyRequests || res.StatusCode == http.StatusServiceUnavailable || res.StatusCode == http.StatusForbidden {
 			// Rate limited by storage provider, retry after delay
