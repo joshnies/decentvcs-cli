@@ -3,6 +3,8 @@ package vcs
 import (
 	"os"
 
+	"github.com/decentvcs/cli/lib/console"
+	"github.com/decentvcs/cli/lib/util"
 	"github.com/gabstv/go-bsdiff/pkg/bsdiff"
 	"github.com/gabstv/go-bsdiff/pkg/bspatch"
 )
@@ -27,6 +29,11 @@ func GenPatch(fromPath string, toPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	originSizeStr := util.FormatBytesSize(int64(len(fromFileBytes)))
+	newSizeStr := util.FormatBytesSize(int64(len(toFileBytes)))
+	patchSizeStr := util.FormatBytesSize(int64(len(patchBytes)))
+	console.Verbose("Original: %s; New: %s; Patch: %s", originSizeStr, newSizeStr, patchSizeStr)
 
 	return patchBytes, nil
 }

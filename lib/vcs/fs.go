@@ -95,7 +95,7 @@ func CalculateHashes(rootPath string) (map[string]string, error) {
 				return err
 			}
 			if matched {
-				console.Verbose("Ignoring file \"%s\"", path)
+				// Ignore file
 				return nil
 			}
 		}
@@ -171,7 +171,7 @@ func DetectFileChanges(files map[string]models.FileData) (FileChangeDetectionRes
 				return err
 			}
 			if matched {
-				console.Verbose("Ignoring file \"%s\"", path)
+				// Ignore file
 				return nil
 			}
 		}
