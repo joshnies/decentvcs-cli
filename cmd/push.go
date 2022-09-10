@@ -323,7 +323,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	projectConfig.CurrentCommitIndex++
 
 	console.Verbose("Commit #%d created successfully", projectConfig.CurrentCommitIndex)
-	console.Info("Updating current commit index in project config...")
+	console.Verbose("Updating current commit index in project config...")
 
 	// Update current commit index in project config
 	projectConfigPath, err := vcs.GetProjectConfigPath()
