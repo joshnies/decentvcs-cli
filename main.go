@@ -90,7 +90,7 @@ func main() {
 				},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "no-confirm",
+						Name:    "yes",
 						Aliases: []string{"y"},
 						Usage:   "Skip confirmation",
 					},
@@ -114,7 +114,7 @@ func main() {
 				Action:    cmd.Sync,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "no-confirm",
+						Name:    "yes",
 						Aliases: []string{"y"},
 						Usage:   "Skip confirmation",
 					},
@@ -127,7 +127,7 @@ func main() {
 				Action:  cmd.Reset,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "no-confirm",
+						Name:    "yes",
 						Aliases: []string{"y"},
 						Usage:   "Skip confirmation",
 					},
@@ -139,7 +139,7 @@ func main() {
 				Action: cmd.Revert,
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "no-confirm",
+						Name:    "yes",
 						Aliases: []string{"y"},
 						Usage:   "Skip confirmation",
 					},
@@ -169,7 +169,7 @@ func main() {
 						Action:    cmd.UseBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
-								Name:    "no-confirm",
+								Name:    "yes",
 								Aliases: []string{"y"},
 								Usage:   "Skip confirmation",
 							},
@@ -183,7 +183,7 @@ func main() {
 						Action:    cmd.DeleteBranch,
 						Flags: []cli.Flag{
 							&cli.BoolFlag{
-								Name:    "no-confirm",
+								Name:    "yes",
 								Aliases: []string{"y"},
 								Usage:   "Skip confirmation",
 							},
@@ -215,7 +215,7 @@ func main() {
 				ArgsUsage: "[branch]",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
-						Name:    "no-confirm",
+						Name:    "yes",
 						Aliases: []string{"y"},
 						Usage:   "Skip confirmation",
 					},

@@ -36,7 +36,7 @@ func Merge(c *cli.Context) error {
 		return console.Error("Please specify name of branch to merge")
 	}
 
-	confirm := !c.Bool("no-confirm")
+	confirm := !c.Bool("yes")
 	push := c.Bool("push")
 
 	// Get project config, implicitly making sure current directory is a project

@@ -9,5 +9,5 @@ import (
 // Command for resetting all changes on local machine.
 func Reset(c *cli.Context) error {
 	auth.HasToken()
-	return vcs.ResetChanges(!c.Bool("no-confirm"))
+	return vcs.ResetChanges(!c.Bool("yes"))
 }

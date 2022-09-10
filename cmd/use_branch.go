@@ -72,7 +72,7 @@ func UseBranch(c *cli.Context) error {
 	// Reset local changes if specified branch points to a different commit than current
 	if projectConfig.CurrentCommitIndex != branch.Commit.Index {
 		// Reset local changes
-		err = vcs.ResetChanges(!c.Bool("no-confirm"))
+		err = vcs.ResetChanges(!c.Bool("yes"))
 		if err != nil {
 			return err
 		}

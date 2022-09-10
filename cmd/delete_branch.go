@@ -62,7 +62,7 @@ func DeleteBranch(c *cli.Context) error {
 	}
 
 	// Ask for confirmation
-	if !c.Bool("no-confirm") {
+	if !c.Bool("yes") {
 		console.Warning("Are you sure you want to delete the branch \"%s\"?", branchName)
 		var answer string
 		fmt.Scanln(&answer)

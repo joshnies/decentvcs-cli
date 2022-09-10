@@ -46,7 +46,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	// Build options
 	o := &PushOptions{
 		Message: c.String("message"),
-		Confirm: !c.Bool("no-confirm"),
+		Confirm: !c.Bool("yes"),
 	}
 
 	if o.Message == "" {
