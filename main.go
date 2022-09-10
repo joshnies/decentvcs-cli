@@ -255,6 +255,12 @@ func main() {
 				},
 			},
 			{
+				Name:      "teams",
+				Usage:     "List all teams you're a member of",
+				ArgsUsage: "[emails...]",
+				Action:    cmd.ListTeams,
+			},
+			{
 				Name:      "lock",
 				Usage:     "Lock one or many files or directories from being modified by others",
 				ArgsUsage: "[paths...]",
