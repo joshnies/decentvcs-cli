@@ -64,7 +64,9 @@ func Init(c *cli.Context) error {
 	httpClient := http.Client{}
 	reqUrl := fmt.Sprintf("%s/projects/%s", config.I.VCS.ServerHost, slug)
 	reqData := models.CreateProjectRequest{
-		EnablePatchRevisions: c.Bool("patch"),
+		// TODO: Re-enable patch revisions once complete
+		// EnablePatchRevisions: c.Bool("patch"),
+		EnablePatchRevisions: false,
 	}
 	reqJSON, _ := json.Marshal(reqData)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(reqJSON))
