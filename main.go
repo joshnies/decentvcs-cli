@@ -242,9 +242,17 @@ func main() {
 			},
 			{
 				Name:      "invite",
-				Usage:     "Invite a user to collaborate on the project",
+				Usage:     "Invite user(s) to collaborate on the project",
 				ArgsUsage: "[emails...]",
 				Action:    cmd.Invite,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "team",
+						Aliases:  []string{"t"},
+						Usage:    "Team to invite the user to",
+						Required: true,
+					},
+				},
 			},
 			{
 				Name:      "lock",
