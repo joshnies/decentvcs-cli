@@ -359,7 +359,7 @@ func ResetChanges(confirm bool) error {
 	}
 
 	// Download remote versions of modified and deleted files
-	err = storage.DownloadMany(projectConfig.ProjectSlug, ".", overrideHashMap)
+	err = storage.DownloadMany(projectConfig, ".", overrideHashMap)
 	if err != nil {
 		return console.Error("Failed to download files: %s", err)
 	}
