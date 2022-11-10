@@ -146,7 +146,7 @@ func Merge(c *cli.Context) error {
 	// NOTE: Downloaded files are already decompressed
 	console.Info("Downloading required files...")
 	console.Verbose("Temp directory: %s", tempDirPath)
-	err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, combinedHashMap)
+	err = storage.DownloadMany(projectConfig, tempDirPath, combinedHashMap)
 	if err != nil {
 		return err
 	}

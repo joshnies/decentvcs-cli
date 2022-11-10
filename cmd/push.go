@@ -220,7 +220,7 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 			modifiedFileHashMap[filePath] = currentCommit.Files[filePath].Hash
 		}
 
-		err = storage.DownloadMany(projectConfig.ProjectSlug, tempDirPath, modifiedFileHashMap)
+		err = storage.DownloadMany(projectConfig, tempDirPath, modifiedFileHashMap)
 		if err != nil {
 			return err
 		}
