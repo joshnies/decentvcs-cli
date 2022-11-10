@@ -39,10 +39,10 @@ type AdditionalPresignData struct {
 //
 // Params:
 //
-// - projectSlug: Project slug (<team_name>/<project_name>)
+// - projectConfig: Project config
 //
 // - hashMap: Map of local file paths to file hashes (which are used as object keys)
-func UploadMany(projectSlug string, hashMap map[string]string) error {
+func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) error {
 	auth.HasToken()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -135,7 +135,7 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 		}
 
 		httpClient := http.Client{}
-		reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectSlug)
+		reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
 		req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 		if err != nil {
 			panic(err)
@@ -183,16 +183,16 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 
 		// Upload
 		go upload(ctx, uploadParams{
-			UploadID:    presignRes.UploadID,
-			URLs:        presignRes.URLs,
-			ProjectSlug: projectSlug,
-			FilePath:    path,
-			ContentType: ad.ContentType,
-			Multipart:   ad.Multipart,
-			Size:        ad.FileSize,
-			Hash:        hash,
-			Bar:         bar,
-			WG:          &wg,
+			UploadID:      presignRes.UploadID,
+			URLs:          presignRes.URLs,
+			ProjectConfig: projectConfig,
+			FilePath:      path,
+			ContentType:   ad.ContentType,
+			Multipart:     ad.Multipart,
+			Size:          ad.FileSize,
+			Hash:          hash,
+			Bar:           bar,
+			WG:            &wg,
 		})
 	}
 
@@ -205,16 +205,16 @@ func UploadMany(projectSlug string, hashMap map[string]string) error {
 }
 
 type uploadParams struct {
-	UploadID    string
-	URLs        []string
-	ProjectSlug string
-	FilePath    string
-	ContentType string
-	Multipart   bool
-	Size        int64
-	Hash        string
-	Bar         *progressbar.ProgressBar
-	WG          *sync.WaitGroup
+	UploadID      string
+	URLs          []string
+	ProjectConfig models.ProjectConfig
+	FilePath      string
+	ContentType   string
+	Multipart     bool
+	Size          int64
+	Hash          string
+	Bar           *progressbar.ProgressBar
+	WG            *sync.WaitGroup
 }
 
 // Upload object to storage. Can be multipart or in full.
@@ -244,6 +244,31 @@ func upload(ctx context.Context, params uploadParams) {
 		console.Verbose("[%s] Uploading (single)...", params.Hash)
 		uploadSingle(ctx, params, fileBytes)
 	}
+
+	additionalStorageUsedMB := float64(params.Size) / 1024 / 1024
+
+	// Update team usage
+	httpClient := http.Client{}
+	teamName := strings.Split(params.ProjectConfig.ProjectSlug, "/")[0]
+	reqUrl := fmt.Sprintf("%s/teams/%s/usage", config.I.VCS.ServerHost, teamName)
+	reqData := models.UpdateTeamRequest{
+		StorageUsedMB: additionalStorageUsedMB, // this is the additional storage used by this upload in MB
+	}
+	reqJSON, _ := json.Marshal(reqData)
+	req, err := http.NewRequest("PUT", reqUrl, bytes.NewBuffer(reqJSON))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	res, err := httpClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
 }
 
 // Upload object in full to storage.
@@ -315,7 +340,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte)
 		wg.Add(1)
 		partNum := i + 1
 		go uploadPart(ctx, uploadPartParams{
-			ProjectID:   params.ProjectSlug,
+			ProjectID:   params.ProjectConfig.ProjectSlug,
 			URL:         url,
 			Hash:        params.Hash,
 			ContentType: params.ContentType,
@@ -350,7 +375,7 @@ func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte)
 	}
 
 	var httpClient http.Client
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectSlug)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/multipart/complete", config.I.VCS.ServerHost, params.ProjectConfig.ProjectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(complBodyJson))
 	if err != nil {
 		panic(err)

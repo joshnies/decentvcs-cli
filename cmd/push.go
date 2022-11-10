@@ -283,13 +283,13 @@ func Push(c *cli.Context, opts ...func(*PushOptions)) error {
 	// Upload files to storage
 	if len(uploadHashMap) > 0 {
 		console.Verbose("Uploading files...")
-		err = storage.UploadMany(projectConfig.ProjectSlug, uploadHashMap)
+		err = storage.UploadMany(projectConfig, uploadHashMap)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Create commit (the team will be charged for any storage space used)
+	// Create commit
 	console.Info("Committing...")
 	bodyJson, _ := json.Marshal(map[string]interface{}{
 		"message":        o.Message,
