@@ -182,7 +182,7 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 		}
 
 		// Upload
-		go upload(ctx, uploadParams{
+		go upload(ctx, UploadParams{
 			UploadID:      presignRes.UploadID,
 			URLs:          presignRes.URLs,
 			ProjectConfig: projectConfig,
@@ -204,7 +204,7 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 	return nil
 }
 
-type uploadParams struct {
+type UploadParams struct {
 	UploadID      string
 	URLs          []string
 	ProjectConfig models.ProjectConfig
@@ -219,7 +219,7 @@ type uploadParams struct {
 
 // Upload object to storage. Can be multipart or in full.
 // Intended to be called as a goroutine.
-func upload(ctx context.Context, params uploadParams) {
+func upload(ctx context.Context, params UploadParams) {
 	defer params.WG.Done()
 	defer params.Bar.Add(1)
 
@@ -273,7 +273,7 @@ func upload(ctx context.Context, params uploadParams) {
 
 // Upload object in full to storage.
 // Intended to be called as a goroutine.
-func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
+func uploadSingle(ctx context.Context, params UploadParams, fileBytes []byte) {
 	attempt := 0
 
 	for {
@@ -319,7 +319,7 @@ func uploadSingle(ctx context.Context, params uploadParams, fileBytes []byte) {
 
 // Upload a file in chunks to storage.
 // Intended to be called as a goroutine.
-func uploadMultipart(ctx context.Context, params uploadParams, fileBytes []byte) {
+func uploadMultipart(ctx context.Context, params UploadParams, fileBytes []byte) {
 	// Split file into chunks
 	chunks := [][]byte{}
 	var start int64
@@ -469,14 +469,14 @@ func uploadPart(ctx context.Context, params uploadPartParams) {
 //
 // Params:
 //
-// - projectId: Project ID
+// - projectConfig: Project config
 //
 // - dest: Local path where downloaded files are written to. Can be relative or absolute.
 //
 // - hashMap: Map of local file paths to file hashes
 //
 // Returns map of object keys to data.
-func DownloadMany(projectSlug string, dest string, hashMap map[string]string) error {
+func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[string]string) error {
 	auth.HasToken()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -498,7 +498,7 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	}
 
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectSlug)
+	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 	if err != nil {
 		return err
@@ -530,11 +530,12 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 		if path == "" {
 			return console.Error("Unknown file hash \"%s\"", key)
 		}
-		params := downloadParams{
-			Destination: dest,
-			FilePath:    path,
-			URL:         r.URLs[0],
-			Bar:         bar,
+		params := DownloadParams{
+			ProjectConfig: projectConfig,
+			Destination:   dest,
+			FilePath:      path,
+			URL:           r.URLs[0],
+			Bar:           bar,
 		}
 		pool.Submit(func() {
 			download(ctx, params)
@@ -549,16 +550,17 @@ func DownloadMany(projectSlug string, dest string, hashMap map[string]string) er
 	return nil
 }
 
-type downloadParams struct {
-	Destination string
-	FilePath    string
-	URL         string
-	Bar         *progressbar.ProgressBar
+type DownloadParams struct {
+	ProjectConfig models.ProjectConfig
+	Destination   string
+	FilePath      string
+	URL           string
+	Bar           *progressbar.ProgressBar
 }
 
 // Download object from storage to local file system.
 // Intended to be called as a goroutine.
-func download(ctx context.Context, params downloadParams) {
+func download(ctx context.Context, params DownloadParams) {
 	defer params.Bar.Add(1)
 
 	// Download object using presigned GET URL
@@ -594,6 +596,31 @@ func download(ctx context.Context, params downloadParams) {
 	if err != nil {
 		panic(console.Error("Failed to read downloaded file \"%s\": %v", path, err))
 	}
+
+	additionalBandwidthUsedMB := float64(len(dData)) / 1024 / 1024
+
+	// Update team usage
+	httpClient := http.Client{}
+	teamName := strings.Split(params.ProjectConfig.ProjectSlug, "/")[0]
+	reqUrl := fmt.Sprintf("%s/teams/%s/usage", config.I.VCS.ServerHost, teamName)
+	reqData := models.UpdateTeamRequest{
+		BandwidthUsedMB: additionalBandwidthUsedMB, // this is the additional bandwidth used by this download in MB
+	}
+	reqJSON, _ := json.Marshal(reqData)
+	req, err := http.NewRequest("PUT", reqUrl, bytes.NewBuffer(reqJSON))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	res, err = httpClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	if err = httpvalidation.ValidateResponse(res); err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
 
 	// Check for slow-down response
 	// Filebase sends a "slow down" XML error response when sending requests too rapidly from a single IP
