@@ -203,7 +203,7 @@ func SetInternalConfigFields(config *Config) {
 	// Set internal config fields
 	config.WebsiteURL = getDashURL(config.Env)
 	config.VCS.ServerHost = getVCSServerHost(config.Env)
-	config.VCS.Storage.PresignChunkSize = 1024
+	config.VCS.Storage.PresignChunkSize = 8
 	config.VCS.Storage.MaxUploadAttempts = 10
 	config.VCS.Storage.RateLimitRetryDelay = 1
 	config.RateLimiter = rate.NewLimiter(rate.Every(time.Second/500), 1)
