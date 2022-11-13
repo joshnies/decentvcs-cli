@@ -8,6 +8,7 @@ import (
 
 	"github.com/decentvcs/cli/config"
 	"github.com/decentvcs/cli/constants"
+	"github.com/decentvcs/cli/lib/httpvalidation"
 	"github.com/decentvcs/cli/models"
 )
 
@@ -22,12 +23,15 @@ func HasToken() {
 // Create a new access key.
 func CreateAccessKey(teamName string, scope string) models.AccessKey {
 	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/team/%s/access-keys", config.I.VCS.ServerHost, teamName)
+	reqUrl := fmt.Sprintf("%s/teams/%s/access_keys", config.I.VCS.ServerHost, teamName)
 	req, _ := http.NewRequest("POST", reqUrl, nil)
 	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	res, err := httpClient.Do(req)
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err := httpvalidation.ValidateResponse(res); err != nil {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
