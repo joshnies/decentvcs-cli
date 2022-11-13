@@ -196,7 +196,7 @@ func SyncToCommit(projectConfig models.ProjectConfig, commitIndex int, confirm b
 	}
 
 	if len(maps.Keys(downloadMap)) > 0 {
-		err := storage.DownloadMany(projectConfig.ProjectSlug, ".", downloadMap)
+		err := storage.DownloadMany(projectConfig, ".", downloadMap)
 		if err != nil {
 			return err
 		}

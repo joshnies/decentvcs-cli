@@ -143,7 +143,7 @@ func CloneProject(c *cli.Context) error {
 
 	// Download all files
 	hashMap := vcs.FileMapToHashMap(branch.Commit.Files)
-	err = storage.DownloadMany(projectConfig.ProjectSlug, clonePath, hashMap)
+	err = storage.DownloadMany(projectConfig, clonePath, hashMap)
 	if err != nil {
 		return err
 	}
