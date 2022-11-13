@@ -11,6 +11,7 @@ const ErrNotAuthenticated = "Please run `dvcs login` to authenticate."
 
 // Formatting
 const TimeFormat = "2006-01-02 @ 03:04:05pm"
+const ProjectSlugRegex = "^[\\w\\.]+/[\\w\\.]+$"
 
 // Auth0
 const Auth0DomainDev = "https://dev--4bueuyj.us.auth0.com"

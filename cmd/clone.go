@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/decentvcs/cli/config"
 	"github.com/decentvcs/cli/constants"
@@ -26,21 +28,35 @@ func CloneProject(c *cli.Context) error {
 	// Get project blob from first arg
 	slug := c.Args().First()
 	if slug == "" {
-		return console.Error("Please specify a project in the format of \"<team_name>/<project_name>\"")
+		return console.Error("Please specify a project in the format \"<team_name>/<project_name>\"")
 	}
 
-	// Get clone path from second arg
-	clonePath, err := filepath.Abs(c.String("path"))
-	if err != nil {
-		return console.Error("Invalid path")
+	// Validate slug
+	if matched, _ := regexp.MatchString(constants.ProjectSlugRegex, slug); !matched {
+		return console.Error("Invalid project slug. Please use the format \"<team_name>/<project_name>\"")
 	}
+
+	projectName := strings.Split(slug, "/")[1]
+
+	// Get clone path from second arg
+	cloneDirRel := c.Args().Get(1)
+	if cloneDirRel == "" {
+		cloneDirRel = "." // current directory
+	}
+
+	cloneDirAbs, err := filepath.Abs(cloneDirRel)
+	if err != nil {
+		return console.Error("Invalid clone path")
+	}
+
+	clonePath := filepath.Join(cloneDirAbs, projectName)
 
 	// Get branch name
 	branchName := c.String("branch")
 
-	// Check if already in project directory
+	// Check if clone path is already a project directory
 	if _, err := os.Stat(filepath.Join(clonePath, constants.ProjectFileName)); !os.IsNotExist(err) {
-		return console.Error("A project already exists in the current directory")
+		return console.Error("A project already exists at %s", clonePath)
 	}
 
 	// Get project
