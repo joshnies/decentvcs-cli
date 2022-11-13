@@ -49,8 +49,10 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	teamName := strings.Split(projectConfig.ProjectSlug, "/")[0]
+
 	// Create access key
-	accessKey := auth.CreateAccessKey(strings.Split(projectConfig.ProjectSlug, "/")[0], constants.ScopeTeamUpdateUsage)
+	accessKey := auth.CreateAccessKey(teamName, constants.ScopeTeamUpdateUsage)
 
 	// Presign objects in chunks
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
@@ -201,6 +203,11 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 
 	endTime := time.Now()
 	console.Info("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+
+	// Delete access key
+	// NOTE: Error is ignored on purpose since alerting the user could be a security risk
+	auth.DeleteAccessKey(teamName, accessKey.ID)
+
 	return nil
 }
 
@@ -486,8 +493,10 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 	console.Info("Getting things ready...")
 	startTime := time.Now()
 
+	teamName := strings.Split(projectConfig.ProjectSlug, "/")[0]
+
 	// Create access key
-	accessKey := auth.CreateAccessKey(strings.Split(projectConfig.ProjectSlug, "")[0], constants.ScopeTeamUpdateUsage)
+	accessKey := auth.CreateAccessKey(teamName, constants.ScopeTeamUpdateUsage)
 
 	// Get presigned URLs
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
@@ -559,6 +568,11 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 
 	endTime := time.Now()
 	console.Info("Downloaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+
+	// Delete access key
+	// NOTE: Error is ignored on purpose since alerting the user could be a security risk
+	auth.DeleteAccessKey(teamName, accessKey.ID)
+
 	return nil
 }
 
