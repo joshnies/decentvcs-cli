@@ -17,7 +17,7 @@ func main() {
 	app := &cli.App{
 		Name:      "dvcs",
 		Usage:     "DecentVCS CLI",
-		Version:   "0.0.1",
+		Version:   "1.0.0",
 		Copyright: "Copyright 2022 Decent, LLC. All rights reserved.",
 		Authors: []*cli.Author{
 			{
