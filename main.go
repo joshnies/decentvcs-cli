@@ -39,15 +39,10 @@ func main() {
 			{
 				Name:      "init",
 				Usage:     "Initialize a new project",
-				ArgsUsage: "[path]",
+				ArgsUsage: "[slug]",
 				Aliases:   []string{"i"},
 				Action:    cmd.Init,
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "name",
-						Aliases: []string{"n"},
-						Usage:   "Name of the project",
-					},
 					&cli.BoolFlag{
 						Name:    "patch",
 						Aliases: []string{"p"},
@@ -58,15 +53,9 @@ func main() {
 			{
 				Name:      "clone",
 				Usage:     "Clone a project to your local machine",
-				ArgsUsage: "[blob]",
+				ArgsUsage: "[slug] [path?]",
 				Action:    cmd.CloneProject,
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "path",
-						Value:   ".",
-						Aliases: []string{"p"},
-						Usage:   "Local path to directory for cloning project into",
-					},
 					&cli.StringFlag{
 						Name:    "branch",
 						Aliases: []string{"b"},
