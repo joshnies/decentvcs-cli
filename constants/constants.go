@@ -24,6 +24,8 @@ const ZstdHeader = "28b52ffd"
 
 // VCS server
 const SessionTokenHeader = "X-Session-Token"
+const AccessKeyHeader = "X-Access-Key"
+const ScopeTeamUpdateUsage = "team:update_usage"
 
 // File system
 const ProjectFileName = ".decent"

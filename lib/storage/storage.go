@@ -45,12 +45,16 @@ type AdditionalPresignData struct {
 func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) error {
 	auth.HasToken()
 
+	console.Info("Getting things ready...")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	teamName := strings.Split(projectConfig.ProjectSlug, "/")[0]
+
+	// Create access key
+	accessKey := auth.CreateAccessKey(teamName, constants.ScopeTeamUpdateUsage)
+
 	// Presign objects in chunks
-	// This is done in chunks to avoid Stytch rate limiting due to the sheer amount of authentication requests
-	console.Info("Getting things ready...")
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
 	presignRes := make(map[string]models.PresignResponse)    // map of file path to presign response
 	additionalData := make(map[string]AdditionalPresignData) // map of file path to additional data
@@ -136,10 +140,7 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 
 		httpClient := http.Client{}
 		reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
-		req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
-		if err != nil {
-			panic(err)
-		}
+		req, _ := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
 		req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
 		req.Header.Add("Content-Type", "application/json")
 		res, err := httpClient.Do(req)
@@ -183,6 +184,7 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 
 		// Upload
 		go upload(ctx, UploadParams{
+			AccessKey:     &accessKey,
 			UploadID:      presignRes.UploadID,
 			URLs:          presignRes.URLs,
 			ProjectConfig: projectConfig,
@@ -201,10 +203,16 @@ func UploadMany(projectConfig models.ProjectConfig, hashMap map[string]string) e
 
 	endTime := time.Now()
 	console.Info("Uploaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+
+	// Delete access key
+	// NOTE: Error is ignored on purpose since alerting the user could be a security risk
+	auth.DeleteAccessKey(teamName, accessKey.ID)
+
 	return nil
 }
 
 type UploadParams struct {
+	AccessKey     *models.AccessKey
 	UploadID      string
 	URLs          []string
 	ProjectConfig models.ProjectConfig
@@ -260,7 +268,7 @@ func upload(ctx context.Context, params UploadParams) {
 		panic(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	req.Header.Set(constants.AccessKeyHeader, params.AccessKey.ID)
 	res, err := httpClient.Do(req)
 	if err != nil {
 		panic(err)
@@ -339,7 +347,7 @@ func uploadMultipart(ctx context.Context, params UploadParams, fileBytes []byte)
 	for i, url := range params.URLs {
 		wg.Add(1)
 		partNum := i + 1
-		go uploadPart(ctx, uploadPartParams{
+		go uploadPart(ctx, UploadPartParams{
 			ProjectID:   params.ProjectConfig.ProjectSlug,
 			URL:         url,
 			Hash:        params.Hash,
@@ -393,7 +401,7 @@ func uploadMultipart(ctx context.Context, params UploadParams, fileBytes []byte)
 	console.Verbose("[%s] Complete", params.Hash)
 }
 
-type uploadPartParams struct {
+type UploadPartParams struct {
 	ProjectID   string
 	URL         string
 	Hash        string
@@ -406,7 +414,7 @@ type uploadPartParams struct {
 }
 
 // Upload part to storage for a multipart upload.
-func uploadPart(ctx context.Context, params uploadPartParams) {
+func uploadPart(ctx context.Context, params UploadPartParams) {
 	defer params.WG.Done()
 
 	console.Verbose("[%s] (Part %d/%d) Uploading...", params.Hash, params.PartNumber, params.TotalParts)
@@ -482,10 +490,15 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	console.Info("Getting things ready...")
 	startTime := time.Now()
 
+	teamName := strings.Split(projectConfig.ProjectSlug, "/")[0]
+
+	// Create access key
+	accessKey := auth.CreateAccessKey(teamName, constants.ScopeTeamUpdateUsage)
+
 	// Get presigned URLs
-	console.Info("Getting things ready...")
 	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
 	presignRes := make(map[string]models.PresignResponse)
 	for chunkIdx, hashMapChunk := range hashMapChunked {
@@ -538,6 +551,7 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 			return console.Error("Unknown file hash \"%s\"", key)
 		}
 		params := DownloadParams{
+			AccessKey:     &accessKey,
 			ProjectConfig: projectConfig,
 			Destination:   dest,
 			FilePath:      path,
@@ -554,10 +568,16 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 
 	endTime := time.Now()
 	console.Info("Downloaded %d files in %s", len(hashMap), endTime.Sub(startTime))
+
+	// Delete access key
+	// NOTE: Error is ignored on purpose since alerting the user could be a security risk
+	auth.DeleteAccessKey(teamName, accessKey.ID)
+
 	return nil
 }
 
 type DownloadParams struct {
+	AccessKey     *models.AccessKey
 	ProjectConfig models.ProjectConfig
 	Destination   string
 	FilePath      string
