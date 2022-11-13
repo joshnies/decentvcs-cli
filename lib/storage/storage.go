@@ -485,40 +485,47 @@ func DownloadMany(projectConfig models.ProjectConfig, dest string, hashMap map[s
 	startTime := time.Now()
 
 	// Get presigned URLs
-	console.Verbose("Presigning all objects...")
-	bodyData := lo.Map(maps.Values(hashMap), func(hash string, _ int) models.PresignOneRequest {
-		return models.PresignOneRequest{
-			Method: "GET",
-			Key:    hash,
-		}
-	})
-	bodyJson, err := json.Marshal(bodyData)
-	if err != nil {
-		return err
-	}
-
-	httpClient := http.Client{}
-	reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
-	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
-	if err != nil {
-		return err
-	}
-	req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
-	req.Header.Add("Content-Type", "application/json")
-	res, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	if err = httpvalidation.ValidateResponse(res); err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	// Parse response
+	console.Info("Getting things ready...")
+	hashMapChunked := util.ChunkMap(hashMap, config.I.VCS.Storage.PresignChunkSize)
 	presignRes := make(map[string]models.PresignResponse)
-	err = json.NewDecoder(res.Body).Decode(&presignRes)
-	if err != nil {
-		return err
+	for chunkIdx, hashMapChunk := range hashMapChunked {
+		console.Verbose("Presigning chunk %d/%d...", chunkIdx+1, len(hashMapChunked))
+		bodyData := lo.Map(maps.Values(hashMapChunk), func(hash string, _ int) models.PresignOneRequest {
+			return models.PresignOneRequest{
+				Method: "GET",
+				Key:    hash,
+			}
+		})
+		bodyJson, err := json.Marshal(bodyData)
+		if err != nil {
+			return err
+		}
+
+		httpClient := http.Client{}
+		reqUrl := fmt.Sprintf("%s/projects/%s/storage/presign/many", config.I.VCS.ServerHost, projectConfig.ProjectSlug)
+		req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(bodyJson))
+		if err != nil {
+			return err
+		}
+		req.Header.Add(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+		req.Header.Add("Content-Type", "application/json")
+		res, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err = httpvalidation.ValidateResponse(res); err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		// Parse response
+		newRes := make(map[string]models.PresignResponse)
+		err = json.NewDecoder(res.Body).Decode(&newRes)
+		if err != nil {
+			return err
+		}
+
+		presignRes = util.MergeMaps(presignRes, newRes)
 	}
 
 	// Download objects in parallel (limited to pool size)
