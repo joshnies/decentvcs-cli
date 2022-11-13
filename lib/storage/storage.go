@@ -639,7 +639,7 @@ func download(ctx context.Context, params DownloadParams) {
 		panic(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(constants.SessionTokenHeader, config.I.Auth.SessionToken)
+	req.Header.Set(constants.AccessKeyHeader, params.AccessKey.ID)
 	res, err = httpClient.Do(req)
 	if err != nil {
 		panic(err)
